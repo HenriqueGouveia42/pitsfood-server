@@ -90,4 +90,21 @@ export class PrismaUserRepository implements IUserRepository {
         );       
     }
 
+    async findUserByUsername(username: string): Promise<User> {
+        
+        const prismaUserData = await prisma.user.findFirst({
+            where:{
+                username
+            }
+        })
+
+        if (!prismaUserData){
+            throw new Error(`Usuario username ${username} nao encontrado`)
+        }
+
+        const entityUser:User = PrismaUserRepository.prismaToEntityDataMapper(prismaUserData);
+
+        return entityUser;
+    }
+
 }

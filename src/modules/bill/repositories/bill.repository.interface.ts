@@ -1,10 +1,11 @@
 import type { Bill } from "../entities/bill.js";
 
 export interface IBillRepository {
-    saveBill(bill: Bill): Promise<void>;
-    findSavedBillById(bill_id: string): Promise<Bill>;
-    findSavedBillByGtinCode(gtin_code: string): Promise<Bill>;
-    updateSavedBill(bill: Bill): Promise<Bill>;
+    createOpenBill(bill: Bill): Promise<void>; //uso para seeding do banco de dados
+    createOpenBillBulk(bills: Bill[]): Promise<void>; //uso para seeding do banco de dados
+    findOpenBillByGtinCode(gtin_code: string): Promise<Bill>;
+    findBillById(bill_id: string): Promise<Bill>;
+    billWithThisGtinCodeExists(gtin_code: string): Promise<boolean>;
+    updateSavedBill(bill: Bill): Promise<void>
     listSavedBills(): Promise<Bill[]>;
-    deleteSavedBillById(bill_id: string): Promise<void>;
 }

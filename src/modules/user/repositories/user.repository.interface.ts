@@ -5,4 +5,5 @@ export interface IUserRepository {
     findSavedUserById(user_id: string): Promise<User>;
     updateSavedUser(user: User): Promise<void>;
     listAllSavedUsers(active: boolean): Promise<User[]>;
+    findUserByUsername(username: string): Promise<User>
 }

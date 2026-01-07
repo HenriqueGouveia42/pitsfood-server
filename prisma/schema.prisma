@@ -77,7 +77,7 @@ model Product {
 //representa uma comanda
 model Bill {
   bill_id        String     @id
-  bill_code_gtin String     // O código físico (papel) "202..."
+  bill_code_gtin String     // O código físico (papel)
   status         BillStatus
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt

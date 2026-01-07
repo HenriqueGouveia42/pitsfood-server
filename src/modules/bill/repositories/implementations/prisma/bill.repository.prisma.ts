@@ -11,6 +11,7 @@ export enum BillStatus{
 
 export class PrismaBillRepository implements IBillRepository {
 
+    //mappers
     private static entityToPrismaDataMapper(bill: Bill): any{
         return{
             bill_id: bill.bill_id,
@@ -18,7 +19,16 @@ export class PrismaBillRepository implements IBillRepository {
             status: bill.status,
             created_at: bill.createdAt,
             updated_at: bill.updatedAt,
-            items: bill.items
+            items: bill.items.map(item => ({
+                bill_item_id: item.bill_item_id,
+                quantity: item.quantity,
+                price_at_addition: item.price_at_addition,
+
+                product_id: item.product_id,
+                user_id: item.user_id,
+
+                bill_id: bill.bill_id
+            }))
         }
     }
 
@@ -44,41 +54,8 @@ export class PrismaBillRepository implements IBillRepository {
 
     }
 
-    async saveBill(bill: Bill): Promise<void> {
-
-        const rawPrismaData = PrismaBillRepository.entityToPrismaDataMapper(bill);
-
-        console.log(rawPrismaData)
-
-        const { items, ...prismaData} = rawPrismaData;
-
-        await prisma.$transaction(async (tx) =>{
-
-            const alreadyOpennedBill = await tx.bill.findFirst({
-                where:{
-                    bill_code_gtin: bill.bill_code,
-                    status: BillStatus.ABERTA
-                }
-            })
-
-            if(alreadyOpennedBill){
-                throw new Error("Proibido Cria Nova comanda pois esta comanda física ainda está aberta")
-            }
-
-            await tx.bill.create({
-                data: prismaData
-            })
-
-        })
-
-       
-    }
-
-    findSavedBillById(bill_id: string): Promise<Bill> {
-        throw new Error("Method not implemented.");
-    }
-
-    async findSavedBillByGtinCode(gtin_code: string): Promise<Bill> {
+    //methods
+    async findOpenBillByGtinCode(gtin_code: string): Promise<Bill> {
 
         const prismaBill = await prisma.bill.findFirst({
             where:{
@@ -100,61 +77,113 @@ export class PrismaBillRepository implements IBillRepository {
 
     }
 
-    async updateSavedBill(bill: Bill): Promise<Bill> {
+    async createOpenBill(bill: Bill): Promise<void> {
 
-        const mappedBill = PrismaBillRepository.entityToPrismaDataMapper(bill)
+        const rawPrismaData = PrismaBillRepository.entityToPrismaDataMapper(bill);
 
-        //const {bill_id, created_at, ...dataToUpdate} = mappedBill;
-        const { bill_id, created_at, items, ...dataToUpdate } = mappedBill;
+        const { items, ...prismaData} = rawPrismaData;
 
-        let updatedPrismaBill;
+        await prisma.$transaction(async (tx) =>{
+
+            const alreadyOpennedBill = await tx.bill.findFirst({
+                where:{
+                    bill_code_gtin: bill.bill_code,
+                    status: BillStatus.ABERTA
+                }
+            })
+
+            if(alreadyOpennedBill){
+                throw new Error("Proibido criar novo uso de comanda pois esta comanda física ainda está aberta")
+            }
+
+            await tx.bill.create({
+                data: prismaData
+            })
+
+        })
+
+       
+    }
+
+    async createOpenBillBulk(bills: Bill[]): Promise<void> {
+
+        const dataToInsert = bills.map(bill =>{
+            const mapped = PrismaBillRepository.entityToPrismaDataMapper(bill);
+            const { items, ...scalarData} = mapped;
+            return scalarData;
+        })
+
+        await prisma.bill.createMany({
+            data: dataToInsert
+        })
+
+    }
+
+    async findBillById(bill_id: string): Promise<Bill> {
+
+        const prismaBill = await prisma.bill.findUnique({
+            where:{
+                bill_id
+            }
+        })
+
+        if (!prismaBill){
+            throw new Error("Comanda nao encontrada");
+        }
+
+        const bill: Bill = PrismaBillRepository.prismaToEntityDataMapper(prismaBill);
+
+        return bill;
+    }
+
+    async updateSavedBill(bill: Bill): Promise<void>{
         
+        const rawMappedData = PrismaBillRepository.entityToPrismaDataMapper(bill);
+
+        const {items, ...billHeaderdata } = rawMappedData;
+
         await prisma.$transaction(async (tx) =>{
 
             await tx.bill.update({
                 where:{
                     bill_id: bill.bill_id
                 },
-                data: dataToUpdate
+                data: billHeaderdata
             })
 
-            // Sincroniza itens: Deleta existentes e cria novos
             await tx.billProduct.deleteMany({
-                where: { bill_id: bill.bill_id },
-            });
+                where:{
+                    bill_id: bill.bill_id
+                }
+            })
 
-            if (bill.items.length > 0) {
+            if (items && items.length > 0){
                 await tx.billProduct.createMany({
-                    data: bill.items.map(item => ({
-                        bill_item_id: item.bill_item_id,
-                        quantity: item.quantity,
-                        price_at_addition: item.price_at_addition.toNumber(),
-                        bill_id: bill.bill_id,
-                        product_id: item.product_id,
-                        user_id: item.user_id,
-                    })),
-                });
+                    data: items
+                })
             }
 
-            //recupera o atualizado com itens
-            updatedPrismaBill = await tx.bill.findUnique({
-                where: { bill_id: bill.bill_id },
-                include: { items: true },
-            });
-        
+        })
+    }
+
+
+    async billWithThisGtinCodeExists(gtin_code: string){
+
+        const billExists = await prisma.bill.findFirst({
+            where:{
+                bill_code_gtin: gtin_code
+            }
         })
 
-        if (!updatedPrismaBill) {
-            throw new Error("Erro ao atualizar comanda");
+        if (!billExists){
+            return false
+        } else{
+            return true
         }
-
-        return PrismaBillRepository.prismaToEntityDataMapper(updatedPrismaBill);
     }
 
     listSavedBills(): Promise<Bill[]> {
         throw new Error("Method not implemented.");
     }
-    deleteSavedBillById(bill_id: string): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
+    
 }

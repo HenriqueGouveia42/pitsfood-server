@@ -1,16 +1,15 @@
 import { Decimal } from 'decimal.js';
 import { Product } from '../../product/entities/product.js';
-import { User } from '../../user/entities/user.js';
 
 //tipo de um item na comanda
 export type BillItemProps = {
     readonly bill_item_id:  string; //representa uma adição específica em uma comanda específica
-    readonly user_id: string; //quem adicionou
-    readonly product_id: string; //qual produto
     readonly quantity: number; //quantidade
     readonly price_at_addition: Decimal;
+    readonly bill_id: string, //de qual comanda veio
+    readonly product_id: string; //qual produto
+    readonly user_id: string; //quem adicionou
 }
-
 
 //estados possiveis de uma comanda
 export enum billStates{
@@ -105,7 +104,7 @@ export class Bill {
     get updatedAt() {return this.props.updated_at}
     get items() {return this.props.items}
 
-    public withClosedBill(): Bill{ //fechar comanda - realizar venda
+    public close(): Bill{ //fechar comanda - realizar venda
 
         if(this.props.status === billStates.FECHADA){
             throw new Error("Essa comanda já está fechada");
@@ -122,7 +121,7 @@ export class Bill {
         })
     }
 
-    public withReopenedBill(): Bill{ //reabrir comanda - venda realizada - adicionar mais itens
+    public reopen(): Bill{ //reabrir comanda - venda realizada - adicionar mais itens
 
         if(this.props.status !== billStates.FECHADA){
             throw new Error("Apenas comandas fechadas podem ser reabertas");
@@ -134,7 +133,7 @@ export class Bill {
         })
     }
 
-    public withNewProductAddedToBill(product: Product, quantity: number, user_id: string): Bill {
+    public addProduct(product: Product, quantity: number, user_id: string): Bill {
 
         //validacoes de quantidade e estatus da comanda
         if (quantity <= 0) throw new Error("A quantidade deve ser maior que zero.");
@@ -183,7 +182,7 @@ export class Bill {
        return new Bill({...this.props, items: itemsToAdd, updated_at: new Date().toISOString()});
     }
 
-    public withProductRemovedFromBill(product_id: string, quantityToRemove: number): Bill {
+    public removeProduct(product_id: string, quantityToRemove: number): Bill {
         
         //validacoes basicas
         if (this.props.status !== billStates.ABERTA) {
@@ -263,7 +262,7 @@ export class Bill {
         });
     }
 
-    public withCancelledBill(): Bill {
+    public cancellBill(): Bill {
 
         if (this.props.status !== billStates.ABERTA) {
             throw new Error("Apenas comandas abertas podem ser canceladas.");
@@ -275,9 +274,13 @@ export class Bill {
         });
     }
 
-    public calculateTotalBillAmount(): Decimal {   
+    public totalBillAmount(): Decimal {   
         return this.props.items.reduce((acc, item) => {
             return acc.plus(item.price_at_addition.times(item.quantity));
         }, new Decimal(0));
+    }
+
+    public toPrimitives(): BillProps{
+        return this.props
     }
 }

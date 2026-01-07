@@ -1,11 +1,12 @@
 import { Product, type ProductProps } from '../../../entities/product.js';
-import type { ProductRepository } from '../../product.repository.interface.js';
+import type { IProductRepository } from '../../product.repository.interface.js';
 
 import { prisma } from "../../../../../shared/infra/prisma.js"
 
 
-export class PrismaProductRepository implements ProductRepository {
+export class PrismaProductRepository implements IProductRepository {
 
+    //mappers
     private static prismaToEntityDataMapper(prismaProduct: any): Product {
 
         const productProps: ProductProps = {
@@ -35,6 +36,7 @@ export class PrismaProductRepository implements ProductRepository {
         }
     }
 
+    //methods
     async saveProduct(product: Product): Promise<void> {
 
         const entityToPrismaDataMapped = PrismaProductRepository.entityToPrismaDataMapper(product);
@@ -74,6 +76,20 @@ export class PrismaProductRepository implements ProductRepository {
         const product: Product = PrismaProductRepository.prismaToEntityDataMapper(prismaProduct);
 
         return product;
+    }
+
+    async findManySavedProductsByGtinCodes(gtin_codes: string[]): Promise<Product[]>{
+
+        const prisma_products: any[] = await prisma.product.findMany({
+            where:{
+                gtin_code:{
+                    in: gtin_codes
+                },
+                active: true
+            }
+        })
+
+        return prisma_products.map(p => PrismaProductRepository.prismaToEntityDataMapper(p));
     }
 
     async updateSavedProduct(product: Product): Promise<Product> {
