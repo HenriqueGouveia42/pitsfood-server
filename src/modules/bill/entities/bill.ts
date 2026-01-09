@@ -170,10 +170,11 @@ export class Bill {
 
             const newItem: BillItemProps = {
                 bill_item_id: crypto.randomUUID().toString(),
-                user_id: user_id,
-                product_id: product.id,
                 quantity: quantity,
-                price_at_addition: product.price
+                price_at_addition: product.price,
+                bill_id: this.props.bill_id,
+                product_id: product.id,
+                user_id: user_id,
             }
 
             itemsToAdd.push(newItem);

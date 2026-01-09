@@ -10,7 +10,7 @@ interface IRequest {
     password: string
 }
 
-interface IResponse {
+export interface ILoginResponse {
     token: string,
     user: {
         id: string,
@@ -28,7 +28,7 @@ export class LoginUseCase {
         private userRepository: IUserRepository
     ) {}
 
-    async execute({ username, password }:IRequest): Promise<IResponse>{
+    async execute({ username, password }:IRequest): Promise<ILoginResponse>{
 
         const user: User = await this.userRepository.findUserByUsername(username);
 
