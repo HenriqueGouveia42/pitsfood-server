@@ -6,8 +6,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "tsx watch src/test.ts",
-    "seedingBills": "tsx src/seedingBills.ts"
+    "test": "tsx watch src/git_untracked_tests/test.ts",
+    "seedingBills": "tsx src/seedingBills.ts",
+    "get_bills": "tsx src/git_untracked_tests/bills_gtins.ts"
   },
   "keywords": [],
   "author": "",

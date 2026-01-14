@@ -32,7 +32,7 @@ export type SaleProductProp = { //representa um produto numa venda fechada
 
 export type SaleProp = { //representa uma venda fechada
     readonly sale_id: string;
-    readonly total_price: Decimal;
+    readonly total_price: Decimal; // Valor TOTAL DA VENDA (Custo dos itens)
     readonly status: SaleStatus;
     readonly user_id: string;
     readonly created_at: string,
@@ -42,64 +42,72 @@ export type SaleProp = { //representa uma venda fechada
     readonly payments: SalePaymentProp[];
 }
 
+//interface para o input do buildSale (Pattern: Parameter Object)
+interface BuildSaleParams {
+    user_id: string;
+    items: SaleProductProp[];
+    payments: SalePaymentProp[];
+    sale_id?: string; // Opcional, não importa a ordem aqui dentro
+}
+
 
 export class Sale {
 
     private constructor(private readonly props: SaleProp) {}
 
     private static validateTotals(totalAmountFromItems: Decimal, totalPaid: Decimal) {
-        
         if (totalPaid.lessThan(totalAmountFromItems)) {
-             throw new Error(`Pagamento menor do que o valor da conta. Total Venda: ${totalAmountFromItems}, Total Pago: ${totalPaid}`);
+            throw new Error(`Pagamento menor do que o valor da conta. Total Venda: ${totalAmountFromItems}, Total Pago: ${totalPaid}`);
         }
     }
 
-    public static buildSale( //venda fechada
-        user_id: string,
-        items: SaleProductProp[],      
-        payments: SalePaymentProp[], // Recebe Input (sem ID)
-
-    ): Sale {
+    public static buildSale(params: BuildSaleParams): Sale {
         
-        if (items.length === 0) {
+        if (params.items.length === 0) {
             throw new Error("Não é possível criar uma venda sem itens.");
         }
 
         //o preco da venda é a soma dos itens
-        const calculatedTotalPrice = items.reduce((acc, item) => {
+        const calculatedTotalPrice: Decimal = params.items.reduce((acc, item) => {
             return acc.plus(item.unit_price_sold.times(item.quantity));
         }, new Decimal(0));
 
         //quanto foi pago
-        const calculatedTotalPaid = payments.reduce((acc, pay) => {
+        const calculatedTotalPaid = params.payments.reduce((acc, pay) => {
             return acc.plus(pay.amount);
         }, new Decimal(0));
 
         //valida consistencia
         Sale.validateTotals(calculatedTotalPrice, calculatedTotalPaid);
 
-        const now = new Date().toISOString();
-        const newSaleId = crypto.randomUUID();
+        const now: string = new Date().toISOString();
+
+       const finalSaleId = params.sale_id || crypto.randomUUID();
 
         return new Sale({
-            sale_id: newSaleId,
+            sale_id: finalSaleId,
             total_price: calculatedTotalPrice,
-            status: SaleStatus.CONCLUIDA, //VENDA FECHADA!!
-            user_id,
+            status: SaleStatus.CONCLUIDA,
+            user_id: params.user_id,
             created_at: now,
             updated_at: now,
-            items,
-            payments
+            items: params.items,
+            payments: params.payments
         });
     }
 
     //getters
     get id() { return this.props.sale_id; }
     get userId() { return this.props.user_id; }
-    get total() { return this.props.total_price; }
+    get total() { return this.props.total_price; }    
     get status() { return this.props.status; }
     get items() { return this.props.items; }
     get payments() { return this.props.payments; }
+    get createdAt() { return this.props.created_at; }
+    get updatedAt() { return this.props.updated_at; }
+    get amountPaid() {
+        return this.props.payments.reduce((acc, pay) => acc.plus(pay.amount), new Decimal(0));
+    }
 
     public withCancelledStatus(): Sale {
         if (this.props.status !== SaleStatus.CONCLUIDA) {

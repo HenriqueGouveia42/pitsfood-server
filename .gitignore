@@ -1,6 +1,6 @@
 node_modules/
 test.test
-tests/
+git_untracked_tests/
 .env
 /src/generated/prisma
 

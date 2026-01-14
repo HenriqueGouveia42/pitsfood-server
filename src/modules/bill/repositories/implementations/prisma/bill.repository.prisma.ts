@@ -46,7 +46,8 @@ export class PrismaBillRepository implements IBillRepository {
                     user_id: item.user_id,
                     product_id: item.product_id,
                     quantity: item.quantity,
-                    price_at_addition: new Decimal(item.price_at_addition)
+                    price_at_addition: new Decimal(item.price_at_addition),
+                    bill_id: item.bill_id
                 }))
                 :   []      
         }
@@ -55,7 +56,7 @@ export class PrismaBillRepository implements IBillRepository {
     }
 
     //methods
-    async findOpenBillByGtinCode(gtin_code: string): Promise<Bill> {
+    async findOpenBillByGtinCode(gtin_code: string): Promise<Bill | null> {
 
         const prismaBill = await prisma.bill.findFirst({
             where:{
@@ -68,7 +69,7 @@ export class PrismaBillRepository implements IBillRepository {
         })
 
         if(!prismaBill){
-            throw new Error(`Comanda com o gtin_code ${gtin_code} não encontrada`)
+            return null
         }
 
         const entityBill: Bill = PrismaBillRepository.prismaToEntityDataMapper(prismaBill);
@@ -181,6 +182,60 @@ export class PrismaBillRepository implements IBillRepository {
             return true
         }
     }
+
+
+    async findManyOpenBillsByGtinCodes(bill_code_gtins: string[]){
+
+        const prismaBills = await prisma.bill.findMany({
+            where:{
+                bill_code_gtin:{
+                    in: bill_code_gtins
+                },
+                status: BillStatus.ABERTA
+            },
+            include: {
+                items: true
+            }
+        })
+
+        const entityBills: Bill[] = prismaBills.map(item => PrismaBillRepository.prismaToEntityDataMapper(item));
+
+        return entityBills;
+    }
+
+    async closeManyBillsByGtinsCodes(bill_code_gtins: string[]): Promise<Bill[]>{
+
+        const manyBillsUpdated = await prisma.bill.updateMany({
+            where:{
+                bill_code_gtin:{
+                    in: bill_code_gtins
+                },
+                status: BillStatus.ABERTA
+            },
+            data:{
+                status: BillStatus.FECHADA,
+                updated_at: new Date().toISOString()
+            }
+        })
+
+        const prismaBills = await prisma.bill.findMany({
+            where:{
+                bill_code_gtin:{
+                    in: bill_code_gtins
+                },
+                status: BillStatus.FECHADA
+            },
+            include:{
+                items: true
+            }
+        });
+
+        const billEntities: Bill[] = prismaBills.map(b => PrismaBillRepository.prismaToEntityDataMapper(b));
+
+        return billEntities;
+
+    }
+
 
     listSavedBills(): Promise<Bill[]> {
         throw new Error("Method not implemented.");
