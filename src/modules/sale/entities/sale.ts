@@ -1,4 +1,5 @@
 import { Decimal } from "decimal.js";
+import { AppError } from "../../../shared/errors/AppError.js";
 
 export enum SaleStatus {
     CONCLUIDA = "CONCLUIDA",
@@ -57,14 +58,14 @@ export class Sale {
 
     private static validateTotals(totalAmountFromItems: Decimal, totalPaid: Decimal) {
         if (totalPaid.lessThan(totalAmountFromItems)) {
-            throw new Error(`Pagamento menor do que o valor da conta. Total Venda: ${totalAmountFromItems}, Total Pago: ${totalPaid}`);
+            throw new AppError(`Pagamento menor do que o valor da conta. Total Venda: ${totalAmountFromItems}, Total Pago: ${totalPaid}`, 422, "INSUFICIENT_PAYMENT")
         }
     }
 
     public static buildSale(params: BuildSaleParams): Sale {
         
         if (params.items.length === 0) {
-            throw new Error("Não é possível criar uma venda sem itens.");
+            throw new AppError("Não é possível criar uma venda sem itens.", 402, "NO_ITENS" )
         }
 
         //o preco da venda é a soma dos itens
@@ -111,7 +112,7 @@ export class Sale {
 
     public withCancelledStatus(): Sale {
         if (this.props.status !== SaleStatus.CONCLUIDA) {
-            throw new Error("Apenas vendas concluídas podem ser canceladas.");
+            throw new AppError("Apenas vendas concluídas podem ser canceladas.", 409, "SALE_STATUS_CONFLICT")
         }
         
         return new Sale({

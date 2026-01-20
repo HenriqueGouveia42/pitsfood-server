@@ -3,6 +3,7 @@ import { Product } from "../../../product/entities/product.js"
 import type { IBillRepository } from "../../repositories/bill.repository.interface.js";
 import type { IProductRepository } from "../../../product/repositories/product.repository.interface.js"
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js"
+import { AppError } from "../../../../shared/errors/AppError.js";
 
 interface IItemRequest {
     product_gtin_code: string;
@@ -27,11 +28,11 @@ export class BatchAddItemsUseCase {
 
         const user = await this.userRepository.findSavedUserById(user_id);
         if (!user){
-            throw new Error("Usuario não encontrado");
+            throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND")
         }
 
         if(!items || items.length === 0){
-            throw new Error("Lista ausente ou sem itens")
+            throw new AppError("Lista ausente ou sem itens", 400, "LIST_ERROR" )
         }
 
         let currentBill: Bill | null = await this.billRepository.findOpenBillByGtinCode(bill_code_gtin);
@@ -41,10 +42,10 @@ export class BatchAddItemsUseCase {
             const isValidPhysicalBillCard: boolean = await this.billRepository.billWithThisGtinCodeExists(bill_code_gtin);
 
             if (!isValidPhysicalBillCard){
-                throw new Error("Comanda com esse gtin-code nao existe!")
+                throw new AppError("Comanda com esse gtin-code nao existe no sistema", 404, "BILL_NOT_FOUND")
             }
 
-            currentBill = Bill.buildBill(bill_code_gtin);
+            currentBill = Bill.buildOpenedBill(bill_code_gtin);
 
             await this.billRepository.createOpenBill(currentBill)
 
@@ -58,7 +59,8 @@ export class BatchAddItemsUseCase {
         if (productsFound.length != requestedGtinsUnique.length){
             const foundGtins = productsFound.map(p => p.gtin);
             const missingGtins = requestedGtinsUnique.filter(gtin => !foundGtins.includes(gtin));
-            throw new Error(`Produtos não encontrados ou inativos: ${missingGtins.join(', ')}`);
+
+            throw new AppError(`Produtos não encontrados ou inativos: ${missingGtins.join(', ')}`, 404, "PRODUCTS_NOT_FOUND")
         }
 
         for (const gtin of requestedGtinsUnique){
@@ -66,7 +68,7 @@ export class BatchAddItemsUseCase {
             const product = productsFound.find(p => p.gtin === gtin);
 
             if (!product){
-                throw new Error(`Erro de consistência: O produto ${gtin} sumiu da memoria`)
+                throw new AppError(`Erro de consistência: O produto ${gtin} sumiu da memoria`, 500, "PRODUCT_MISSING")
             }
 
             const totalQuantity = items

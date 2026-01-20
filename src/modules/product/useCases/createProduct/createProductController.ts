@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { CreateProductUseCase } from "./createProductUseCase.js"
 import { Decimal } from "decimal.js"
+import { AppError } from "../../../../shared/errors/AppError.js";
 
 export class CreateProductController{
 
@@ -26,8 +27,12 @@ export class CreateProductController{
                 return res.status(200).json({message: "Produto Criado com sucesso!"})
 
         }catch(error){
-            console.log(error);
-            return res.status(400).json({message: "Erro ao criar produto"})
+
+            if (error instanceof AppError){
+                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
+            }
+
+            return res.status(500).json({message: "Erro Interno ao criar produto"})
         }
 
     }

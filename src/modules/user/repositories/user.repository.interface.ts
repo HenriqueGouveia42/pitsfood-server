@@ -4,6 +4,7 @@ export interface IUserRepository {
     saveUser(user: User): Promise<void>;
     findSavedUserById(user_id: string): Promise<User>;
     updateSavedUser(user: User): Promise<void>;
-    listAllSavedUsers(active: boolean): Promise<User[]>;
-    findUserByUsername(username: string): Promise<User>
+    listAllSavedUsers(active?: boolean | undefined): Promise<User[]>;
+    findUserByUsername(username: string): Promise<User>;
+    getMainGestorId(): Promise<string | null>;
 }

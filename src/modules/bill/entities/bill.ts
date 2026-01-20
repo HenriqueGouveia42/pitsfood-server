@@ -5,10 +5,13 @@ import { Product } from '../../product/entities/product.js';
 export type BillItemProps = {
     readonly bill_item_id:  string; //representa uma adição específica em uma comanda específica
     readonly quantity: number; //quantidade
+    readonly product_name: string,
     readonly price_at_addition: Decimal;
     readonly bill_id: string, //de qual comanda veio
     readonly product_id: string; //qual produto
     readonly user_id: string; //quem adicionou
+    readonly product_gtin_code: string
+
 }
 
 //estados possiveis de uma comanda
@@ -76,7 +79,7 @@ export class Bill {
         }
     }
 
-    public static buildBill(bill_code_gtin: string): Bill {
+    public static buildClosedBill(bill_code_gtin: string): Bill {
 
         Bill.validateBillCode(bill_code_gtin);
 
@@ -85,7 +88,23 @@ export class Bill {
         return new Bill({
             bill_id: crypto.randomUUID().toString(),
             bill_code_gtin: bill_code_gtin,
-            status: billStates.ABERTA, //ao buildar um objeto de comanda, essa comanda física passa a poder receber itens - status ABERTA
+            status: billStates.FECHADA, //ao buildar um objeto de comanda, essa comanda física está fechada, ou seja
+            created_at: now,
+            updated_at: now,
+            items: [] //inicia sem itens
+        });
+    }
+
+    public static buildOpenedBill(bill_code_gtin: string): Bill {
+
+        Bill.validateBillCode(bill_code_gtin);
+
+        const now = new Date().toISOString();
+
+        return new Bill({
+            bill_id: crypto.randomUUID().toString(),
+            bill_code_gtin: bill_code_gtin,
+            status: billStates.ABERTA, //ao buildar um objeto de comanda, essa comanda física está fechada, ou seja
             created_at: now,
             updated_at: now,
             items: [] //inicia sem itens
@@ -175,6 +194,8 @@ export class Bill {
                 bill_id: this.props.bill_id,
                 product_id: product.id,
                 user_id: user_id,
+                product_name: product.name,
+                product_gtin_code: product.gtin
             }
 
             itemsToAdd.push(newItem);

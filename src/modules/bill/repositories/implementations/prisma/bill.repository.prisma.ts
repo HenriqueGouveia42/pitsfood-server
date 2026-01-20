@@ -23,6 +23,8 @@ export class PrismaBillRepository implements IBillRepository {
                 bill_item_id: item.bill_item_id,
                 quantity: item.quantity,
                 price_at_addition: item.price_at_addition,
+                product_name: item.product_name,
+                product_gtin_code: item.product_gtin_code,
 
                 product_id: item.product_id,
                 user_id: item.user_id,
@@ -47,7 +49,9 @@ export class PrismaBillRepository implements IBillRepository {
                     product_id: item.product_id,
                     quantity: item.quantity,
                     price_at_addition: new Decimal(item.price_at_addition),
-                    bill_id: item.bill_id
+                    bill_id: item.bill_id,
+                    product_name: item.product_name,
+                     product_gtin_code: item.product_gtin_code
                 }))
                 :   []      
         }
@@ -106,7 +110,7 @@ export class PrismaBillRepository implements IBillRepository {
        
     }
 
-    async createOpenBillBulk(bills: Bill[]): Promise<void> {
+    async createBillBulk(bills: Bill[]): Promise<void> {
 
         const dataToInsert = bills.map(bill =>{
             const mapped = PrismaBillRepository.entityToPrismaDataMapper(bill);
@@ -235,6 +239,23 @@ export class PrismaBillRepository implements IBillRepository {
         return billEntities;
 
     }
+
+    async findAllOpenBills(): Promise<Bill[]>{
+
+        const prismaOpenBills = await prisma.bill.findMany({
+            where:{
+                status: billStates.ABERTA
+            },
+            include:{
+                items: true
+            }
+        })
+
+        return prismaOpenBills.map(bill => 
+            PrismaBillRepository.prismaToEntityDataMapper(bill)
+        );
+    }
+
 
 
     listSavedBills(): Promise<Bill[]> {

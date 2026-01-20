@@ -1,18 +1,20 @@
 import type { Request, Response } from "express"
 import { LoginUseCase } from "./loginUseCase.js"
+import { AppError } from "../../../../shared/errors/AppError.js";
 
 export class LoginController {
 
     constructor(private loginUseCase: LoginUseCase) {}
 
     handle = async(req: Request, res: Response): Promise<Response> =>{
-        const { username, password } = req.body;
-
-        if (!username || !password) {
-            return res.status(400).json({ error: "Username e password são obrigatórios." });
-        }
 
         try{
+
+            const { username, password } = req.body;
+
+            if (!username || !password) {
+                return res.status(400).json({ error: "Username e password são obrigatórios." });
+            }
 
             const { token, user } = await this.loginUseCase.execute({
                 username,
@@ -34,7 +36,14 @@ export class LoginController {
             });
 
         }catch(error){
-            return res.status(401).json({message: "Erro ao fazer login"})
+
+            console.log(error);
+
+            if (error instanceof AppError){
+                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
+            }
+
+            return res.status(500).json({message: "Erro ao logar"})
         }
     }
 }

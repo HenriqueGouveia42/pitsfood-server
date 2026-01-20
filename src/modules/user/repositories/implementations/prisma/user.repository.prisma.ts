@@ -73,13 +73,21 @@ export class PrismaUserRepository implements IUserRepository {
         });
     }
 
-    async listAllSavedUsers(active: boolean): Promise<User[]> {
+    async listAllSavedUsers(active: boolean | undefined): Promise<User[]> {
 
-        const prismaUsers = await prisma.user.findMany({
-            where:{
-                active: active
-            }
-        });
+        let prismaUsers;
+        if(active != undefined ){
+
+            prismaUsers = await prisma.user.findMany({
+                where:{
+                    active: active
+                }
+            });
+
+        } else{
+            prismaUsers = await prisma.user.findMany()
+        }
+        
 
         if (prismaUsers.length === 0){
             return [];
@@ -105,6 +113,14 @@ export class PrismaUserRepository implements IUserRepository {
         const entityUser:User = PrismaUserRepository.prismaToEntityDataMapper(prismaUserData);
 
         return entityUser;
+    }
+
+    async getMainGestorId(): Promise<string | null> {
+        const mainGestor = await prisma.mainGestor.findFirst();
+        
+        if (!mainGestor) return null;
+        
+        return mainGestor.main_gestor_id;
     }
 
 }

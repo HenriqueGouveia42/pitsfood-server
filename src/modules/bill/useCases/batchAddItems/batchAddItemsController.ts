@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { BatchAddItemsUseCase } from "./batchAddItemsUseCase.js"
+import { AppError } from "../../../../shared/errors/AppError.js";
 
 export class BatchAddItemsController  {
     
@@ -34,8 +35,11 @@ export class BatchAddItemsController  {
 
             return res.status(200).json({ message: "Itens adicionados com sucesso" })
 
-        } catch(error: any) {
-            console.log(error)
+        } catch(error) {
+
+            if (error instanceof AppError){
+                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
+            }
             return res.status(400).json({message: "Erro"})
         }
     }

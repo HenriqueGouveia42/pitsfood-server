@@ -96,6 +96,8 @@ model BillProduct {
   bill_item_id      String  @id
   quantity          Int
   price_at_addition Decimal @db.Decimal(10, 2) // Preço congelado no momento do bipe
+  product_name      String
+  product_gtin_code String
 
   //chaves Estrangeiras
   bill_id    String
@@ -160,3 +162,17 @@ model SalePayment {
 
   @@map("sale_payments")
 }
+
+model MainGestor {
+  main_gestor_id String @id
+  singleton_guard Boolean @default(true) @unique
+}
+/*
+  Insere-se o 1º Gestor. O campo singleton_guard é salvo como true. Sucesso.
+
+  Tenta-se inserir um 2º Gestor. O Prisma tenta salvar singleton_guard como true (padrão).
+
+  O Banco (Postgres) grita: "Erro! Já existe uma linha com 'true' e essa coluna deve ser única!".
+
+  Resultado: É fisicamente impossível ter 2 gestores principais.
+*/

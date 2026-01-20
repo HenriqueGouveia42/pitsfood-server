@@ -1,7 +1,9 @@
 import type { Request, Response } from "express"
 import { GetOpenBillByGtinCodeUseCase } from "./getOpenBillByGtinCodeUseCase.js"
+import type { GetOpenBillResponseDTO } from "./getOpenBillByGtinCodeUseCase.js"
 
 import { Bill } from "../../entities/bill.js"
+import { AppError } from "../../../../shared/errors/AppError.js";
 
 
 export class GetOpenBillByGtinCodeController{
@@ -16,21 +18,24 @@ export class GetOpenBillByGtinCodeController{
             const { bill_code_gtin } = req.params;
 
             if (!bill_code_gtin){
-                throw new Error("gtin_code da comanda ausente")
+                throw new AppError("gtin_code da comanda ausente", 400, "GTIN_CODE_NOT_FOUND")
             }
 
-            const openBill: Bill = await this.getOpenBillByGtinCodeUseCase.execute(bill_code_gtin);
+            const openBillResponseDto: GetOpenBillResponseDTO = await this.getOpenBillByGtinCodeUseCase.execute(bill_code_gtin);
 
-            if(!openBill){
-                throw new Error(`Comanda com gtin_code: ${bill_code_gtin} nao encontrada!`);
+            if(!openBillResponseDto){
+                throw new AppError(`Comanda com gtin_code: ${bill_code_gtin} nao encontrada!`, 404, "BILL_NOT_FOUND")
             }
 
-            return res.status(200).json(openBill);
+            return res.status(200).json(openBillResponseDto);
 
         }catch(error){
-            console.log(error);
-            return res.status(400).json({message: "Erro ao buscar comanda aberta"});
 
+            if (error instanceof AppError){
+                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
+            }
+            
+            return res.status(500).json({message: "Erro interno"});
         }
 
     }
