@@ -8,16 +8,32 @@ import { getOpenBillByGtinCodeController } from "../../../useCases/getOpenBillBy
 import { findAllOpenBillsController } from "../../../useCases/findAllOpenBills/index.js"
 import { billCodeExistsController } from "../../../useCases/checkIfBillCodeExists/index.js";
 
+import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
+import { batchAddItemsSchema } from "../zodSchemas/batchAddItemsSchema.js";
+import { billCodeExistsSchema } from "../zodSchemas/BillCodeExistsSchema.js";
+import { GetOpenBillByGtinCodeSchema } from "../zodSchemas/GetOpenBillByGtinCodeSchema.js"
+
 const billRoutes = Router();
 
 billRoutes.post("/batch-add",
+    validateSchema(batchAddItemsSchema),
     authMiddleware,
     authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR]),
     (request, response) => {
     return batchAddItemsController.handle(request, response);
 })
 
+billRoutes.get("/bill-code-exists/:bill_code_gtin",
+    validateSchema(billCodeExistsSchema),
+    authMiddleware,
+    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR]),
+    (request, response) => {
+        return billCodeExistsController.handle(request, response);
+    }
+)
+
 billRoutes.get("/get-open-bill-by-gtin-code/:bill_code_gtin",
+    validateSchema(GetOpenBillByGtinCodeSchema),
     authMiddleware,
     authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR]),
     (request, response) =>{
@@ -32,11 +48,5 @@ billRoutes.get("/get-all-open-bills",
     }
 )
 
-billRoutes.get("/bill-code-exists/:bill_code_gtin",
-    authMiddleware,
-    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR]),
-    (request, response) => {
-        return billCodeExistsController.handle(request, response);
-    }
-)
+
 export { billRoutes }
