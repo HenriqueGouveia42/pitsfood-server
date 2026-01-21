@@ -5,9 +5,13 @@ import { createProductController } from "../../../useCases/createProduct/index.j
 import { getAllActiveProductsController } from "../../../useCases/getAllActiveProducts/index.js"
 import { UserRole } from "../../../../user/entities/user.js";
 
+import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js"
+import { CreateProductSchema } from "../zodSchemas/CreateProductSchema.js"
+
 const productRoutes = Router();
 
 productRoutes.post("/create-product",
+    validateSchema(CreateProductSchema),
     authMiddleware,
     authorizeRoles([UserRole.GESTOR]),
     (request, response) =>{

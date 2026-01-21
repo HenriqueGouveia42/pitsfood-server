@@ -10,9 +10,16 @@ import { updateUserDataController } from "../../../useCases/editUserData/index.j
 import { getUsersDataController } from "../../../useCases/getUsersData/index.js";
 import { createUserController } from "../../../useCases/createUser/index.js";
 
+import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
+import { createUserSchema } from "../zodSchemas/CreateUserSchema.js";
+import { updateUserDataSchema } from "../zodSchemas/UpdateUserDataSchema.js";
+import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
+import { loginSchema } from "../zodSchemas/LoginSchema.js";
 const userRoutes = Router();
 
-userRoutes.post("/login", (request, response) =>{
+userRoutes.post("/login",
+    validateSchema(loginSchema),
+    (request, response) =>{
     return loginController.handle(request, response);
 })
 
@@ -25,6 +32,7 @@ userRoutes.get("/logout", (request, response) =>{
 })
 
 userRoutes.get("/get-all-users-data",
+    validateSchema(getUsersDataSchema),
     authMiddleware,
     authorizeRoles([UserRole.GESTOR]),
     (request, response) =>{
@@ -33,6 +41,7 @@ userRoutes.get("/get-all-users-data",
 )
 
 userRoutes.patch("/update-user/:id",
+    validateSchema(updateUserDataSchema),
     authMiddleware,
     authorizeRoles([UserRole.GESTOR]),
     (request, response) =>{
@@ -41,6 +50,7 @@ userRoutes.patch("/update-user/:id",
 )
 
 userRoutes.post("/create-user",
+    validateSchema(createUserSchema),
     authMiddleware,
     authorizeRoles([UserRole.GESTOR]),
     (request, response) => {
