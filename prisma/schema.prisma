@@ -11,7 +11,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("MULTI_TENANT_DATABASE_URL")
 }
 
 enum UserRole {
@@ -39,57 +39,96 @@ enum PaymentMethod {
   CARTAO_CREDITO
 }
 
+model Store{
+  store_id String @id @default(uuid())
+  name String
+  cnpj  String?
+  active  Boolean @default(true)
+  created_at  DateTime @default(now())
+
+  users User[]
+  products Product[]
+  sales Sale[]
+  bills Bill[]
+
+  bill_products BillProduct[] 
+  sale_products SaleProduct[]
+  sale_payments SalePayment[]
+
+  @@map("stores")
+}
+
 //representa um usuário salvo no banco de dados
 model User {
   user_id       String   @id // UUID gerado pela aplicação
-  username      String   @unique
+  username      String   //@unique - username nao pode ser unique, pois se for unique, o mesmo username nao poderá se repetir em todo o banco de dados, o que é ruim, basta que o username nao se repita somente dentro da mesma loja
   password_hash String
   role          UserRole
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
   active        Boolean @default(true)
+  
+  store_id  String
+  store Store @relation(fields: [store_id], references: [store_id])
+
 
   //relacionamentos
   sales_closed  Sale[]        @relation("UserClosedSale")
   items_added   BillProduct[] @relation("UserAddedItem")
 
+  @@unique([username, store_id]) //um username deve ser unico APENAS dentro daquela loja
+  @@unique([user_id, store_id]) //indice composto que sera utilizado por BillProduct e Sale
   @@map("users")
 }
 
 //representa um produto salvo no banco de dados
 model Product {
   product_id          String   @id
-  name                String   @unique
+  name                String   //@unique - esse campo nao pode ser unique. Se for unique, um nome nao poderá se repetir ao longo de todo o banco de dados, o que nao tem necessidade, basta que ele seja unico dentro da loja
   unit_price_in_reais Decimal  @db.Decimal(10, 2)
-  gtin_code           String   @unique
+  gtin_code           String   //@unique - esse campo nao pode ser unique. Se for unique, a loja A nao vai poder cadastrar uma coca-cola se a loja B ja tiver cadastrado
   is_internal         Boolean
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
   active              Boolean  @default(true)
 
+  store_id  String
+  store Store @relation(fields: [store_id], references: [store_id])
+
   //relacionamentos
   bill_products BillProduct[]
   sale_products SaleProduct[]
 
+  @@unique([gtin_code, store_id]) //o produto é unico dentro de uma loja, mas pode repetir em outras
+  @@unique([product_id, store_id]) //indice composto que será utilizado por BillProduct e SaleProduct
+  @@unique([name, store_id])
   @@map("products")
 }
 
 //representa uma comanda
 model Bill {
   bill_id        String     @id
-  bill_code_gtin String     // O código físico (papel)
+  bill_code_gtin String     // O código da comanda física (papel)
   status         BillStatus
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt
 
+  store_id String
+  store Store @relation(fields: [store_id], references: [store_id])
+
+
   //relacionamentos
   items          BillProduct[]
+
+  generated_sale_products SaleProduct[]
 
   
   //uma comanda pode gerar no máximo UMA venda final.
   //o campo fica do lado da Sale (origin_bill_id), aqui é o espelho.
+  @@unique([bill_id, store_id])
   @@map("bills")
 }
+
 
 //representa um produto adicionado a comanda
 model BillProduct {
@@ -99,32 +138,45 @@ model BillProduct {
   product_name      String
   product_gtin_code String
 
+  
+
   //chaves Estrangeiras
   bill_id    String
   product_id String
   user_id    String
+  store_id String
+
 
   //relacionamentos
-  bill    Bill    @relation(fields: [bill_id], references: [bill_id])
-  product Product @relation(fields: [product_id], references: [product_id])
-  user    User    @relation("UserAddedItem", fields: [user_id], references: [user_id])
+  bill    Bill    @relation(fields: [bill_id, store_id], references: [bill_id, store_id]) //a comanda vinculada TEM que existir e TEM que ser da mesma loja 
+  product Product @relation(fields: [product_id, store_id], references: [product_id, store_id])// o produto adicionado a comanda TEM que existir e TEM que ser da mesma loja
+  user    User    @relation("UserAddedItem", fields: [user_id, store_id], references: [user_id, store_id]) //o usuario que adicionou TEM que ser da mesma loja
+  store   Store   @relation(fields: [store_id], references: [store_id])
 
   @@map("bill_products")
 }
+
+//REFATOREI DAQUI PRA CIMA. DAQUI PRA BAIXO AINDA FALTA REFATORAR
 
 model Sale {
   sale_id        String     @id
   total_price    Decimal    @db.Decimal(10, 2)
   status         SaleStatus
-  user_id        String     //quem fechou a venda
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt
 
+  store_id  String
+  store     Store @relation(fields: [store_id], references: [store_id])
+
+
   //relacionamentos
-  user        User          @relation("UserClosedSale", fields: [user_id], references: [user_id])
+  user_id        String     //quem fechou a venda
+  user        User          @relation("UserClosedSale", fields: [user_id, store_id], references: [user_id, store_id]) //o usuario que fechou a venda TEM que ser da mesma loja
+  
   items       SaleProduct[]
   payments    SalePayment[]
 
+  @@unique([sale_id, store_id]) //indice composto necessario para que SaleProduct e SalePayment possam criar chaves estrangeiras que apontam pra ca
   @@map("sales")
 }
 
@@ -134,15 +186,22 @@ model SaleProduct {
   sale_product_id String  @id
   quantity        Int
   unit_price_sold Decimal @db.Decimal(10, 2)
+
+  product_name_snapshot String //preserva o nome original do momento da venda para sempre
+  product_gtin_snapshot String //preserva o gtin code original do momento da venda para sempre 
   
+  store_id String
+  store Store @relation(fields: [store_id], references: [store_id])
+
   //chaves estrangeiras
   sale_id    String
   product_id String
   origin_bill_id String? //opcional pois o item da venda pode ter sido feito direto no balcao, ou seja, sem comanda
 
   //relacionamentos
-  sale    Sale    @relation(fields: [sale_id], references: [sale_id], onDelete: Cascade)
-  product Product @relation(fields: [product_id], references: [product_id])
+  sale    Sale    @relation(fields: [sale_id, store_id], references: [sale_id, store_id], onDelete: Cascade)
+  product Product @relation(fields: [product_id, store_id], references: [product_id, store_id])
+  origin_bill Bill? @relation(fields: [origin_bill_id, store_id], references: [bill_id, store_id]) //se veio de comanda, a comanda deve ser da mesma loja
 
   @@map("sale_products")
 }
@@ -157,22 +216,11 @@ model SalePayment {
   //chaves estrangeiras
   sale_id String
 
+  store_id String
+  store Store @relation(fields: [store_id], references: [store_id])
+
   //relacionamentos
-  sale Sale @relation(fields: [sale_id], references: [sale_id], onDelete: Cascade)
+  sale Sale @relation(fields: [sale_id, store_id], references: [sale_id, store_id], onDelete: Cascade) //o pagamento só é vinculado a uma MESMA venda e uma MESMA loja
 
   @@map("sale_payments")
 }
-
-model MainGestor {
-  main_gestor_id String @id
-  singleton_guard Boolean @default(true) @unique
-}
-/*
-  Insere-se o 1º Gestor. O campo singleton_guard é salvo como true. Sucesso.
-
-  Tenta-se inserir um 2º Gestor. O Prisma tenta salvar singleton_guard como true (padrão).
-
-  O Banco (Postgres) grita: "Erro! Já existe uma linha com 'true' e essa coluna deve ser única!".
-
-  Resultado: É fisicamente impossível ter 2 gestores principais.
-*/
