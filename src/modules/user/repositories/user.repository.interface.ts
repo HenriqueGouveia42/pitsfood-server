@@ -6,5 +6,4 @@ export interface IUserRepository {
     updateSavedUser(user: User): Promise<void>;
     listAllSavedUsers(active?: boolean | undefined): Promise<User[]>;
     findUserByUsername(username: string): Promise<User>;
-    getMainGestorId(): Promise<string | null>;
 }

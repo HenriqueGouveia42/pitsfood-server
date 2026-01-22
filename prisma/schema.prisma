@@ -45,8 +45,12 @@ model Store{
   cnpj  String?
   active  Boolean @default(true)
   created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+  
+  owner_id String? @unique
+  owner User? @relation("StoreOwnder", fields: [owner_id], references: [user_id])
 
-  users User[]
+  users User[] @relation("StoreUsers")
   products Product[]
   sales Sale[]
   bills Bill[]
@@ -69,8 +73,8 @@ model User {
   active        Boolean @default(true)
   
   store_id  String
-  store Store @relation(fields: [store_id], references: [store_id])
-
+  store Store @relation("StoreUsers", fields: [store_id], references: [store_id])
+  ownerd_store Store? @relation("StoreOwner")
 
   //relacionamentos
   sales_closed  Sale[]        @relation("UserClosedSale")

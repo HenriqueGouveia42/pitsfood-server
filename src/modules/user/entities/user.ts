@@ -25,7 +25,7 @@ export class User {
     }
 
     //fabric apara criação de novos usuários (cadastrar novo usuario)
-    public static buildUser(username: string, password_hash: string, role: UserRole): User {
+    public static bui\ldUser(username: string, password_hash: string, role: UserRole): User {
         User.validateUsername(username);
 
         const now = new Date().toISOString();

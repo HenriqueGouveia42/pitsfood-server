@@ -115,12 +115,4 @@ export class PrismaUserRepository implements IUserRepository {
         return entityUser;
     }
 
-    async getMainGestorId(): Promise<string | null> {
-        const mainGestor = await prisma.mainGestor.findFirst();
-        
-        if (!mainGestor) return null;
-        
-        return mainGestor.main_gestor_id;
-    }
-
 }
