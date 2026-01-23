@@ -1,4 +1,4 @@
-import { response, Router } from "express"
+import { Router } from "express"
 import { authMiddleware} from "../../../../../shared/infra/http/middlewares/authMiddleware.js"
 import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js"
 import { createProductController } from "../../../useCases/createProduct/index.js"
