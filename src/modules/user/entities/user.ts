@@ -1,3 +1,5 @@
+import { AppError } from "../../../shared/errors/AppError.js";
+
 export enum UserRole {
     GESTOR = "GESTOR",
     CAIXA = "CAIXA",
@@ -6,6 +8,7 @@ export enum UserRole {
 
 export type UserProps = {
     readonly user_id: string;
+    readonly store_id: string,
     readonly username: string;
     readonly password_hash: string;
     readonly created_at: string;
@@ -25,13 +28,26 @@ export class User {
     }
 
     //fabric apara criação de novos usuários (cadastrar novo usuario)
-    public static bui\ldUser(username: string, password_hash: string, role: UserRole): User {
+    public static buildUser(
+        username: string,
+        password_hash: string,
+        role: UserRole,
+        store_id: string
+    
+    ): User {
+
         User.validateUsername(username);
+
+        // Validação básica de segurança: store_id não pode ser vazio
+        if (!store_id) {
+            throw new AppError("O usuário deve estar vinculado a uma loja", 400, "STORE_ID_NOT_FOUND")
+        }
 
         const now = new Date().toISOString();
 
         return new User({
             user_id: crypto.randomUUID(),
+            store_id,
             username,
             password_hash,
             created_at: now,
@@ -54,6 +70,7 @@ export class User {
     get createdAt() { return this.props.created_at; }
     get updatedAt() { return this.props.updated_at; }
     get active() { return this.props.active; }
+    get storeId() {return this.props.store_id}
 
     //setters que retornam novos objetos, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newUsername:string, newHashedPassword: string, active: boolean): User {
