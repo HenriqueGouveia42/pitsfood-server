@@ -33,13 +33,18 @@ export class PrismaStoreRepository implements IStoreRepository {
         }
     }
 
-    async saveStore(store: Store): Promise<void> {
+    async saveStore(store: Store): Promise<Store> {
 
         const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
 
-        await prisma.store.create({
+        const prismaStore = await prisma.store.create({
             data: storePrismaData
         })
+
+        const entityStore: Store = PrismaStoreRepository.prismaToEntityDataMapper(prismaStore);
+
+        return entityStore;
+
     }
 
     async findSavedStoreById(store_id: string): Promise<Store> {
