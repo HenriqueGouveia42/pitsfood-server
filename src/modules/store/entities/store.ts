@@ -21,11 +21,15 @@ export class Store{
 
     public static buildStore(name: string, active: boolean, cnpj?: string): Store{
 
-        const isCNPJValid: boolean = validCNPJ(cnpj);
+        if(cnpj !== undefined){
+            
+            const isCNPJValid: boolean = validCNPJ(cnpj);
 
-        if (!isCNPJValid){
-            throw new AppError("CNPJ invalido", 422, "INVALID_CNPJ")
+            if (!isCNPJValid){
+                throw new AppError("CNPJ invalido", 422, "INVALID_CNPJ")
+            }
         }
+        
 
         const now = new Date().toISOString();
         
