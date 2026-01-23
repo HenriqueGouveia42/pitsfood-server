@@ -48,7 +48,7 @@ model Store{
   updated_at  DateTime @default(now())
   
   owner_id String? @unique
-  owner User? @relation("StoreOwnder", fields: [owner_id], references: [user_id])
+  owner User? @relation("StoreOwner", fields: [owner_id], references: [user_id])
 
   users User[] @relation("StoreUsers")
   products Product[]
@@ -74,7 +74,7 @@ model User {
   
   store_id  String
   store Store @relation("StoreUsers", fields: [store_id], references: [store_id])
-  ownerd_store Store? @relation("StoreOwner")
+  owned_store Store? @relation("StoreOwner")
 
   //relacionamentos
   sales_closed  Sale[]        @relation("UserClosedSale")
