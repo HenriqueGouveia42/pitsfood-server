@@ -62,9 +62,28 @@ model Store{
   @@map("stores")
 }
 
+model StagedUser {
+
+  id String @id @default(uuid()) // É bom ter um ID próprio
+
+  // dados que serão movidos para a tabela 'users' depois
+  email         String   @unique
+  username      String
+  password_hash String
+
+  //controle de validacao
+  verification_code String   //codigo de 6 digitos
+  expires_at        DateTime //expira em 10 minutos
+  
+  created_at DateTime @default(now())
+
+  @@map("staged_users")
+}
+
 //representa um usuário salvo no banco de dados
 model User {
-  user_id       String   @id // UUID gerado pela aplicação
+  email         String   @unique
+  user_id       String   @id
   username      String   //@unique - username nao pode ser unique, pois se for unique, o mesmo username nao poderá se repetir em todo o banco de dados, o que é ruim, basta que o username nao se repita somente dentro da mesma loja
   password_hash String
   role          UserRole
@@ -72,8 +91,8 @@ model User {
   updated_at    DateTime @updatedAt
   active        Boolean @default(true)
   
-  store_id  String
-  store Store @relation("StoreUsers", fields: [store_id], references: [store_id])
+  store_id  String?
+  store Store? @relation("StoreUsers", fields: [store_id], references: [store_id])
   owned_store Store? @relation("StoreOwner")
 
   //relacionamentos
