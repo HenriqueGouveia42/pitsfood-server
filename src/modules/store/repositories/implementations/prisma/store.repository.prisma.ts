@@ -10,10 +10,12 @@ import type { Store as PrismaStoreModel } from "../../../../../generated/prisma/
 export class PrismaStoreRepository implements IStoreRepository {
 
     private static prismaToEntityDataMapper(prismaStore: PrismaStoreModel): Store {
+
         return Store.restore({
             store_id: prismaStore.store_id,
             name: prismaStore.name,
-            cnpj: prismaStore.cnpj ?? undefined,
+            cnpj: prismaStore.cnpj ? prismaStore.cnpj : null,
+            owner_id: prismaStore.owner_id ? prismaStore.owner_id : null,
             active: prismaStore.active,
             created_at: prismaStore.created_at.toISOString(),
             updated_at: prismaStore.updated_at.toISOString() 
