@@ -4,9 +4,9 @@ import { AppError } from "../../../shared/errors/AppError.js";
 export type StoreProps = {
     readonly store_id: string;
     readonly name: string;
-    readonly cnpj: string | undefined;
+    readonly cnpj: string | null;
     readonly active: boolean;
-    readonly owner_id?: string | undefined,
+    readonly owner_id: string | null,
     readonly created_at: string;
     readonly updated_at: string
 }
@@ -19,9 +19,9 @@ export class Store{
         return this.props
     }
 
-    public static buildStore(name: string, active: boolean, cnpj?: string): Store{
+    public static buildStore(name: string, active: boolean, cnpj: string | null): Store{
 
-        if(cnpj !== undefined){
+        if(cnpj !== null){
             
             const isCNPJValid: boolean = validCNPJ(cnpj);
 
@@ -36,8 +36,8 @@ export class Store{
         const store: Store = new Store({
             store_id: crypto.randomUUID().toString(),
             name,
-            cnpj: cnpj,
-            owner_id: undefined,
+            cnpj,
+            owner_id: null,
             active,
             created_at: now,
             updated_at: now
