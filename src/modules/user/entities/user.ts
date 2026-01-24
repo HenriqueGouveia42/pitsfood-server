@@ -8,7 +8,8 @@ export enum UserRole {
 
 export type UserProps = {
     readonly user_id: string;
-    readonly store_id: string,
+    readonly store_id: string | null,
+    readonly email: string,
     readonly username: string;
     readonly password_hash: string;
     readonly created_at: string;
@@ -32,28 +33,25 @@ export class User {
         username: string,
         password_hash: string,
         role: UserRole,
-        store_id: string
+        email: string,
+        store_id: string | null
     
     ): User {
 
         User.validateUsername(username);
 
-        // Validação básica de segurança: store_id não pode ser vazio
-        if (!store_id) {
-            throw new AppError("O usuário deve estar vinculado a uma loja", 400, "STORE_ID_NOT_FOUND")
-        }
-
         const now = new Date().toISOString();
 
         return new User({
             user_id: crypto.randomUUID(),
-            store_id,
+            email,
             username,
             password_hash,
             created_at: now,
             updated_at: now,
             role,
-            active: true
+            active: true,
+            store_id: store_id ? store_id : null
         });
     }
 
@@ -71,6 +69,7 @@ export class User {
     get updatedAt() { return this.props.updated_at; }
     get active() { return this.props.active; }
     get storeId() {return this.props.store_id}
+    get email() {return this.props.email}
 
     //setters que retornam novos objetos, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newUsername:string, newHashedPassword: string, active: boolean): User {
