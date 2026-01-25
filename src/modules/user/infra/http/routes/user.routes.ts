@@ -1,4 +1,4 @@
-import { response, Router } from "express";
+import { Router } from "express";
 
 import { loginController } from "../../../useCases/login/index.js";
 import { isLoggedInController } from "../../../useCases/isLoggedIn/index.js";
@@ -8,7 +8,7 @@ import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/aut
 import { UserRole } from "../../../entities/user.js";
 import { updateUserDataController } from "../../../useCases/editUserData/index.js";
 import { getUsersDataController } from "../../../useCases/getUsersData/index.js";
-import { createUserController } from "../../../useCases/createUser/index.js";
+import { userCreatesAnotherUserController } from "../../../useCases/userCreatesAnotherUser/index.js";
 
 import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
 import { createUserSchema } from "../zodSchemas/CreateUserSchema.js";
@@ -49,12 +49,12 @@ userRoutes.patch("/update-user/:id",
     }
 )
 
-userRoutes.post("/create-user",
+userRoutes.post("/user-creates-another-user",
     validateSchema(createUserSchema),
     authMiddleware,
     authorizeRoles([UserRole.GESTOR]),
     (request, response) => {
-        return createUserController.handle(request, response);
+        return userCreatesAnotherUserController.handle(request, response);
     }
 )
 
