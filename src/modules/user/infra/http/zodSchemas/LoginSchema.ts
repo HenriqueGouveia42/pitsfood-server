@@ -1,9 +1,9 @@
-import { z } from "zod";
+import { email, z } from "zod";
 
 export const loginSchema = z.object({
     body: z.object({
-        username: z
-            .string({ error: "O username é obrigatório" })
+        email: z
+            .email({ error: "O email é obrigatório" })
             .min(1, { message: "O username não pode estar vazio" }),
 
         password: z
