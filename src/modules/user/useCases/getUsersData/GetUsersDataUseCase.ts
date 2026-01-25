@@ -15,9 +15,9 @@ export class GetUsersDataUseCase {
         private userRepository: IUserRepository
     ){}
 
-    async execute(active?: boolean): Promise<GetUsersDataUseCaseResponse[]> {
+    async execute(store_id: string, active?: boolean): Promise<GetUsersDataUseCaseResponse[]> {
         
-        const users: User[] = await this.userRepository.listAllSavedUsers(active);
+        const users: User[] = await this.userRepository.listAllSavedUsers(store_id, active);
 
         const usersDataToReturn: GetUsersDataUseCaseResponse[] = users.map((user) => ({
             name: user.username, 

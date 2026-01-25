@@ -14,6 +14,8 @@ export class GetUsersDataController{
 
             const { active } = req.query;
 
+            const store_id = req.user.store_id;
+
             //lógica de conversão: string -> boolean | Undefined
             let activeFilter: boolean | undefined = undefined;
 
@@ -23,7 +25,7 @@ export class GetUsersDataController{
                 activeFilter = false;
             }
            
-            const users = await this.getUsersDataUseCase.execute(activeFilter);
+            const users = await this.getUsersDataUseCase.execute(store_id, activeFilter);
 
             return res.status(200).json(users);
         }catch(error){
