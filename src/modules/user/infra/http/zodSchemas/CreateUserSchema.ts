@@ -1,4 +1,14 @@
 import { z } from "zod";
+import { UserRole } from "../../../entities/user.js"
+
+/*
+export enum UserRole {
+    GESTOR = "GESTOR",
+    CAIXA = "CAIXA",
+    VENDEDOR = "VENDEDOR"
+}
+
+*/
 
 export const createUserSchema = z.object({
     body: z.object({
@@ -6,10 +16,8 @@ export const createUserSchema = z.object({
             .string({ message: "O nome é obrigatório e deve ser texto" })
             .min(3, { message: "O nome deve ter no mínimo 3 caracteres" }),
 
-        role: z.enum(["CAIXA", "GESTOR", "VENDEDOR"], {
-            message: "Role inválido. Permitidos: CAIXA, GESTOR, VENDEDOR"
-        }),
-
+        role: z.nativeEnum(UserRole),
+        
         plain_text_password: z
             .string({ message: "A senha é obrigatória" })
             .min(6, { message: "A senha deve ter no mínimo 6 caracteres" })
