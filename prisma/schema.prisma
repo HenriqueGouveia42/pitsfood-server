@@ -95,6 +95,8 @@ model User {
   store Store? @relation("StoreUsers", fields: [store_id], references: [store_id])
   owned_store Store? @relation("StoreOwner")
 
+  must_change_password Boolean @default(false)
+
   //relacionamentos
   sales_closed  Sale[]        @relation("UserClosedSale")
   items_added   BillProduct[] @relation("UserAddedItem")
