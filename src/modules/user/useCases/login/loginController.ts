@@ -10,15 +10,15 @@ export class LoginController {
 
         try{
 
-            const { username, password } = req.body;
+            const { email, password } = req.body;
 
-            if (!username || !password) {
-                return res.status(400).json({ error: "Username e password são obrigatórios." });
+            if (!email || !password) {
+                throw new AppError("Username e password são obrigatórios.", 400, "INVALID_CREDENTIALS");
             }
 
             const { token, user } = await this.loginUseCase.execute({
-                username,
-                password
+                email,
+                password,
             })
 
             res.cookie('token', token, {
