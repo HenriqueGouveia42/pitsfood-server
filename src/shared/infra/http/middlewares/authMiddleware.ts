@@ -4,7 +4,9 @@ import jwt from "jsonwebtoken";
 interface IPayLoad {
     sub: string,
     role: string,
-    userId: string
+    userId: string,
+    store_id: string,
+    //must_change_password: boolean -> esse campo vai servir para bloquear usuarios criados pelo GESTOR que ainda nao mudaram a senha inicial criada pelo GESTOR
 }
 
 export function authMiddleware(
@@ -25,11 +27,17 @@ export function authMiddleware(
         //variaveis de ambiente sao interpretadas pelo typescript como "string | undefined",
         //mas o metodo 'verify' aceita apenas estritamente 'string', por isso devemos "forcar"
         //atraves de '... as string'
-        const { sub, role } = jwt.verify(token, process.env.JWT_SECRET as string) as IPayLoad;
+        const { sub, role, store_id } = jwt.verify(token, process.env.JWT_SECRET as string) as IPayLoad;
+
+        //const { sub, role, store_id, must_change_password } = jwt.verify(token, process.env.JWT_SECRET as string) as IPayLoad;
+
+
 
         request.user = {
             id: sub,
-            role: role
+            role: role,
+            store_id: store_id,
+            //must_change_password: boolean
         }
 
         return next();
