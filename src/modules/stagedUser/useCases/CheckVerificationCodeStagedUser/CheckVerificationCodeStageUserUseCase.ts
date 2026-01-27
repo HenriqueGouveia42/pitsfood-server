@@ -39,7 +39,8 @@ export class CheckVerificationCodeStageUserUseCase{
             created_at: now,
             updated_at: now,
             role: UserRole.GESTOR,
-            active: true
+            active: true,
+            must_change_password: false
         }
 
         const user: User = User.restore(userProps);
