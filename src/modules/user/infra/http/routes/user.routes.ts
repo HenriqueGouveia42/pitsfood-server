@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { response, Router } from "express";
 
 import { loginController } from "../../../useCases/login/index.js";
 import { isLoggedInController } from "../../../useCases/isLoggedIn/index.js";
@@ -8,13 +8,15 @@ import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/aut
 import { UserRole } from "../../../entities/user.js";
 import { updateUserDataController } from "../../../useCases/editUserData/index.js";
 import { getUsersDataController } from "../../../useCases/getUsersData/index.js";
-import { userCreatesAnotherUserController } from "../../../useCases/userCreatesAnotherUser/index.js";
+import { registerEmployeeController } from "../../../useCases/RegisterEmployee/index.js";
+import { changePasswordController } from "../../../useCases/ChangePassword/index.js";
 
 import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
-import { createUserSchema } from "../zodSchemas/CreateUserSchema.js";
+import { registerEmployeeSchema } from "../zodSchemas/RegisterEmployeeSchema.js";
 import { updateUserDataSchema } from "../zodSchemas/UpdateUserDataSchema.js";
 import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
 import { loginSchema } from "../zodSchemas/LoginSchema.js";
+
 const userRoutes = Router();
 
 userRoutes.post("/login",
@@ -49,14 +51,23 @@ userRoutes.patch("/update-user/:id",
     }
 )
 
-userRoutes.post("/user-creates-another-user",
-    validateSchema(createUserSchema),
+userRoutes.post("/register-employee",
+    validateSchema(registerEmployeeSchema),
     authMiddleware,
     authorizeRoles([UserRole.GESTOR]),
     (request, response) => {
-        return userCreatesAnotherUserController.handle(request, response);
+        return registerEmployeeController.handle(request, response);
     }
 )
+
+userRoutes.post("/change-password",
+    //missing zod schema
+    authMiddleware,
+    (request, response) =>{
+        return changePasswordController.handle(request, response)
+    }
+)
+
 
 
 export { userRoutes }
