@@ -6,16 +6,22 @@ import { prisma } from "../../../../../shared/infra/prisma.js";
 import { AppError } from "../../../../../shared/errors/AppError.js";
 
 import type { Store as PrismaStoreModel } from "../../../../../generated/prisma/client.js";
+import type { User } from "../../../../user/entities/user.js";
 
 export class PrismaStoreRepository implements IStoreRepository {
 
     private static prismaToEntityDataMapper(prismaStore: PrismaStoreModel): Store {
 
+        // Proteção: Se o banco retornar null no owner_id, algo está muito errado com os dados
+        if (!prismaStore.owner_id) {
+            throw new AppError("Erro de integridade: Loja encontrada sem proprietário vinculado.", 500, "DATA_INTEGRITY_ERROR");
+        }
+
         return Store.restore({
             store_id: prismaStore.store_id,
             name: prismaStore.name,
             cnpj: prismaStore.cnpj ? prismaStore.cnpj : null,
-            owner_id: prismaStore.owner_id ? prismaStore.owner_id : null,
+            owner_id: prismaStore.owner_id,
             active: prismaStore.active,
             created_at: prismaStore.created_at.toISOString(),
             updated_at: prismaStore.updated_at.toISOString() 
@@ -29,21 +35,46 @@ export class PrismaStoreRepository implements IStoreRepository {
             store_id: props.store_id,
             name: props.name,
             cnpj: props.cnpj ?? null,
+            owner_id: props.owner_id,
             active: props.active,
             created_at: new Date(props.created_at),
             updated_at: new Date()
         }
     }
 
-    async saveStore(store: Store): Promise<Store> {
+    async saveStore(store: Store): Promise<Store | null> {
+
+        //ao salvarmos uma loja no banco de dados, devemos imediatamente atualizar o campo "store_id" da tabela "user"
+        //o objeto "store" ja vai vir com o "owner_id"
 
         const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
 
-        const prismaStore = await prisma.store.create({
-            data: storePrismaData
+
+        const resultPrismaStore = await prisma.$transaction(async (tx) =>{
+
+            const createdStore = await tx.store.create({
+                data: storePrismaData
+            })
+
+            if (storePrismaData.owner_id){
+                await tx.user.update({
+                    where:{
+                        user_id: store.ownerId
+                    },
+                    data:{
+                        store_id: store.id
+                    }
+                })
+            }
+
+            return createdStore
         })
 
-        const entityStore: Store = PrismaStoreRepository.prismaToEntityDataMapper(prismaStore);
+        if (resultPrismaStore === null){
+            return null
+        }
+
+        const entityStore: Store = PrismaStoreRepository.prismaToEntityDataMapper(resultPrismaStore);
 
         return entityStore;
 
