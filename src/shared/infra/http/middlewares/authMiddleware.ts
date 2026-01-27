@@ -2,16 +2,18 @@ import { UserRole } from "../../../../modules/user/entities/user.js";
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { AppError } from "../../../errors/AppError.js";
+import { cacheProvider } from "../../../providers/CacheProvider/index.js";
 
 interface IPayLoad {
     sub: string,
     role: UserRole,
     userId: string,
     store_id: string,
-    must_change_password: boolean
+    must_change_password: boolean,
+    token_version: number //controle de versao para invalidar tokens pela verificacao no redis
 }
 
-export function authMiddleware(
+export async function authMiddleware( //agora é um funcao assincrona, pois faz a consulta no redis
     request: Request,
     response: Response,
     next: NextFunction
@@ -29,10 +31,28 @@ export function authMiddleware(
         //variaveis de ambiente sao interpretadas pelo typescript como "string | undefined",
         //mas o metodo 'verify' aceita apenas estritamente 'string', por isso devemos "forcar"
         //atraves de '... as string'
-        const { sub, role, store_id, must_change_password } = jwt.verify(
+        const { sub, role, store_id, must_change_password, token_version } = jwt.verify(
             token,
             process.env.JWT_SECRET as string
         ) as IPayLoad;
+
+        // -------------------------------------------------------------
+        // VALIDAÇÃO VIA REDIS (WHITELIST) - INICIO
+        // -------------------------------------------------------------
+
+        const currentVersion: string | null = await cacheProvider.get(`user-token-version:${sub}`);
+
+        if (!currentVersion || Number(currentVersion) !== token_version){
+
+            response.clearCookie('token');
+
+            return response.status(401).json({message: "Sessão expirada ou inválida (Revogada). Faça login novamente"})
+        }
+
+        // -------------------------------------------------------------
+        // VALIDAÇÃO VIA REDIS (WHITELIST) - FIM
+        // -------------------------------------------------------------
+
 
         //HORA DE BLOQUEAR SE FOR UM USUARIO COM SENHA PROVISORIA, OU SEJA, ENTIDADE USER QUE TEM O CAMPO "must_change_password" como true
         /////////////////////////////////////////////////////
@@ -41,7 +61,7 @@ export function authMiddleware(
 
             //vamos definir a UNICA rota permitida
 
-            const allowedRouteSuffix = "/change-password";
+            const allowedRouteSuffix = "/change-my-password";
 
             const isTargetingChangePassword: boolean = request.originalUrl.endsWith(allowedRouteSuffix);
 

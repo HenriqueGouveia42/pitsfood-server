@@ -42,7 +42,7 @@ userRoutes.get("/get-all-users-data",
     }
 )
 
-userRoutes.patch("/update-user/:id",
+userRoutes.patch("/update-user/:target_user_id",
     validateSchema(updateUserDataSchema),
     authMiddleware,
     authorizeRoles([UserRole.GESTOR]),
@@ -60,7 +60,7 @@ userRoutes.post("/register-employee",
     }
 )
 
-userRoutes.post("/change-password",
+userRoutes.post("/change-my-password",
     //missing zod schema
     authMiddleware,
     (request, response) =>{

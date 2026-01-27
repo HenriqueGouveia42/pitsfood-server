@@ -1,7 +1,6 @@
 import type { Request, Response } from "express"
 import { AppError } from "../../../../shared/errors/AppError.js"
-import { UpdateUserDataUseCase } from "./UpdateUserDataUseCase.ts.js"
-
+import { UpdateUserDataUseCase } from "./UpdateUserDataUseCase.js";
 export interface IRequestController {
     name?: string;
     password?: string;
@@ -17,23 +16,25 @@ export class UpdateUserDataController {
     public async handle(req: Request, res: Response): Promise<Response>{
         try{
 
-            const { id } = req.params; 
+            const { target_user_id } = req.params;
 
-            const  id_gestor_trying_to_update_data  = req.user.id;
-
-            if (!id) {
-                return res.status(400).json({ error: "ID do usuário não fornecido na URL" });
+            if (!target_user_id) {
+                throw new AppError("ID do usuario a ser atualizado precisa vir nos params", 400, "TARGET_USER_ID_NOT_FOUND")
             }
+
+            const  owner_id  = req.user.id;
+            const owner_store_id = req.user.store_id;
 
             const { name, password, active }: IRequestController = req.body;
 
             await this.updateUserDataUseCase.execute({
-                to_update_user_id: id, // Passamos o ID da URL para o UseCase
+                target_user_id,
+                owner_id,
+                owner_store_id,
                 name,
                 password,
                 active,
-                id_gestor_trying_to_update_data
-            })
+            });
 
             return res.status(200).json({message: "Usuario atualizado com sucesso"})
 

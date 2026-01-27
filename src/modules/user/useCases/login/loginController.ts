@@ -13,7 +13,7 @@ export class LoginController {
             const { email, password } = req.body;
 
             if (!email || !password) {
-                throw new AppError("Username e password são obrigatórios.", 400, "INVALID_CREDENTIALS");
+                throw new AppError("'email' e 'senha' são obrigatórios.", 400, "INVALID_CREDENTIALS");
             }
 
             const { token, user } = await this.loginUseCase.execute({
@@ -36,8 +36,6 @@ export class LoginController {
             });
 
         }catch(error){
-
-            console.log(error);
 
             if (error instanceof AppError){
                 return res.status(error.statusCode).json({message:error.message, code:error.errorCode})

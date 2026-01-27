@@ -111,4 +111,11 @@ export class User {
             must_change_password: false
         })
     }
+
+    public setMustChangePasswordToTrue(): User{
+        return new User({
+            ...this.props,
+            must_change_password: true
+        })
+    }
 }
