@@ -1,12 +1,14 @@
+import { UserRole } from "../../../../modules/user/entities/user.js";
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { AppError } from "../../../errors/AppError.js";
 
 interface IPayLoad {
     sub: string,
-    role: string,
+    role: UserRole,
     userId: string,
     store_id: string,
-    //must_change_password: boolean -> esse campo vai servir para bloquear usuarios criados pelo GESTOR que ainda nao mudaram a senha inicial criada pelo GESTOR
+    must_change_password: boolean
 }
 
 export function authMiddleware(
@@ -27,17 +29,40 @@ export function authMiddleware(
         //variaveis de ambiente sao interpretadas pelo typescript como "string | undefined",
         //mas o metodo 'verify' aceita apenas estritamente 'string', por isso devemos "forcar"
         //atraves de '... as string'
-        const { sub, role, store_id } = jwt.verify(token, process.env.JWT_SECRET as string) as IPayLoad;
+        const { sub, role, store_id, must_change_password } = jwt.verify(
+            token,
+            process.env.JWT_SECRET as string
+        ) as IPayLoad;
 
-        //const { sub, role, store_id, must_change_password } = jwt.verify(token, process.env.JWT_SECRET as string) as IPayLoad;
+        //HORA DE BLOQUEAR SE FOR UM USUARIO COM SENHA PROVISORIA, OU SEJA, ENTIDADE USER QUE TEM O CAMPO "must_change_password" como true
+        /////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////
+        if(must_change_password === true){
 
+            //vamos definir a UNICA rota permitida
+
+            const allowedRouteSuffix = "/change-password";
+
+            const isTargetingChangePassword: boolean = request.originalUrl.endsWith(allowedRouteSuffix);
+
+            if (!isTargetingChangePassword){
+
+                return response.status(403).json({
+                    message: "Por motivos de segurança, você deve alterar sua senha provisória antes de continuar.",
+                    code: "PASSWORD_CHANGE_REQUIRED"
+                })
+                
+            }
+        }
+        //////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////
 
 
         request.user = {
             id: sub,
             role: role,
             store_id: store_id,
-            //must_change_password: boolean
+            must_change_password: must_change_password
         }
 
         return next();
