@@ -18,7 +18,8 @@ export class PrismaUserRepository implements IUserRepository {
             role: prismaUser.role as UserRole,
             created_at: prismaUser.created_at.toISOString(),
             updated_at: prismaUser.updated_at.toISOString(),
-            active: prismaUser.active
+            active: prismaUser.active,
+            must_change_password: prismaUser.must_change_password
         }
 
         return User.restore(userProps);
@@ -34,7 +35,8 @@ export class PrismaUserRepository implements IUserRepository {
             role: user.role,
             created_at: new Date(user.createdAt),
             updated_at: new Date(user.updatedAt),
-            active: user.active
+            active: user.active,
+            must_change_password: user.mustChangePassword
         }
     }
 
@@ -47,7 +49,7 @@ export class PrismaUserRepository implements IUserRepository {
         })
     }
 
-    async findSavedUserById(user_id: string): Promise<User> {
+    async findSavedUserById(user_id: string): Promise<User | null> {
 
         const prismaUser = await prisma.user.findUnique({
             where:{
@@ -56,7 +58,7 @@ export class PrismaUserRepository implements IUserRepository {
         })
 
         if(!prismaUser){
-            throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND")
+            return null;
         }
 
         return PrismaUserRepository.prismaToEntityDataMapper(prismaUser);
@@ -67,7 +69,7 @@ export class PrismaUserRepository implements IUserRepository {
 
         const prismaData = PrismaUserRepository.entityToPrismaDataMapper(user);
 
-        const { user_id, created_at, ...dataToUpdate } = prismaData;
+        const { user_id, store_id, created_at, ...dataToUpdate } = prismaData;
 
         await prisma.user.update({
             where:{
@@ -75,7 +77,7 @@ export class PrismaUserRepository implements IUserRepository {
             },
             data: {
                 ...dataToUpdate,
-                update_at: new Date()
+                updated_at: new Date()
             }
         });
     }
@@ -111,13 +113,17 @@ export class PrismaUserRepository implements IUserRepository {
         );       
     }
 
-    async findUserByEmail(email: string): Promise<User> {
+    async findUserByEmail(email: string): Promise<User | null> {
         
         const prismaUserData = await prisma.user.findFirst({
             where:{
                 email
             }
         })
+
+        if(!prismaUserData){
+            return null;
+        }
         
         return PrismaUserRepository.prismaToEntityDataMapper(prismaUserData);
     
