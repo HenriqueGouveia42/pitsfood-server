@@ -1,13 +1,14 @@
 import type { IStagedUserRepository } from "../staged_user.repository.interface.js"
 import { StagedUser } from "../../entities/stagedUser.js"
 import type { StagedUserProps } from "../../entities/stagedUser.js"
-import { User } from "../../../user/entities/user.js"
+import { User, UserRole } from "../../../user/entities/user.js"
+import type { UserProps } from "../../../user/entities/user.js"
 
 import { prisma } from "../../../../shared/infra/prisma.js"
 
 export class PrismaStagedUserRepository implements IStagedUserRepository{
 
-    private static prismaToEntityDataMapper(prismaStagedUser: any): StagedUser{
+    private static prismaToStagedUserEntityDataMapper(prismaStagedUser: any): StagedUser{
 
         const staged_user_props: StagedUserProps = {
             id: prismaStagedUser.id,
@@ -20,6 +21,25 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
         }
 
         return StagedUser.restore(staged_user_props);
+    }
+
+    private static prismaToUserEntityDataMapper(prismaUser: any): User {
+    
+        const userProps: UserProps = {
+            user_id: prismaUser.user_id,
+            store_id: prismaUser.store_id,
+            email: prismaUser.email,
+            username: prismaUser.username,
+            password_hash: prismaUser.password_hash,
+            role: prismaUser.role as UserRole,
+            created_at: prismaUser.created_at.toISOString(),
+            updated_at: prismaUser.updated_at.toISOString(),
+            active: prismaUser.active,
+            must_change_password: prismaUser.must_change_password,
+            
+        }
+    
+        return User.restore(userProps);
     }
 
     private static entityToPrismaDataMapper(staged_user: StagedUser): any{
@@ -53,7 +73,7 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
             }
         })
 
-        const entityData: StagedUser = PrismaStagedUserRepository.prismaToEntityDataMapper(prismaData);
+        const entityData: StagedUser = PrismaStagedUserRepository.prismaToStagedUserEntityDataMapper(prismaData);
 
         return entityData
     }
@@ -80,7 +100,7 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
             return null;
         }
 
-        const entityData: StagedUser = PrismaStagedUserRepository.prismaToEntityDataMapper(prismaData);
+        const entityData: StagedUser = PrismaStagedUserRepository.prismaToStagedUserEntityDataMapper(prismaData);
 
         return entityData;
     }
@@ -108,10 +128,11 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
                 @@unique([username, store_id]) //um username deve ser unico APENAS dentro daquela loja
                 @@unique([user_id, store_id]) //indice composto que sera utilizado por BillProduct e Sale
                 @@map("users")
+                must_change_password
             }
         */
 
-        const newUserData = {
+        const newUserData: UserProps = {
 
             email:user.email,
             user_id: user.id,
@@ -121,7 +142,8 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
             created_at: user.createdAt,
             updated_at: user.updatedAt,
             active: user.active,
-            store_id: user.storeId || null, 
+            store_id: user.storeId || null,
+            must_change_password: user.mustChangePassword //deve ser false, pois esse é o usuario que se cadastrou pelo email
         }
         
         await prisma.$transaction(async (tx) =>{
@@ -132,7 +154,7 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
                 }
             })
 
-            await await tx.user.create({
+            await tx.user.create({
                 data: newUserData
             })
         })
