@@ -16,6 +16,7 @@ export type UserProps = {
     readonly updated_at: string;
     readonly role: UserRole;
     readonly active: boolean;
+    readonly must_change_password: boolean
 }
 
 export class User {
@@ -34,7 +35,8 @@ export class User {
         password_hash: string,
         role: UserRole,
         email: string,
-        store_id: string | null
+        store_id: string | null,
+        must_change_password: boolean
     
     ): User {
 
@@ -51,7 +53,8 @@ export class User {
             updated_at: now,
             role,
             active: true,
-            store_id: store_id ? store_id : null
+            store_id: store_id ? store_id : null,
+            must_change_password
         });
     }
 
@@ -70,6 +73,7 @@ export class User {
     get active() { return this.props.active; }
     get storeId() {return this.props.store_id}
     get email() {return this.props.email}
+    get mustChangePassword() {return this.props.must_change_password}
 
     //setters que retornam novos objetos, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newUsername:string, newHashedPassword: string, active: boolean): User {
@@ -82,6 +86,29 @@ export class User {
             password_hash: newHashedPassword,
             active: active,
             updated_at: new Date().toISOString()
+        })
+    }
+
+    public setStoreId(store_id: string): User {
+
+        return new User({
+            ...this.props,
+            store_id: store_id
+        })
+
+    }
+
+    public setNewPassword(new_password: string): User{
+        return new User({
+            ...this.props,
+            password_hash: new_password
+        })
+    }
+
+    public setMustChangePasswordToFalse(): User{
+        return new User({
+            ...this.props,
+            must_change_password: false
         })
     }
 }
