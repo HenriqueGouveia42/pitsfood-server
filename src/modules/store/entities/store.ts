@@ -6,7 +6,7 @@ export type StoreProps = {
     readonly name: string;
     readonly cnpj: string | null;
     readonly active: boolean;
-    readonly owner_id: string | null,
+    readonly owner_id: string,
     readonly created_at: string;
     readonly updated_at: string
 }
@@ -19,7 +19,7 @@ export class Store{
         return this.props
     }
 
-    public static buildStore(name: string, active: boolean, cnpj: string | null): Store{
+    public static buildStore(name: string, active: boolean, cnpj: string | null, owner_id: string): Store{
 
         if(cnpj !== null){
             
@@ -37,7 +37,7 @@ export class Store{
             store_id: crypto.randomUUID().toString(),
             name,
             cnpj,
-            owner_id: null,
+            owner_id,
             active,
             created_at: now,
             updated_at: now
@@ -48,14 +48,6 @@ export class Store{
 
     public static restore(props: StoreProps): Store{
         return new Store(props);
-    }
-
-    public setOwner(userId: string): Store{
-        return new Store({
-            ...this.props,
-            owner_id: userId,
-            updated_at: new Date().toDateString()
-        })
     }
 
     get id() {return this.props.store_id}
