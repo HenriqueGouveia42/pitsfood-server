@@ -1,19 +1,30 @@
 import { Decimal } from 'decimal.js';
+import { AppError } from '../../../shared/errors/AppError.js';
 
 export type ProductProps = {
     readonly product_id: string;
     readonly name: string;
-    readonly created_at: string;
-    readonly updated_at: string;
     readonly unit_price_in_reais: Decimal;
     readonly gtin_code: string;
     readonly is_internal: boolean;
+    readonly created_at: string;
+    readonly updated_at: string;
     readonly active: boolean;
+    //novos da refatoracao
+    readonly store_id: string;
+    readonly track_stock: boolean;
+    readonly stock_quantity: number
 }
 
 export class Product {
     //constructor e propriedade props são estritamente readonly
     private constructor(private readonly props: ProductProps) {}
+
+    private static validateStock(track_stock: boolean, stock_quantity:number | null){
+        if (track_stock && stock_quantity === null){
+            throw new AppError("Um produto que vai ter estoque precisa ter alguma quantidade em estoque", 422, "INVALID_PRODUCT")
+        }
+    }
 
     //remove zeros à esquerda
     private static normalizeGtin(gtin: string): string{
@@ -48,7 +59,6 @@ export class Product {
         const nearestTen = Math.ceil(sum / 10) * 10;
         return (nearestTen - sum).toString();
     }
-
 
     private static validateGtin(gtin: string, is_internal: boolean){
 
@@ -98,16 +108,27 @@ export class Product {
     public static buildProduct(
         name: string, 
         unit_price_in_reais: Decimal, 
-        gtin_code?: string | null | undefined, 
+        gtin_code: string | null, 
         is_internal: boolean = true,
-        active: boolean = true
+        active: boolean = true,
+        store_id: string,
+        track_stock: boolean,
+        stock_quantity: number | null
     ): Product {
+
+        let finalStockQuantity = 0;
+
+        if (track_stock){
+            finalStockQuantity = stock_quantity ? stock_quantity : 0;
+        } else {
+            finalStockQuantity = 0;
+        }
 
         const finalName: string = name.toUpperCase();
 
         let finalGtin: string;
 
-        const sanitizedInputGtin = gtin_code ? Product.normalizeGtin(gtin_code) : undefined;
+        const sanitizedInputGtin = gtin_code ? Product.normalizeGtin(gtin_code) : null;
 
         //REGRA 1: Produto externo OBRIGATORIAMENTE precisa de GTIN
         if (!is_internal && !sanitizedInputGtin) {
@@ -117,7 +138,8 @@ export class Product {
         //REGRA 2: Se for interno e NÃO tiver GTIN, gera um.
         if (is_internal && !sanitizedInputGtin) {
             finalGtin = Product.generateGtin13CodeForInternalProduct();
-        } 
+        }
+
 
         //REGRA 3: Se o GTIN foi passado (seja interno manual ou externo), usa ele.
         else {
@@ -129,6 +151,7 @@ export class Product {
         Product.validateGtin(finalGtin, is_internal);
         Product.validateName(name);
         Product.validatePrice(unit_price_in_reais);
+        Product.validateStock(track_stock, stock_quantity);
 
 
         const now = new Date().toISOString();
@@ -136,12 +159,15 @@ export class Product {
         return new Product({
             product_id: crypto.randomUUID(),
             name: finalName,
-            created_at: now,
-            updated_at: now,
             unit_price_in_reais,
             gtin_code: finalGtin,
             is_internal,
-            active
+            created_at: now,
+            updated_at: now,
+            active,
+            store_id,
+            track_stock,
+            stock_quantity: finalStockQuantity
         });
     }
 
@@ -150,6 +176,7 @@ export class Product {
         Product.validateGtin(props.gtin_code, props.is_internal);
         Product.validateName(props.name);
         Product.validatePrice(props.unit_price_in_reais);
+        Product.validateStock(props.track_stock, props.stock_quantity)
         return new Product(props);
     }
 
@@ -162,6 +189,9 @@ export class Product {
     get createdAt() {return this.props.created_at; }
     get updatedAt() { return this.props.updated_at; }
     get active() { return this.props.active; }
+    get store_id() {return this.props.store_id; }
+    get track_stock() {return this.props.track_stock; }
+    get stock_quantity() {return this.props.stock_quantity; }
 
     //setter que retorna novo objeto, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newName:string, newPrice: Decimal): Product{
