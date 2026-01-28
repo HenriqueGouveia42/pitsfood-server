@@ -58,6 +58,7 @@ model Store{
   bill_products BillProduct[] 
   sale_products SaleProduct[]
   sale_payments SalePayment[]
+  stock_entries StockEntry[]
 
   @@map("stores")
 }
@@ -94,6 +95,7 @@ model User {
   store_id  String?
   store Store? @relation("StoreUsers", fields: [store_id], references: [store_id])
   owned_store Store? @relation("StoreOwner")
+  stock_entries_registered  StockEntry[] @relation("UserRegisteredStock")
 
   must_change_password Boolean @default(false)
 
@@ -120,14 +122,42 @@ model Product {
   store_id  String
   store Store @relation(fields: [store_id], references: [store_id])
 
+  track_stock         Boolean @default(false) //indica se esse produto contra estoque (Ex: Coca-cola = true, Coxinha de Frango = false)
+  stock_quantity      Int @default(0)
+
+
   //relacionamentos
   bill_products BillProduct[]
   sale_products SaleProduct[]
+  stock_entries StockEntry[] //historico de entradas desse produto
+
 
   @@unique([gtin_code, store_id]) //o produto é unico dentro de uma loja, mas pode repetir em outras
   @@unique([product_id, store_id]) //indice composto que será utilizado por BillProduct e SaleProduct
   @@unique([name, store_id])
   @@map("products")
+}
+
+model StockEntry{ //tabela que registra as entradas de estoque
+  entry_id  String @id @default(uuid())
+  quantity  Int //sempre positivo Ex: 250
+
+  unit_cost Decimal? @db.Decimal(10, 2) // Ex:2.00
+  total_cost Decimal? @db.Decimal(10, 2) //(calculado quantity * unit_cost)
+
+  created_at DateTime @default(now())
+
+  store_id  String
+  store Store @relation(fields: [store_id], references: [store_id])
+
+  product_id String
+  product Product @relation(fields: [product_id, store_id], references: [product_id, store_id])
+
+  user_id String
+  user  User @relation("UserRegisteredStock", fields: [user_id, store_id], references: [user_id, store_id])
+
+  @@map("stock_entries")
+
 }
 
 //representa uma comanda
