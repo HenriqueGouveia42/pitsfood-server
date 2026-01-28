@@ -77,7 +77,7 @@ export class UpdateUserDataUseCase {
         // --------------------------
         // INVALIDAÇÃO NO REDIS
         // --------------------------
-        if (shouldInvalidateSession){
+        if (shouldInvalidateSession){ //a partir de agora a proxima requisicao ja sera barrada no 'authMiddleware'
             const newVersion = Date.now(); 
             await this.cacheProvider.save(
                 `user-token-version:${target_user_id}`,

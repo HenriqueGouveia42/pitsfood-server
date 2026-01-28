@@ -6,7 +6,8 @@ export interface GetUsersDataUseCaseResponse {
     name: string;
     user_id: string;
     role: string;
-    active: boolean
+    active: boolean;
+    email: string
 }
 
 export class GetUsersDataUseCase {
@@ -23,7 +24,8 @@ export class GetUsersDataUseCase {
             name: user.username, 
             user_id: user.id,
             role: user.role,
-            active: user.active
+            active: user.active,
+            email: user.email
         }));
 
         return usersDataToReturn;
