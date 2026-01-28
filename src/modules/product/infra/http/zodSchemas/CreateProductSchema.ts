@@ -18,13 +18,20 @@ export const CreateProductSchema = z.object({
         gtin_code: z
             .string()
             .min(8, { message: "GTIN code precisa ter no minino 8 caracteres" })
-            .optional(),
+            .nullable(),
 
         is_internal: z.boolean({ 
             error: "O campo is_internal é obrigatório (true/false)"
         }),
 
-        active: z.boolean().optional()
+        active: z.boolean().optional(),
+
+        track_stock: z
+            .boolean(),
+        
+        stock_quantity: z
+            .number()
+            .nullable()
     })
     .strict()
     .superRefine((data, ctx) => {
