@@ -13,7 +13,17 @@ export class CreateProductController{
 
         try{
 
-            let { name, unit_price_in_reais, gtin_code, is_internal, active } = req.body
+            let { name, unit_price_in_reais, gtin_code, is_internal, active, track_stock, stock_quantity } = req.body
+
+            const  store_id  = req.user.store_id;
+
+            const finalStockQuantity = (stock_quantity !== undefined && stock_quantity !== null)
+                ?   Number(stock_quantity)
+                :   null;
+            
+            if (finalStockQuantity !== null && isNaN(finalStockQuantity)) {
+                throw new AppError("Quantidade de estoque inválida", 400, "INVALID_NUMBER");
+            }
 
             await this.createProductUseCase.execute(
                 {
@@ -21,12 +31,17 @@ export class CreateProductController{
                     unit_price_in_reais: new Decimal(unit_price_in_reais),
                     gtin_code,
                     is_internal,
-                    active
+                    active,
+                    store_id,
+                    track_stock,
+                    stock_quantity: stock_quantity !== null ? Number(stock_quantity) : null
                 })
             
-                return res.status(200).json({message: "Produto Criado com sucesso!"})
+                return res.status(201).json({message: "Produto Criado com sucesso!"})
 
         }catch(error){
+
+            console.log(error)
 
             if (error instanceof AppError){
                 return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
