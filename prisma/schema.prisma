@@ -125,6 +125,8 @@ model Product {
   track_stock         Boolean @default(false) //indica se esse produto contra estoque (Ex: Coca-cola = true, Coxinha de Frango = false)
   stock_quantity      Int @default(0)
 
+  requires_preparation  Boolean @default(false) //indica se um produto precisa ser preparado na hora antes de ser vendido
+
 
   //relacionamentos
   bill_products BillProduct[]

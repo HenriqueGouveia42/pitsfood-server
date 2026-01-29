@@ -1,0 +1,31 @@
+import type { Request, Response } from "express"
+import type { GetStoreDataUseCase } from "./GetStoreDataUseCase.js";
+import { AppError } from "../../../../shared/errors/AppError.js";
+import type { IGetStoreDataUseCaseResponse } from "./GetStoreDataUseCase.js"
+
+export class GetStoreDataController{
+    constructor(
+        private getStoreDataUseCase: GetStoreDataUseCase
+    ){}
+
+    public async handle(req: Request, res: Response): Promise<Response>{
+        try{
+
+            const store_id: string = req.user.store_id;
+
+            const storeData: IGetStoreDataUseCaseResponse  = await this.getStoreDataUseCase.execute({store_id});
+
+            return res.status(200).json(storeData);
+
+        }catch(error){
+
+            console.log(error)
+            
+            if (error instanceof AppError){
+                return res.status(error.statusCode).json({message:error.errorCode});
+            }
+
+            return res.status(500).json({message: "Erro ao recuperar dados da loja"})
+        }
+    }
+}

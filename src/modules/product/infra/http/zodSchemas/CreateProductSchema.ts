@@ -3,53 +3,60 @@ import * as z from "zod";
 export const CreateProductSchema = z.object({
     body: z.object({
         name: z
-            .string({ error: "O nome precisa ser uma string" })
-            .min(5, { message: "Nome nao pode ter menos de 5 caracteres" })
-            .max(30, { message: "Nome nao pode ter mais de 30 caracteres" }),
+            .string({ error: "Nome é obrigatório" })
+            .trim()
+            .min(3, { message: "Nome muito curto (mínimo 3 letras)" }) // Ajustado para ser mais realista
+            .max(100, { message: "Nome muito longo (máximo 100 letras)" }), // Ajustado conforme entidades anteriores
 
+        // Aceita string ("10.50") ou number (10.50) e converte para Number
         unit_price_in_reais: z
-            .string({ error: "O valor em reais precisa ser enviado como uma string" })
-            .regex(/^\d+(\.\d{1,2})?$/, { message: "Deve ser um número separado por ponto com no máximo 2 casas decimais" })
+            .union([z.string(), z.number()])
             .transform((val) => Number(val))
-            .pipe(
-                z.number().min(0.1).max(10000)
-            ),
+            .refine((val) => !isNaN(val) && val >= 0, { message: "Preço inválido ou negativo" }),
 
         gtin_code: z
             .string()
-            .min(8, { message: "GTIN code precisa ter no minino 8 caracteres" })
-            .nullable(),
-
-        is_internal: z.boolean({ 
-            error: "O campo is_internal é obrigatório (true/false)"
-        }),
-
-        active: z.boolean().optional(),
-
-        track_stock: z
-            .boolean(),
-        
-        stock_quantity: z
-            .number()
+            .trim()
+            .min(8, { message: "GTIN deve ter no mínimo 8 dígitos" })
             .nullable()
+            .optional(),
+
+        is_internal: z.boolean({ error: "Defina se o produto é interno ou externo" }),
+
+        active: z.boolean().default(true),
+
+        requires_preparation: z.boolean().default(false), 
+
+        track_stock: z.boolean({ error: "Defina se controla estoque" }),
+        
+        //preprocess: Se vier null, undefined ou string vazia, vira 0.
+        // coerce: Se vier string "10", vira number 10.
+        stock_quantity: z.preprocess(
+            (val) => {
+                if (val === null || val === undefined || val === "") return 0;
+                return val;
+            },
+            z.coerce.number({ error: "Quantidade de estoque inválida" }).int()
+        )
     })
-    .strict()
+    .strict() //impede campos "lixo" não mapeados
     .superRefine((data, ctx) => {
         
-        // CASO 1: É interno (true) -> PROIBIDO ter GTIN
+        //caso 1: produto Interno -> Não deve ter GTIN (ou ignora-se)
+        //regra de negócio: Se é interno, geralmente geramos ID automático, então gtin deve ser nulo/vazio
         if (data.is_internal === true && data.gtin_code) {
             ctx.addIssue({
-                code: "custom", // <--- USE "custom" (string) AQUI
-                message: "Produtos internos NÃO podem ter código GTIN. Remova o campo gtin_code.",
+                code: "custom",
+                message: "Produtos internos não devem ter GTIN informado manualmente (será gerado '22...').",
                 path: ["gtin_code"]
             });
         }
 
-        // CASO 2: É externo (false) -> OBRIGATÓRIO ter GTIN
+        //caso 2: Produto Externo -> GTIN Obrigatório
         if (data.is_internal === false && !data.gtin_code) {
             ctx.addIssue({
-                code: "custom", // <--- USE "custom" (string) AQUI
-                message: "Produtos para venda externa PRECISAM do código GTIN.",
+                code: "custom",
+                message: "Produtos externos (venda) precisam ter o código de barras (GTIN/EAN).",
                 path: ["gtin_code"]
             });
         }

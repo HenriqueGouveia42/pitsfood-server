@@ -29,6 +29,16 @@ export class User {
         if (username.length > 50) throw new Error("Nome de usuário não pode ultrapassar 50 caracteres");
     }
 
+    private static formatUsername(username: string): string {
+        return username
+            .trim()
+            .toLowerCase()
+            .split(' ')
+            .filter(word => word.length > 0) // Remove espaços duplos acidentais
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
     //fabric apara criação de novos usuários (cadastrar novo usuario)
     public static buildUser(
         username: string,
@@ -42,12 +52,14 @@ export class User {
 
         User.validateUsername(username);
 
+        const finalName: string = this.formatUsername(username);
+
         const now = new Date().toISOString();
 
         return new User({
             user_id: crypto.randomUUID(),
             email,
-            username,
+            username: finalName,
             password_hash,
             created_at: now,
             updated_at: now,

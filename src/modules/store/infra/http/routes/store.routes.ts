@@ -4,6 +4,7 @@ import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/aut
 import { UserRole } from "../../../../user/entities/user.js"
 
 import { createStoreController } from "../../../useCases/CreateStore/index.js";
+import { getStoreDataController } from "../../../useCases/GetStoreData/index.js";
 
 import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
 import { createStoreSchema } from "../zodSchemas/CreateStoreSchema.js";
@@ -16,6 +17,14 @@ storeRoutes.post("/create-store",
     authorizeRoles([UserRole.GESTOR]),
     (request, response) => {
         return createStoreController.handle(request, response);
+    }
+)
+
+storeRoutes.get("/get-store-data",
+    //missing zod schema
+    authMiddleware,
+    (request, response) => {
+        return getStoreDataController.handle(request, response);
     }
 )
 

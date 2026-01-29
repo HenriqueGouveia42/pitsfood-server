@@ -19,7 +19,32 @@ export class Store{
         return this.props
     }
 
+    private static validateNameLength(name: string): void {
+        const trimmedName = name.trim();
+        if (trimmedName.length < 3) {
+            throw new AppError("O nome da loja deve ter no mínimo 3 caracteres.", 400, "INVALID_NAME_LENGTH");
+        }
+        if (trimmedName.length > 100) {
+            throw new AppError("O nome da loja deve ter no máximo 100 caracteres.", 400, "INVALID_NAME_LENGTH");
+        }
+    }
+
+    private static formatNameTitleCase(name: string): string {
+        return name
+            .trim()
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+
     public static buildStore(name: string, active: boolean, cnpj: string | null, owner_id: string): Store{
+
+        
+        Store.validateNameLength(name);
+
+        const formattedName = Store.formatNameTitleCase(name);
 
         if(cnpj !== null){
             
@@ -35,7 +60,7 @@ export class Store{
         
         const store: Store = new Store({
             store_id: crypto.randomUUID().toString(),
-            name,
+            name: formattedName, // Passamos o nome formatado aqui
             cnpj,
             owner_id,
             active,

@@ -16,8 +16,8 @@ export interface ILoginResponse {
         id: string,
         username: string,
         role: string,
-        store_id: string | undefined,
-        must_change_password: boolean
+        store_id: string | null,
+        must_change_password: boolean,
     }
 }
 
@@ -77,7 +77,7 @@ export class LoginUseCase {
             token,
             user: {
                 id: user.id,
-                store_id: user.storeId ? user.storeId : undefined,
+                store_id: user.storeId ? user.storeId : null,
                 username: user.username,
                 role: user.role,
                 must_change_password: user.mustChangePassword

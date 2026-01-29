@@ -13,7 +13,8 @@ export type ProductProps = {
     //novos da refatoracao
     readonly store_id: string;
     readonly track_stock: boolean;
-    readonly stock_quantity: number
+    readonly stock_quantity: number;
+    readonly requires_preparation: boolean
 }
 
 export class Product {
@@ -21,7 +22,7 @@ export class Product {
     private constructor(private readonly props: ProductProps) {}
 
     private static validateStock(track_stock: boolean, stock_quantity:number | null){
-        if (track_stock && stock_quantity === null){
+        if (track_stock && stock_quantity != 0){
             throw new AppError("Um produto que vai ter estoque precisa ter alguma quantidade em estoque", 422, "INVALID_PRODUCT")
         }
     }
@@ -113,7 +114,8 @@ export class Product {
         active: boolean = true,
         store_id: string,
         track_stock: boolean,
-        stock_quantity: number | null
+        stock_quantity: number,
+        requires_preparation: boolean
     ): Product {
 
         let finalStockQuantity = 0;
@@ -124,6 +126,10 @@ export class Product {
             finalStockQuantity = 0;
         }
 
+        if(!track_stock && stock_quantity != 0) throw new AppError("Um produto que nao ter acompanhamento de estoque deve ter quantidade de estoque igual a zero", 400, "INVALID_STOCK")
+        
+        if (requires_preparation && track_stock) throw new AppError("Um produto que precisa ser preparado nao pode ter estoque", 422, "INVALID_PRODUCT")
+
         const finalName: string = name.toUpperCase();
 
         let finalGtin: string;
@@ -131,10 +137,8 @@ export class Product {
         const sanitizedInputGtin = gtin_code ? Product.normalizeGtin(gtin_code) : null;
 
         //REGRA 1: Produto externo OBRIGATORIAMENTE precisa de GTIN
-        if (!is_internal && !sanitizedInputGtin) {
-            throw new Error("Um produto externo deve possuir um GTIN-13 informado.");
-        }
-
+        if (!is_internal && !sanitizedInputGtin) throw new Error("Um produto externo deve possuir um GTIN-13 informado.");
+        
         //REGRA 2: Se for interno e NÃO tiver GTIN, gera um.
         if (is_internal && !sanitizedInputGtin) {
             finalGtin = Product.generateGtin13CodeForInternalProduct();
@@ -167,7 +171,8 @@ export class Product {
             active,
             store_id,
             track_stock,
-            stock_quantity: finalStockQuantity
+            stock_quantity: finalStockQuantity,
+            requires_preparation: requires_preparation
         });
     }
 
@@ -192,6 +197,7 @@ export class Product {
     get store_id() {return this.props.store_id; }
     get track_stock() {return this.props.track_stock; }
     get stock_quantity() {return this.props.stock_quantity; }
+    get requires_preparation() {return this.props.requires_preparation}
 
     //setter que retorna novo objeto, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newName:string, newPrice: Decimal): Product{

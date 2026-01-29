@@ -22,15 +22,15 @@ export class UpdateUserDataController {
                 throw new AppError("ID do usuario a ser atualizado precisa vir nos params", 400, "TARGET_USER_ID_NOT_FOUND")
             }
 
-            const  owner_id  = req.user.id;
-            const owner_store_id = req.user.store_id;
+            const  modifier_user_id  = req.user.id;
+            const modifier_user_store_id = req.user.store_id;
 
             const { name, password, active }: IRequestController = req.body;
 
             await this.updateUserDataUseCase.execute({
                 target_user_id,
-                owner_id,
-                owner_store_id,
+                modifier_user_id,
+                modifier_user_store_id,
                 name,
                 password,
                 active,

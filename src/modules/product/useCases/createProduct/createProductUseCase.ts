@@ -2,6 +2,8 @@ import type { IProductRepository } from "../../repositories/product.repository.i
 import { Product } from "../../entities/product.js";
 import { Decimal } from "decimal.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
+import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
+import type { User } from "../../../user/entities/user.js";
 
 interface IRequest{
     name: string,
@@ -11,7 +13,9 @@ interface IRequest{
     active: boolean,
     store_id: string,
     track_stock: boolean,
-    stock_quantity: number | null
+    stock_quantity: number,
+    user_id: string,
+    requires_preparation: boolean
 }
 //store_id,
 //track_stock,
@@ -20,10 +24,19 @@ interface IRequest{
 export class CreateProductUseCase{
 
     constructor(
-        private productRepository: IProductRepository
+        private productRepository: IProductRepository,
+        private userRepository: IUserRepository
     ) {}
 
-    public async execute( { name, unit_price_in_reais, gtin_code, is_internal, active, store_id, track_stock, stock_quantity }: IRequest ){
+    public async execute( { name, unit_price_in_reais, gtin_code, is_internal, active, store_id, track_stock, stock_quantity, user_id, requires_preparation }: IRequest ){
+
+        if (!user_id) throw new AppError("id de usuario nao encontrado", 404, "USER_NOT_FOUND");
+
+        const user: User | null = await this.userRepository.findSavedUserById(user_id)
+
+        if (!user) throw new AppError("usuario nao encontrado", 404, "USER_NOT_FOUND");
+
+        if(user.storeId != store_id) throw new AppError("Usuario nao pertence a loja", 404, "STORE_MISMATCH");
 
         const product: Product = Product.buildProduct(
             name,
@@ -33,7 +46,8 @@ export class CreateProductUseCase{
             active,
             store_id,
             track_stock,
-            stock_quantity
+            stock_quantity,
+            requires_preparation
         );
 
         const productAlreadyExists = await this.productRepository.findSavedProductByGtinCode(

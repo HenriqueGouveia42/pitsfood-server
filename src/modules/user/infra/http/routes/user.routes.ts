@@ -16,6 +16,7 @@ import { registerEmployeeSchema } from "../zodSchemas/RegisterEmployeeSchema.js"
 import { updateUserDataSchema } from "../zodSchemas/UpdateUserDataSchema.js";
 import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
 import { loginSchema } from "../zodSchemas/LoginSchema.js";
+import { createStoreController } from "../../../useCases/CreateStore/index.js";
 
 const userRoutes = Router();
 
@@ -66,6 +67,16 @@ userRoutes.post("/change-my-password",
     (request, response) =>{
         return changePasswordController.handle(request, response)
     }
+)
+
+userRoutes.post("/create-store",
+    //missing zod schema
+    authMiddleware,
+    authorizeRoles([UserRole.GESTOR]),
+    (request, response) =>{
+        return createStoreController.handle(request, response)
+    }
+
 )
 
 

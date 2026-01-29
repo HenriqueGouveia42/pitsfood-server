@@ -9,8 +9,8 @@ import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/
 
 export interface IRequestUseCase {
     target_user_id: string;
-    owner_id: string
-    owner_store_id: string,
+    modifier_user_id: string
+    modifier_user_store_id: string,
     name?: string | undefined,
     password?: string | undefined,
     active?: boolean | undefined,
@@ -26,27 +26,28 @@ export class UpdateUserDataUseCase {
 
     async execute({ 
         target_user_id,
-        owner_id,
-        owner_store_id,
+        modifier_user_id,
+        modifier_user_store_id,
         name,
         password, 
         active, 
     }: IRequestUseCase): Promise<void> {
         
-        // ... (Todas as validações de segurança permanecem iguais) ...
+        //VALIDACOES DE USUARIO
+        //------------------------------------------------------------------------------------------------ INICIO
         const user_target: User | null = await this.userRepository.findSavedUserById(target_user_id);
         if(!user_target) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
-        
-        const ownerTryingToUpdate: User | null = await this.userRepository.findSavedUserById(owner_id);
-        if (!ownerTryingToUpdate) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
 
-        if (ownerTryingToUpdate.storeId != user_target.storeId) throw new AppError("ID de usuario nao existe nessa loja", 404, "MUST_BE_THE_SAME_STORE");
-        if (ownerTryingToUpdate.role != UserRole.GESTOR) throw new AppError("USUARIO NAO É GESTOR", 403, "USER_MUST_BE_GESTOR");
-        if (ownerTryingToUpdate.storeId != owner_store_id) throw new AppError("Inconsistência: Token não pertence à loja do usuário", 404, "USER_MUST_BE_OWNER");
+        const userTryingToUpdate: User | null = await this.userRepository.findSavedUserById(modifier_user_id);
+        if (!userTryingToUpdate) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
+        if (userTryingToUpdate.storeId != user_target.storeId) throw new AppError("ID de usuario nao existe nessa loja", 404, "MUST_BE_THE_SAME_STORE");
+        if (userTryingToUpdate.role != UserRole.GESTOR) throw new AppError("USUARIO NAO É GESTOR", 403, "USER_MUST_BE_GESTOR");
+        if (userTryingToUpdate.storeId != modifier_user_store_id) throw new AppError("Inconsistência: Token não pertence à loja do usuário", 404, "USER_MUST_BE_OWNER");
 
-        const store: Store | null = await this.storeRepository.findSavedStoreById(owner_store_id);
+        const store: Store | null = await this.storeRepository.findSavedStoreById(modifier_user_store_id);
         if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
-        if(store.ownerId != ownerTryingToUpdate.id) throw new AppError("Apenas o Dono da Loja (Proprietário) tem permissão para isso", 403, "MUST_BE_STORE_OWNER");
+        //VALIDACOES DE USUARIO
+        //------------------------------------------------------------------------------------------------ FIM
 
 
         // --------------------------
@@ -55,21 +56,37 @@ export class UpdateUserDataUseCase {
 
         const finalName: string = (name !== undefined) ? name : user_target.username;
         const finalActive: boolean = (active !== undefined) ? active : user_target.active;
-        
         let finalPasswordHash: string = user_target.passwordHash;
 
         // Flags de controle
-        let shouldInvalidateSession = false;     // Para derrubar do Redis
-        let shouldForcePasswordChange = false;   // Para setar flag no Banco
+        let shouldInvalidateSession = false;     //derrubar sessão no redis
+        let shouldForcePasswordChange = false;   //setar flag no banco
+        let shouldInvalidateNameCache = false;
 
-        // 1. SE A SENHA FOI DEFINIDA
+        //SENHA FOI DEFINIDA
         if (password !== undefined){ 
             finalPasswordHash = await hash(password, 8);
             shouldInvalidateSession = true;
-            shouldForcePasswordChange = true; // <--- SÓ AQUI ATIVAMOS A FLAG
+            shouldForcePasswordChange = true;
+
+            //apenas o gestor OWNER PODE alterar senhas
+            if(store.ownerId != userTryingToUpdate.id) throw new AppError("Apenas o Dono da Loja (Proprietário) tem permissão para isso", 403, "MUST_BE_STORE_OWNER");
         }
 
-        // 2. SE O USUARIO FOI DESATIVADO
+        //NOME FOI ALTERADO
+        if (name !== undefined){
+            if(
+                userTryingToUpdate.id != store.ownerId
+                &&
+                user_target.id == store.ownerId
+            ) throw new AppError("Voce nao pode alterar o nome do gestor dono", 403, "YOU_HAVE_NO_POWER");
+
+            if(user_target.id == store.ownerId){
+                shouldInvalidateNameCache = true;
+            }
+        }
+
+        //USUARIO FOI DESATIVADO
         if (finalActive === false && user_target.active === true){ 
             shouldInvalidateSession = true;
         }
@@ -89,16 +106,20 @@ export class UpdateUserDataUseCase {
         // --------------------------
         // ATUALIZAÇÃO NO BANCO
         // --------------------------
-        if(finalActive === false && target_user_id == ownerTryingToUpdate.id){
+        if(finalActive === false && target_user_id == userTryingToUpdate.id){
             throw new AppError("Dono da loja nao pode desativar a si mesmo", 403, "OWNER_CANNOT_DEACTIVATE_ITSELF")
         }
 
-        // Gera a entidade com dados básicos atualizados
+        //gera a entidade com dados básicos atualizados
         let updatedUser: User = user_target.withUpdatedData(finalName, finalPasswordHash, finalActive);
 
-        // APLICAÇÃO CONDICIONAL DA FLAG
+        //APLICAÇÃO CONDICIONAL DA FLAG
         if (shouldForcePasswordChange) {
             updatedUser = updatedUser.setMustChangePasswordToTrue();
+        }
+
+        if (shouldInvalidateNameCache){
+            await this.cacheProvider.invalidate(`store-summary-data:${modifier_user_store_id}`);
         }
 
         await this.userRepository.updateSavedUser(updatedUser);

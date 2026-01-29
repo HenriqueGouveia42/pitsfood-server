@@ -20,7 +20,8 @@ export class PrismaProductRepository implements IProductRepository {
             active: prismaProduct.active,
             store_id: prismaProduct.store_id,
             track_stock: prismaProduct.track_stock,
-            stock_quantity: prismaProduct.stock_quantity
+            stock_quantity: prismaProduct.stock_quantity,
+            requires_preparation: prismaProduct.requires_preparation
         }
 
         return Product.restoreProduct(productProps);
@@ -42,7 +43,8 @@ export class PrismaProductRepository implements IProductRepository {
             },
 
             track_stock: product.track_stock,
-            stock_quantity: product.stock_quantity
+            stock_quantity: product.stock_quantity,
+            requires_preparation: product.requires_preparation
         }
     }
 

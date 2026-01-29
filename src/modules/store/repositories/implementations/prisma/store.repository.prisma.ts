@@ -80,7 +80,7 @@ export class PrismaStoreRepository implements IStoreRepository {
 
     }
 
-    async findSavedStoreById(store_id: string): Promise<Store> {
+    async findSavedStoreById(store_id: string): Promise<Store | null> {
 
         const storePrismaData = await prisma.store.findUnique({
             where: {
