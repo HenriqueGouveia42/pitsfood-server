@@ -1,8 +1,10 @@
 import { Product, type ProductProps } from '../../../entities/product.js';
 import type { IProductRepository } from '../../product.repository.interface.js';
+import { StockEntry } from '../../../entities/stock-entry.js';
 
 import { prisma } from "../../../../../shared/infra/prisma.js"
 import { AppError } from '../../../../../shared/errors/AppError.js';
+import { Decimal } from 'decimal.js';
 
 export class PrismaProductRepository implements IProductRepository {
 
@@ -46,6 +48,25 @@ export class PrismaProductRepository implements IProductRepository {
             stock_quantity: product.stock_quantity,
             requires_preparation: product.requires_preparation
         }
+    }
+
+    private static prismaEntryToDomainMapper(prismaEntry: any): StockEntry {
+        return StockEntry.restore({
+            entry_id: prismaEntry.entry_id,
+            product_id: prismaEntry.product_id,
+            store_id: prismaEntry.store_id,
+            quantity: prismaEntry.quantity,
+            
+            //garantimos que seja Decimal
+            unit_cost: new Decimal(prismaEntry.unit_cost), 
+            total_cost: new Decimal(prismaEntry.total_cost),
+            
+            created_at: prismaEntry.created_at.toISOString(), //normaliza data
+            
+            //achatamos os relacionamentos para facilitar a vida do Frontend
+            user_name: prismaEntry.user ? prismaEntry.user.username : 'Desconhecido',
+            product_name: prismaEntry.product ? prismaEntry.product.name : 'Produto Removido'
+        });
     }
 
     //methods
@@ -154,12 +175,11 @@ export class PrismaProductRepository implements IProductRepository {
         return mappedToEntity;
     }
 
-    async listSavedProducts(active: boolean, store_id: string): Promise<Product[]> {
+    async listSavedProducts(store_id: string): Promise<Product[]> {
 
         const prismaSavedProducts = await prisma.product.findMany({
             where:{
                 store_id: store_id,
-                active: active
             },
             orderBy: {
                 name: "asc" //ordem alfabetica
@@ -200,4 +220,70 @@ export class PrismaProductRepository implements IProductRepository {
             }
         })
     }
+
+    async makeEntryStock(product_id: string, store_id: string, user_id: string, user_name: string, stock_quantity_to_add: number, unit_cost: Decimal, total_cost: Decimal): Promise<void>{
+        
+        await prisma.$transaction(async (tx) =>{
+
+            await tx.stockEntry.create({
+                data:{
+                    quantity: stock_quantity_to_add,
+                    unit_cost: unit_cost,
+                    total_cost: total_cost,
+                    store_id: store_id,
+                    product_id: product_id,
+                    user_id: user_id
+                }
+            })
+
+            await tx.product.update({
+                where:{
+                    product_id_store_id:{
+                        product_id,
+                        store_id
+                    }
+                },
+                data:{
+                    stock_quantity:{
+                        increment: stock_quantity_to_add
+                    }
+                }
+            })
+
+        })
+    }
+    
+    async listStockEntries(store_id: string, page: number, items_per_page: number): Promise<{ entries: any[], total_count: number }> {
+        
+        const skip = (page - 1) * items_per_page;
+   
+        const [total_count, prismaEntries] = await Promise.all([
+            
+            //conta quantos existem no total (para a barra de rolagem saber o tamanho)
+            prisma.stockEntry.count({
+                where: { store_id }
+            }),
+
+            //query 2: busca os dados paginados
+            prisma.stockEntry.findMany({
+                where: { store_id },
+                skip: skip,
+                take: items_per_page,
+                orderBy: { created_at: 'desc' }, // As mais recentes primeiro!
+                include: {
+                    product: { select: { name: true, gtin_code: true } }, // Traz o nome do produto
+                    user: { select: { username: true } } // Traz quem fez a entrada
+                }
+            })
+        ]);
+
+        const entries = prismaEntries.map(entry => PrismaProductRepository.prismaEntryToDomainMapper(entry));
+
+        return {
+            entries,
+            total_count
+        };
+    }
+    
+        
 }

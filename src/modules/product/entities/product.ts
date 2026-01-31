@@ -22,7 +22,7 @@ export class Product {
     private constructor(private readonly props: ProductProps) {}
 
     private static validateStock(track_stock: boolean, stock_quantity:number | null){
-        if (track_stock && stock_quantity != 0){
+        if (track_stock && stock_quantity == 0){
             throw new AppError("Um produto que vai ter estoque precisa ter alguma quantidade em estoque", 422, "INVALID_PRODUCT")
         }
     }
@@ -200,15 +200,16 @@ export class Product {
     get requires_preparation() {return this.props.requires_preparation}
 
     //setter que retorna novo objeto, mantendo a imutabilidade de um objeto criado
-    public withUpdatedData(newName:string, newPrice: Decimal): Product{
+    public withUpdatedData(newName:string, newUnitPrice: Decimal, newActive: boolean): Product{
 
         Product.validateName(newName);
-        Product.validatePrice(newPrice);
+        Product.validatePrice(newUnitPrice);
 
         return new Product({
             ...this.props,
             name: newName,
-            unit_price_in_reais: newPrice,
+            unit_price_in_reais: newUnitPrice,
+            active: newActive,
             updated_at: new Date().toISOString()
         })
     }

@@ -29,7 +29,7 @@ export class CreateProductUseCase{
     ) {}
 
     public async execute( { name, unit_price_in_reais, gtin_code, is_internal, active, store_id, track_stock, stock_quantity, user_id, requires_preparation }: IRequest ){
-
+        
         if (!user_id) throw new AppError("id de usuario nao encontrado", 404, "USER_NOT_FOUND");
 
         const user: User | null = await this.userRepository.findSavedUserById(user_id)
