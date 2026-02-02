@@ -1,4 +1,4 @@
-import { Router } from "express"
+import { response, Router } from "express"
 import { authMiddleware} from "../../../../../shared/infra/http/middlewares/authMiddleware.js"
 import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js"
 import { createProductController } from "../../../useCases/createProduct/index.js"
@@ -9,6 +9,8 @@ import { validateSchema } from "../../../../../shared/infra/http/middlewares/val
 import { CreateProductSchema } from "../zodSchemas/CreateProductSchema.js"
 import { updateProductController } from "../../../useCases/UpdateProduct/index.js"
 import { makeStockEntryController } from "../../../useCases/MakeStockEntry/index.js"
+import { listStockEntriesController } from "../../../useCases/ListStockEntries/index.js"
+import { ListStockEntriesSchema } from "../zodSchemas/ListStockEntriesSchema.js"
 
 const productRoutes = Router();
 
@@ -44,6 +46,15 @@ productRoutes.post("/make-entry-stock/:product_id",
         return makeStockEntryController.handle(request, response)
     }
 
+)
+
+productRoutes.get("/stock-entries/history",
+    validateSchema(ListStockEntriesSchema),
+    authMiddleware,
+    authorizeRoles([UserRole.GESTOR]),
+    (request, response) =>{
+        return listStockEntriesController.handle(request, response);
+    }
 )
 
 export { productRoutes }

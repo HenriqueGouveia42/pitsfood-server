@@ -12,5 +12,10 @@ export interface IProductRepository {
     deactivateSavedProductById(product_id: string, store_id: string): Promise<void>;
     activateSavedProductById(product_id: string, store_id: string): Promise<void>;
     makeEntryStock(product_id: string, store_id: string, user_id: string, user_name: string, stock_quantity_to_add: number, unit_cost: Decimal, total_cost: Decimal): Promise<void>;
-    listStockEntries(store_id: string, page: number, items_per_page: number): Promise<{ entries: StockEntry[], total_count: number }>;
+    listStockEntries(
+        store_id: string, 
+        page: number, 
+        items_per_page: number, 
+        product_id?: string
+    ): Promise<{ entries: StockEntry[], total_count: number }>;
 }
