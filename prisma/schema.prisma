@@ -103,8 +103,8 @@ model User {
   sales_closed  Sale[]        @relation("UserClosedSale")
   items_added   BillProduct[] @relation("UserAddedItem")
 
-  @@unique([username, store_id]) //um username deve ser unico APENAS dentro daquela loja
-  @@unique([user_id, store_id]) //indice composto que sera utilizado por BillProduct e Sale
+  @@unique([store_id, username]) //um username deve ser unico APENAS dentro daquela loja
+  @@unique([store_id, user_id]) //indice composto que sera utilizado por BillProduct e Sale
   @@map("users")
 }
 
@@ -133,10 +133,12 @@ model Product {
   sale_products SaleProduct[]
   stock_entries StockEntry[] //historico de entradas desse produto
 
+  @@index([store_id, name])
 
-  @@unique([gtin_code, store_id]) //o produto é unico dentro de uma loja, mas pode repetir em outras
-  @@unique([product_id, store_id]) //indice composto que será utilizado por BillProduct e SaleProduct
-  @@unique([name, store_id])
+  @@unique([store_id, gtin_code]) //o produto é unico dentro de uma loja, mas pode repetir em outras
+  @@unique([store_id, product_id]) //indice composto que será utilizado por BillProduct e SaleProduct
+  @@unique([store_id, name])
+  
   @@map("products")
 }
 
@@ -153,10 +155,10 @@ model StockEntry{ //tabela que registra as entradas de estoque
   store Store @relation(fields: [store_id], references: [store_id])
 
   product_id String
-  product Product @relation(fields: [product_id, store_id], references: [product_id, store_id])
+  product Product @relation(fields: [store_id, product_id], references: [store_id, product_id])
 
   user_id String
-  user  User @relation("UserRegisteredStock", fields: [user_id, store_id], references: [user_id, store_id])
+  user  User @relation("UserRegisteredStock", fields: [store_id, user_id], references: [store_id, user_id])
 
   @@map("stock_entries")
 
@@ -182,7 +184,7 @@ model Bill {
   
   //uma comanda pode gerar no máximo UMA venda final.
   //o campo fica do lado da Sale (origin_bill_id), aqui é o espelho.
-  @@unique([bill_id, store_id])
+  @@unique([store_id, bill_id])
   @@map("bills")
 }
 
@@ -205,9 +207,9 @@ model BillProduct {
 
 
   //relacionamentos
-  bill    Bill    @relation(fields: [bill_id, store_id], references: [bill_id, store_id]) //a comanda vinculada TEM que existir e TEM que ser da mesma loja 
-  product Product @relation(fields: [product_id, store_id], references: [product_id, store_id])// o produto adicionado a comanda TEM que existir e TEM que ser da mesma loja
-  user    User    @relation("UserAddedItem", fields: [user_id, store_id], references: [user_id, store_id]) //o usuario que adicionou TEM que ser da mesma loja
+  bill    Bill    @relation(fields: [store_id, bill_id], references: [store_id, bill_id]) //a comanda vinculada TEM que existir e TEM que ser da mesma loja 
+  product Product @relation(fields: [store_id, product_id], references: [store_id, product_id])// o produto adicionado a comanda TEM que existir e TEM que ser da mesma loja
+  user    User    @relation("UserAddedItem", fields: [store_id, user_id], references: [store_id, user_id]) //o usuario que adicionou TEM que ser da mesma loja
   store   Store   @relation(fields: [store_id], references: [store_id])
 
   @@map("bill_products")
@@ -228,12 +230,12 @@ model Sale {
 
   //relacionamentos
   user_id        String     //quem fechou a venda
-  user        User          @relation("UserClosedSale", fields: [user_id, store_id], references: [user_id, store_id]) //o usuario que fechou a venda TEM que ser da mesma loja
+  user        User          @relation("UserClosedSale", fields: [store_id, user_id], references: [store_id, user_id]) //o usuario que fechou a venda TEM que ser da mesma loja
   
   items       SaleProduct[]
   payments    SalePayment[]
 
-  @@unique([sale_id, store_id]) //indice composto necessario para que SaleProduct e SalePayment possam criar chaves estrangeiras que apontam pra ca
+  @@unique([store_id, sale_id]) //indice composto necessario para que SaleProduct e SalePayment possam criar chaves estrangeiras que apontam pra ca
   @@map("sales")
 }
 
@@ -256,9 +258,9 @@ model SaleProduct {
   origin_bill_id String? //opcional pois o item da venda pode ter sido feito direto no balcao, ou seja, sem comanda
 
   //relacionamentos
-  sale    Sale    @relation(fields: [sale_id, store_id], references: [sale_id, store_id], onDelete: Cascade)
-  product Product @relation(fields: [product_id, store_id], references: [product_id, store_id])
-  origin_bill Bill? @relation(fields: [origin_bill_id, store_id], references: [bill_id, store_id]) //se veio de comanda, a comanda deve ser da mesma loja
+  sale    Sale    @relation(fields: [store_id, sale_id], references: [store_id, sale_id], onDelete: Cascade)
+  product Product @relation(fields: [store_id, product_id], references: [store_id, product_id])
+  origin_bill Bill? @relation(fields: [store_id, origin_bill_id], references: [store_id, bill_id]) //se veio de comanda, a comanda deve ser da mesma loja
 
   @@map("sale_products")
 }
@@ -277,7 +279,7 @@ model SalePayment {
   store Store @relation(fields: [store_id], references: [store_id])
 
   //relacionamentos
-  sale Sale @relation(fields: [sale_id, store_id], references: [sale_id, store_id], onDelete: Cascade) //o pagamento só é vinculado a uma MESMA venda e uma MESMA loja
+  sale Sale @relation(fields: [store_id, sale_id], references: [store_id, sale_id], onDelete: Cascade) //o pagamento só é vinculado a uma MESMA venda e uma MESMA loja
 
   @@map("sale_payments")
 }

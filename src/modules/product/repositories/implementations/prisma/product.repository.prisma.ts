@@ -87,9 +87,9 @@ export class PrismaProductRepository implements IProductRepository {
 
         const prismaProduct = await prisma.product.findUnique({
             where:{
-                product_id_store_id:{
+                store_id_product_id:{
+                    store_id,
                     product_id,
-                    store_id
                 }
             }
         })
@@ -107,9 +107,9 @@ export class PrismaProductRepository implements IProductRepository {
 
         const prismaProduct = await prisma.product.findUnique({
             where:{
-                gtin_code_store_id:{
-                    gtin_code,
-                    store_id
+                store_id_gtin_code:{
+                    store_id,
+                    gtin_code
                 }
                
             }
@@ -160,9 +160,9 @@ export class PrismaProductRepository implements IProductRepository {
 
         const updatedProduct = await prisma.product.update({
             where:{
-                product_id_store_id:{
-                    product_id: product.id,
-                    store_id: store_id
+                store_id_product_id:{
+                    store_id: store_id,
+                    product_id: product.id
                 }
             },
             data:{
@@ -195,9 +195,9 @@ export class PrismaProductRepository implements IProductRepository {
 
         await prisma.product.update({
             where:{
-                product_id_store_id:{
-                    product_id: product_id,
-                    store_id: store_id
+                store_id_product_id:{
+                    store_id: store_id,
+                    product_id: product_id
                 }
             },
             data:{
@@ -210,9 +210,9 @@ export class PrismaProductRepository implements IProductRepository {
 
         await prisma.product.update({
             where:{
-                product_id_store_id:{
-                    product_id: product_id,
-                    store_id: store_id
+                store_id_product_id:{
+                    store_id: store_id,
+                    product_id: product_id
                 }
             },
             data:{
@@ -238,9 +238,9 @@ export class PrismaProductRepository implements IProductRepository {
 
             await tx.product.update({
                 where:{
-                    product_id_store_id:{
+                    store_id_product_id:{
+                        store_id,
                         product_id,
-                        store_id
                     }
                 },
                 data:{
@@ -252,32 +252,38 @@ export class PrismaProductRepository implements IProductRepository {
 
         })
     }
+
+    async listStockEntries(store_id: string, page: number, items_per_page: number, product_id?: string): Promise<{ entries: StockEntry[], total_count: number }> {
     
-    async listStockEntries(store_id: string, page: number, items_per_page: number): Promise<{ entries: any[], total_count: number }> {
-        
         const skip = (page - 1) * items_per_page;
-   
+
+        //constoi o objeto Where dinamicamente ou deixamos o undefined agir
+        const whereClause = {
+            store_id: store_id,
+            ...(product_id && { product_id: product_id }) 
+        };
+
         const [total_count, prismaEntries] = await Promise.all([
             
-            //conta quantos existem no total (para a barra de rolagem saber o tamanho)
+            //query 1: contaem (IMPORTANTE: Usar o mesmo whereClause)
             prisma.stockEntry.count({
-                where: { store_id }
+                where: whereClause 
             }),
 
-            //query 2: busca os dados paginados
+            //query 2: dados paginados
             prisma.stockEntry.findMany({
-                where: { store_id },
+                where: whereClause, // <--- Usa o filtro aqui também
                 skip: skip,
                 take: items_per_page,
-                orderBy: { created_at: 'desc' }, // As mais recentes primeiro!
+                orderBy: { created_at: 'desc' },
                 include: {
-                    product: { select: { name: true, gtin_code: true } }, // Traz o nome do produto
-                    user: { select: { username: true } } // Traz quem fez a entrada
+                    product: { select: { name: true, gtin_code: true } },
+                    user: { select: { username: true } }
                 }
             })
         ]);
 
-        const entries = prismaEntries.map(entry => PrismaProductRepository.prismaEntryToDomainMapper(entry));
+        const entries: StockEntry[] = prismaEntries.map(entry => PrismaProductRepository.prismaEntryToDomainMapper(entry));
 
         return {
             entries,
