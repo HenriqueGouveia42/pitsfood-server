@@ -22,10 +22,12 @@ export class StockEntry {
     }
 
     get id() { return this.props.entry_id; }
+    get product_id() {return this.props.product_id; }
+    get store_id() {return this.props.store_id; }
+    get userName() { return this.props.user_name; }
+    get productName() { return this.props.product_name; }
     get quantity() { return this.props.quantity; }
     get unitCost() { return this.props.unit_cost; }
     get totalCost() { return this.props.total_cost; }
-    get date() { return new Date(this.props.created_at); }
-    get userName() { return this.props.user_name; }
-    get productName() { return this.props.product_name; }
+    get created_date() { return new Date(this.props.created_at); }
 }
