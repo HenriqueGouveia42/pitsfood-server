@@ -1,5 +1,6 @@
 import { Bill, billStates, type BillProps} from "../../../entities/bill.js"
 import type { IBillRepository } from "../../bill.repository.interface.js";
+import { PhysicalBill } from "../../../entities/physicalBIllCard.js";
 import { prisma } from "../../../../../shared/infra/prisma.js"
 import { Decimal } from 'decimal.js';
 
@@ -40,23 +41,35 @@ export class PrismaBillRepository implements IBillRepository {
             bill_id: prismaData.bill_id,
             bill_code_gtin: prismaData.bill_code_gtin,
             status: prismaData.status,
+            store_id: prismaData.store_id,
             created_at: prismaData.created_at,
             updated_at: prismaData.updated_at,
             items: prismaData.items
                 ? prismaData.items.map((item: any) =>({
                     bill_item_id: item.bill_item_id,
+                    quantity: item.quantity,
                     user_id: item.user_id,
                     product_id: item.product_id,
-                    quantity: item.quantity,
                     price_at_addition: new Decimal(item.price_at_addition),
                     bill_id: item.bill_id,
                     product_name: item.product_name,
-                     product_gtin_code: item.product_gtin_code
+                    product_gtin_code: item.product_gtin_code
                 }))
                 :   []      
         }
         return Bill.restoreBill(bill);
 
+    }
+
+    public static entityToPrismaPhysicalBillDataMapper(physical_bill: PhysicalBill): any{
+        return{
+            id: physical_bill.id,
+            code: physical_bill.code,
+            store_id: physical_bill.store_id,
+            is_lost: physical_bill.is_lost,
+            created_at: physical_bill.createdAt,
+            updated_at: physical_bill.updatedAt
+        }
     }
 
     //methods
@@ -261,5 +274,6 @@ export class PrismaBillRepository implements IBillRepository {
     listSavedBills(): Promise<Bill[]> {
         throw new Error("Method not implemented.");
     }
-    
+
+
 }

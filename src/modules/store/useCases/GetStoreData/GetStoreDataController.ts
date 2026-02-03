@@ -12,8 +12,9 @@ export class GetStoreDataController{
         try{
 
             const store_id: string = req.user.store_id;
+            const user_id: string = req.user.id;
 
-            const storeData: IGetStoreDataUseCaseResponse  = await this.getStoreDataUseCase.execute({store_id});
+            const storeData: IGetStoreDataUseCaseResponse  = await this.getStoreDataUseCase.execute({store_id, user_id});
 
             return res.status(200).json(storeData);
 

@@ -1,12 +1,15 @@
 import type { StoreProps } from "../../../entities/store.js";
 import { Store } from "../../../entities/store.js";
 import type { IStoreRepository } from "../../store.repository.interface.js"
+import { PhysicalBill } from "../../../../bill/entities/physicalBIllCard.js";
 
 import { prisma } from "../../../../../shared/infra/prisma.js";
 import { AppError } from "../../../../../shared/errors/AppError.js";
 
 import type { Store as PrismaStoreModel } from "../../../../../generated/prisma/client.js";
 import type { User } from "../../../../user/entities/user.js";
+import { UserRole } from "../../../../../generated/prisma/client.js";
+
 
 export class PrismaStoreRepository implements IStoreRepository {
 
@@ -42,19 +45,29 @@ export class PrismaStoreRepository implements IStoreRepository {
         }
     }
 
-    async saveStore(store: Store): Promise<Store | null> {
+    async saveStoreAndCreatePhysicalBills(store: Store, physical_bills: PhysicalBill[]): Promise<Store | null> {
 
         //ao salvarmos uma loja no banco de dados, devemos imediatamente atualizar o campo "store_id" da tabela "user"
         //o objeto "store" ja vai vir com o "owner_id"
 
         const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
 
+        //MAPPER LOCAL: entidade -> obj. prisma para o createMany
+        const physicalBillsData = physical_bills.map(bill => ({
+            id: bill.id,
+            code: bill.code,
+            store_id: bill.store_id,
+            is_lost: bill.is_lost,
+            created_at: new Date(bill.createdAt),
+            updated_at: new Date(bill.updatedAt)
+        }));
+
 
         const resultPrismaStore = await prisma.$transaction(async (tx) =>{
 
             const createdStore = await tx.store.create({
                 data: storePrismaData
-            })
+            }) //persiste aloja
 
             if (storePrismaData.owner_id){
                 await tx.user.update({
@@ -62,10 +75,16 @@ export class PrismaStoreRepository implements IStoreRepository {
                         user_id: store.ownerId
                     },
                     data:{
-                        store_id: store.id
+                        store_id: store.id,
+                        role: UserRole.GESTOR
                     }
                 })
-            }
+            }//atualiza o usuario
+
+            await tx.physicalBillCard.createMany({
+                data: physicalBillsData,
+                skipDuplicates: true //segurança extra caso gere ID duplicado (impossível com UUID, mas boa prática)
+            })// cria as 40 comandas
 
             return createdStore
         })

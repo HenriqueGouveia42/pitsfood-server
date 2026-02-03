@@ -39,6 +39,18 @@ enum PaymentMethod {
   CARTAO_CREDITO
 }
 
+enum SubscriptionPlan {
+  BASIC
+  EXTENDED
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
 model Store{
   store_id String @id @default(uuid())
   name String
@@ -46,9 +58,18 @@ model Store{
   active  Boolean @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now())
+
+  plan SubscriptionPlan @default(BASIC)
+
+  subscription_status SubscriptionStatus @default(ACTIVE)
+  subscription_expires_at DateTime?
+  
   
   owner_id String @unique
   owner User? @relation("StoreOwner", fields: [owner_id], references: [user_id])
+
+  affiliate_id  String?
+  referrer  Affiliate? @relation("StoreReferrer", fields: [affiliate_id], references: [id])
 
   users User[] @relation("StoreUsers")
   products Product[]
@@ -59,8 +80,29 @@ model Store{
   sale_products SaleProduct[]
   sale_payments SalePayment[]
   stock_entries StockEntry[]
+  physical_bill_cards PhysicalBillCard[]
 
   @@map("stores")
+}
+
+model Affiliate {
+  id  String @id @default(uuid())
+  name String
+  email String @unique
+  cpf_cnpj  String @unique
+  pix_key String?
+
+  referral_code String @unique
+
+  commission_rate Decimal @default(20.0) @db.Decimal(5, 2)
+
+  active  Boolean @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  referred_stores Store[] @relation("StoreReferrer")
+
+  @@map("affiliates")
 }
 
 model StagedUser {
@@ -186,6 +228,21 @@ model Bill {
   //o campo fica do lado da Sale (origin_bill_id), aqui é o espelho.
   @@unique([store_id, bill_id])
   @@map("bills")
+}
+
+model PhysicalBillCard{
+  id String @id @default(uuid())
+  code  String
+  
+  is_lost Boolean @default(false)
+  created_at  DateTime  @default(now())
+  updated_at DateTime @updatedAt
+
+  store_id String
+  store Store @relation(fields: [store_id], references: [store_id])
+
+  @@unique([store_id, code])
+  @@map("physical_bills")
 }
 
 
