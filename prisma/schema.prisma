@@ -40,12 +40,14 @@ enum PaymentMethod {
 }
 
 enum SubscriptionPlan {
+  NONE //loja que acabou de ser criada
   BASIC
   EXTENDED
   PREMIUM
 }
 
 enum SubscriptionStatus {
+  NONE//loja que acabou de ser criada
   ACTIVE
   PAST_DUE
   CANCELED
@@ -59,13 +61,13 @@ model Store{
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now())
 
-  plan SubscriptionPlan @default(BASIC)
+  plan SubscriptionPlan @default(NONE)
 
-  subscription_status SubscriptionStatus @default(ACTIVE)
+  subscription_status SubscriptionStatus @default(NONE)
   subscription_expires_at DateTime?
   
   
-  owner_id String @unique
+  owner_id String// @unique - UM USUARIO PODE TER VARIAS LOJAS
   owner User? @relation("StoreOwner", fields: [owner_id], references: [user_id])
 
   affiliate_id  String?
@@ -133,10 +135,13 @@ model User {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
   active        Boolean @default(true)
+
+  paying_user   Boolean @default(false)//isso indica se o gestor é o que paga, o que criou sua conta, etc, ou se é um gestor criado por um gestor pago
   
   store_id  String?
   store Store? @relation("StoreUsers", fields: [store_id], references: [store_id])
-  owned_store Store? @relation("StoreOwner")
+  
+  owned_store Store[] @relation("StoreOwner")
   stock_entries_registered  StockEntry[] @relation("UserRegisteredStock")
 
   must_change_password Boolean @default(false)

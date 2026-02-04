@@ -10,7 +10,8 @@ interface IPayLoad {
     userId: string,
     store_id: string,
     must_change_password: boolean,
-    token_version: number //controle de versao para invalidar tokens pela verificacao no redis
+    token_version: number //controle de versao para invalidar tokens pela verificacao no redis,
+    is_paying_user: boolean
 }
 
 export async function authMiddleware( //agora é um funcao assincrona, pois faz a consulta no redis
@@ -18,23 +19,21 @@ export async function authMiddleware( //agora é um funcao assincrona, pois faz 
     response: Response,
     next: NextFunction
 ){
-    //1. buscar o token nos cookies
+    //buscar o token nos cookies
     const token = request.cookies['token'];
 
-    if(!token){
-        return response.status(401).json({message: "Token missing"});
-    }
+    if(!token) return response.status(401).json({message: "Token missing"});
 
-    //2. verificar se o token é valido
     try{
 
         //variaveis de ambiente sao interpretadas pelo typescript como "string | undefined",
         //mas o metodo 'verify' aceita apenas estritamente 'string', por isso devemos "forcar"
         //atraves de '... as string'
-        const { sub, role, store_id, must_change_password, token_version } = jwt.verify(
+        const { sub, role, store_id, must_change_password, token_version, is_paying_user } = jwt.verify(
             token,
             process.env.JWT_SECRET as string
         ) as IPayLoad;
+
 
         // -------------------------------------------------------------
         // VALIDAÇÃO VIA REDIS (WHITELIST) - INICIO
@@ -59,8 +58,6 @@ export async function authMiddleware( //agora é um funcao assincrona, pois faz 
         /////////////////////////////////////////////////////
         if(must_change_password === true){
 
-            //vamos definir a UNICA rota permitida
-
             const allowedRouteSuffix = "/change-my-password";
 
             const isTargetingChangePassword: boolean = request.originalUrl.endsWith(allowedRouteSuffix);
@@ -74,15 +71,15 @@ export async function authMiddleware( //agora é um funcao assincrona, pois faz 
                 
             }
         }
-        //////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////
 
-
+        
         request.user = {
             id: sub,
             role: role,
             store_id: store_id,
-            must_change_password: must_change_password
+            must_change_password: must_change_password,
+            is_paying_user: true,
+            token_version: token_version
         }
 
         return next();

@@ -16,7 +16,8 @@ export type UserProps = {
     readonly updated_at: string;
     readonly role: UserRole;
     readonly active: boolean;
-    readonly must_change_password: boolean
+    readonly must_change_password: boolean,
+    readonly paying_user: boolean
 }
 
 export class User {
@@ -25,8 +26,12 @@ export class User {
 
     //validacoes
     private static validateUsername(username: string): void {
-        if (username.length < 3) throw new Error("Nome de usuário deve ter pelo menos 3 caracteres");
-        if (username.length > 50) throw new Error("Nome de usuário não pode ultrapassar 50 caracteres");
+        if (username.length < 3) throw new AppError("Nome de usuário deve ter pelo menos 3 caracteres", 422, "INVALID_USER");
+        if (username.length > 50) throw new AppError("Nome de usuário não pode ultrapassar 50 caracteres", 422, "INVALID_USER");
+    }
+
+    private static validatePayingUser(user:User): void{
+        if(user.paying_user && user.role != UserRole.GESTOR) throw new AppError("O usuario pago necessariamente é um gestor")
     }
 
     private static formatUsername(username: string): string {
@@ -34,7 +39,7 @@ export class User {
             .trim()
             .toLowerCase()
             .split(' ')
-            .filter(word => word.length > 0) // Remove espaços duplos acidentais
+            .filter(word => word.length > 0) //Remove espaços duplos acidentais
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
     }
@@ -46,7 +51,8 @@ export class User {
         role: UserRole,
         email: string,
         store_id: string | null,
-        must_change_password: boolean
+        must_change_password: boolean,
+        is_paying_user: boolean
     
     ): User {
 
@@ -56,7 +62,7 @@ export class User {
 
         const now = new Date().toISOString();
 
-        return new User({
+        const user:User = new User({
             user_id: crypto.randomUUID(),
             email,
             username: finalName,
@@ -66,8 +72,13 @@ export class User {
             role,
             active: true,
             store_id: store_id ? store_id : null,
-            must_change_password
-        });
+            must_change_password,
+            paying_user: is_paying_user //o usuario comum é o que nao paga, ele nao é o
+        })
+
+        User.validatePayingUser(user);
+
+        return user;
     }
 
     public static restore(props: UserProps): User{
@@ -85,7 +96,8 @@ export class User {
     get active() { return this.props.active; }
     get storeId() {return this.props.store_id}
     get email() {return this.props.email}
-    get mustChangePassword() {return this.props.must_change_password}
+    get mustChangePassword() {return this.props.must_change_password; }
+    get paying_user() {return this.props.paying_user; }
 
     //setters que retornam novos objetos, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newUsername:string, newHashedPassword: string, active: boolean): User {

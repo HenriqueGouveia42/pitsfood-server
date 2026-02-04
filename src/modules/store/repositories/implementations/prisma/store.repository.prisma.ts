@@ -10,6 +10,12 @@ import type { Store as PrismaStoreModel } from "../../../../../generated/prisma/
 import type { User } from "../../../../user/entities/user.js";
 import { UserRole } from "../../../../../generated/prisma/client.js";
 
+import { SubscriptionPlan as PrismaPlan } from "../../../../../generated/prisma/client.js";
+import { SubscriptionStatus as PrismaSubscriptionStatus } from "../../../../../generated/prisma/client.js";
+
+import { SubscriptionPlan  as EntityPlan} from "../../../entities/store.js";
+import { SubscriptionStatus as EntitySubscriptionStatus } from "../../../entities/store.js";
+
 
 export class PrismaStoreRepository implements IStoreRepository {
 
@@ -27,7 +33,9 @@ export class PrismaStoreRepository implements IStoreRepository {
             owner_id: prismaStore.owner_id,
             active: prismaStore.active,
             created_at: prismaStore.created_at.toISOString(),
-            updated_at: prismaStore.updated_at.toISOString() 
+            updated_at: prismaStore.updated_at.toISOString(),
+            plan: prismaStore.plan as EntityPlan,
+            subscription_status: prismaStore.subscription_status as EntitySubscriptionStatus
         })
     }
 
@@ -41,27 +49,15 @@ export class PrismaStoreRepository implements IStoreRepository {
             owner_id: props.owner_id,
             active: props.active,
             created_at: new Date(props.created_at),
-            updated_at: new Date()
+            updated_at: new Date(),
+            plan: props.plan,
+            subscription_status: props.subscription_status
         }
     }
 
-    async saveStoreAndCreatePhysicalBills(store: Store, physical_bills: PhysicalBill[]): Promise<Store | null> {
-
-        //ao salvarmos uma loja no banco de dados, devemos imediatamente atualizar o campo "store_id" da tabela "user"
-        //o objeto "store" ja vai vir com o "owner_id"
+    async saveStore(store: Store): Promise<Store | null> {
 
         const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
-
-        //MAPPER LOCAL: entidade -> obj. prisma para o createMany
-        const physicalBillsData = physical_bills.map(bill => ({
-            id: bill.id,
-            code: bill.code,
-            store_id: bill.store_id,
-            is_lost: bill.is_lost,
-            created_at: new Date(bill.createdAt),
-            updated_at: new Date(bill.updatedAt)
-        }));
-
 
         const resultPrismaStore = await prisma.$transaction(async (tx) =>{
 
@@ -80,12 +76,6 @@ export class PrismaStoreRepository implements IStoreRepository {
                     }
                 })
             }//atualiza o usuario
-
-            await tx.physicalBillCard.createMany({
-                data: physicalBillsData,
-                skipDuplicates: true //segurança extra caso gere ID duplicado (impossível com UUID, mas boa prática)
-            })// cria as 40 comandas
-
             return createdStore
         })
 
@@ -127,8 +117,12 @@ export class PrismaStoreRepository implements IStoreRepository {
         })
     }
 
-    async listAllSavedStores(): Promise<Store[]> {
-        const storesPrismaData = await prisma.store.findMany();
+    async listAllSavedStores(user_id: string): Promise<Store[]> {
+        const storesPrismaData = await prisma.store.findMany({
+            where:{
+                owner_id: user_id
+            }
+        });
 
         const stores = storesPrismaData.map((s) => 
             PrismaStoreRepository.prismaToEntityDataMapper(s)

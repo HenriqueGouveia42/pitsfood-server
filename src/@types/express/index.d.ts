@@ -13,6 +13,8 @@ declare global {
         role: UserRole;
         store_id: string;
         must_change_password: boolean;
+        is_paying_user: true,
+        token_version: number
       };
     }
   }

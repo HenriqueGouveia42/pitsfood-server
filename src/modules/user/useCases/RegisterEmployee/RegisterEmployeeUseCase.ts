@@ -29,33 +29,20 @@ export class RegisterEmployeeUseCase{
     
         const userAlreadyExists = await this.userRepository.findUserByEmail(email);
 
-        if (userAlreadyExists){
-            throw new AppError("Este e-mail já está sendo utilizado por outro funcionário.", 400, "INVALID_EMAIL");       
-        }
+        if (userAlreadyExists) throw new AppError("Este e-mail está indisponível.", 400, "INVALID_EMAIL");
 
         const manager_user: User | null = await this.userRepository.findSavedUserById(userId);
+        if (manager_user == null) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
 
-        if (manager_user == null){
-            throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND")
-        }
+        if (manager_user.storeId === null) throw new AppError("O usuario nao pode cadastrar funcionarios sem antes criar uma loja", 400, "MUST_CREATE_STORE");
 
-        if (manager_user.storeId === null){
-            throw new AppError("O usuario nao pode cadastrar funcionarios sem antes criar uma loja", 400, "MUST_CREATE_STORE")
-        }
-
-        if (manager_user.role != UserRole.GESTOR){
-            throw new AppError("Usuario precisa ser GESTOR para criar uma loja", 403, "MUST_BE_GESTOR")
-        }
+        if (manager_user.role != UserRole.GESTOR) throw new AppError("Usuario precisa ser GESTOR para criar uma loja", 403, "MUST_BE_GESTOR");
+        if (!manager_user.paying_user) throw new AppError("Usuario gestor precisa ser um gestor pago, ou seja, aquele que criou a loja!");
 
         const store: Store | null = await this.storeRepository.findSavedStoreById(manager_user.storeId);
+        if (store === null) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND")
+        if (store.ownerId != manager_user.id) throw new AppError("O usuario não é o dono da loja", 403, "MUST_BE_THE_OWNER");
 
-        if (store === null){
-            throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND")
-        }
-
-        if (store.ownerId != manager_user.id){
-            throw new AppError("O usuario não é o dono da loja", 403, "MUST_BE_THE_OWNER");
-        }
 
         const hashed_password = await bcrypt.hash(plain_text_password, 8);
 
@@ -65,9 +52,9 @@ export class RegisterEmployeeUseCase{
             role as UserRole,
             email,
             store.id,
-            true
-        ); //'must_change_password' deve ser true pois um funcionario recem criado
-        //tem que mudar sua senha inicialmente criada pelo gestor
+            true, //'must_change_password' deve ser true pois um funcionario recem criado PRECISA que mudar sua senha inicialmente criada pelo gestor
+            false //'is_paying_user' aqui precisa ser false, pois esse é um usuario criado pelo usuario gestor inicial
+        ); 
 
         await this.userRepository.saveUser(user);
 
@@ -77,6 +64,5 @@ export class RegisterEmployeeUseCase{
         }
 
         return response;
-
-   }
+    }
 }

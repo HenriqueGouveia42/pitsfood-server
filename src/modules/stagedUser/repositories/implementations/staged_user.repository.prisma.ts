@@ -23,25 +23,6 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
         return StagedUser.restore(staged_user_props);
     }
 
-    private static prismaToUserEntityDataMapper(prismaUser: any): User {
-    
-        const userProps: UserProps = {
-            user_id: prismaUser.user_id,
-            store_id: prismaUser.store_id,
-            email: prismaUser.email,
-            username: prismaUser.username,
-            password_hash: prismaUser.password_hash,
-            role: prismaUser.role as UserRole,
-            created_at: prismaUser.created_at.toISOString(),
-            updated_at: prismaUser.updated_at.toISOString(),
-            active: prismaUser.active,
-            must_change_password: prismaUser.must_change_password,
-            
-        }
-    
-        return User.restore(userProps);
-    }
-
     private static entityToPrismaDataMapper(staged_user: StagedUser): any{
         
         return {
@@ -143,7 +124,8 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
             updated_at: user.updatedAt,
             active: user.active,
             store_id: user.storeId || null,
-            must_change_password: user.mustChangePassword //deve ser false, pois esse é o usuario que se cadastrou pelo email
+            must_change_password: user.mustChangePassword, //deve ser false, pois esse é o usuario que se cadastrou pelo email
+            paying_user: true //deve ser true, pois se está sendo criado por esse repo, quer dizer que é um usuario pago
         }
         
         await prisma.$transaction(async (tx) =>{

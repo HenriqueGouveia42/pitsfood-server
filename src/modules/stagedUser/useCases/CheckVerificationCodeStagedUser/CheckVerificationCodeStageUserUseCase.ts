@@ -19,14 +19,9 @@ export class CheckVerificationCodeStageUserUseCase{
     async execute( { email, verificationCode }: CheckVerificationCodeStagedUserRequestUseCase){
 
         const stagedUser: StagedUser | null = await this.stagedUserRepo.findStagedUserByEmail(email);
+        if(!stagedUser) throw new AppError("Usuario staged nao encontrado", 404, "STAGED_USER_NOT_FOUND");
 
-        if(!stagedUser){
-            throw new AppError("Usuario staged nao encontrado", 404, "STAGED_USER_NOT_FOUND");
-        }
-
-        if (stagedUser.verificationCode != verificationCode){
-            throw new AppError("Codigo de verificacao incorreto", 400, "INCORRECT_CODE");
-        }
+        if (stagedUser.verificationCode != verificationCode) throw new AppError("Codigo de verificacao incorreto", 400, "INCORRECT_CODE");
 
         const now: string = new Date().toISOString();
 
@@ -40,7 +35,8 @@ export class CheckVerificationCodeStageUserUseCase{
             updated_at: now,
             role: UserRole.GESTOR,
             active: true,
-            must_change_password: false
+            must_change_password: false,
+            paying_user: true //esse usuario é pago!
         }
 
         const user: User = User.restore(userProps);

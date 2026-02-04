@@ -1,6 +1,36 @@
 import { validCNPJ } from "./valid.cnpj.js";
 import { AppError } from "../../../shared/errors/AppError.js";
 
+/**
+ * enum SubscriptionPlan {
+  NONE //loja que acabou de ser criada
+  BASIC
+  EXTENDED
+  PREMIUM
+}
+*/
+export enum SubscriptionPlan {
+    NONE = "NONE",
+    BASIC = "BASIC",
+    EXTENDED = "EXTENDED",
+    PREMIUM = "PREMIUM"
+}
+
+/*
+enum SubscriptionStatus {
+  NONE//loja que acabou de ser criada
+  ACTIVE
+  PAST_DUE
+  CANCELED
+*/
+
+export enum SubscriptionStatus {
+    NONE = "NONE",
+    ACTIVE = "ACTIVE",
+    PAST_DUE = "PAST_DUE",
+    CANCELED = "CANCELED"
+}
+
 export type StoreProps = {
     readonly store_id: string;
     readonly name: string;
@@ -8,7 +38,9 @@ export type StoreProps = {
     readonly active: boolean;
     readonly owner_id: string,
     readonly created_at: string;
-    readonly updated_at: string
+    readonly updated_at: string;
+    readonly plan: SubscriptionPlan
+    readonly subscription_status: SubscriptionStatus
 }
 
 export class Store{
@@ -65,7 +97,9 @@ export class Store{
             owner_id,
             active,
             created_at: now,
-            updated_at: now
+            updated_at: now,
+            plan: SubscriptionPlan.NONE,
+            subscription_status: SubscriptionStatus.NONE
         })
 
         return store
@@ -82,5 +116,7 @@ export class Store{
     get createdAt() {return this.props.created_at}
     get updatedAt() {return this.props.updated_at}
     get ownerId() {return this.props.owner_id}
+    get plan() {return this.props.plan}
+    get subscription_status() {return this.props.subscription_status}
 
 }

@@ -1,5 +1,7 @@
 import { Router } from "express"
 import { authMiddleware} from "../../../../../shared/infra/http/middlewares/authMiddleware.js"
+import { ensureStoreSelectedMiddleware } from "../../../../../shared/infra/http/middlewares/ensureStoreSelectedMiddleware.js";
+
 import { UserRole } from "../../../../user/entities/user.js";
 import { makeSaleController } from "../../../useCases/makeSaleUseCase.ts/index.js";
 import { getSalesSummaryByPeriodController } from "../../../useCases/getSalesSummaryByPeriodUseCase/index.js";
@@ -11,6 +13,8 @@ import { makeSaleSchema } from "../zodSchemas/MakeSaleSchema.js";
 import { getSalesSummarySchema } from "../zodSchemas/GetSalesSummaryByPeriodSchema.js";
 
 const saleRoutes = Router();
+
+saleRoutes.use(ensureStoreSelectedMiddleware);
 
 saleRoutes.post("/make-sale",
     validateSchema(makeSaleSchema),

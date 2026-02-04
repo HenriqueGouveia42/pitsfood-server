@@ -19,7 +19,8 @@ export class PrismaUserRepository implements IUserRepository {
             created_at: prismaUser.created_at.toISOString(),
             updated_at: prismaUser.updated_at.toISOString(),
             active: prismaUser.active,
-            must_change_password: prismaUser.must_change_password
+            must_change_password: prismaUser.must_change_password,
+            paying_user: prismaUser.paying_user
         }
 
         return User.restore(userProps);
@@ -36,7 +37,8 @@ export class PrismaUserRepository implements IUserRepository {
             created_at: new Date(user.createdAt),
             updated_at: new Date(user.updatedAt),
             active: user.active,
-            must_change_password: user.mustChangePassword
+            must_change_password: user.mustChangePassword,
+            paying_user: user.paying_user
         }
     }
 

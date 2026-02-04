@@ -36,7 +36,7 @@ import { z } from "zod";
 export const createStoreSchema = z.object({
     body: z.object({
 
-        store_name: z
+        name: z
             .string({message: "Nome da loja precisa ser uma string"})
             .min(5, {message: "Nome da loja precisa ter ao menos 5 caracteres"}),
 
@@ -45,7 +45,5 @@ export const createStoreSchema = z.object({
             .min(5, {message: "CNPJ com poucos digitos"})
             .nullable(),
 
-        active: z
-            .boolean()
     }).strict()
 })
