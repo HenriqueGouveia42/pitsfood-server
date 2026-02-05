@@ -1,4 +1,5 @@
 import { User } from "../entities/user.js";
+import { Store } from "../../store/entities/store.js";
 
 export interface IUserRepository {
     saveUser(user: User): Promise<void>;
@@ -6,4 +7,7 @@ export interface IUserRepository {
     updateSavedUser(user: User): Promise<void>;
     listAllSavedUsers(store_id: string, active?: boolean | undefined): Promise<User[]>;
     findUserByEmail(email: string): Promise<User | null>;
+    logoutUserFromStore(user: User): Promise<void>
+    loginUserIntoStore(user: User, store:Store): Promise<void>
+
 }

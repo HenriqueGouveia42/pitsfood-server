@@ -4,6 +4,7 @@ import type { ITokenProvider } from "../../../user/providers/token.provider.inte
 import type { ILoginResponse } from "../../../user/useCases/login/loginUseCase.js";
 
 import { Store } from "../../entities/store.js";
+import type { StoreProps } from "../../entities/store.js";
 import { User, UserRole } from "../../../user/entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 
@@ -36,6 +37,9 @@ export class LoginIntoStoreUseCase{
 
         if(store.ownerId != user.id) throw new AppError("Essa loja nao pertence a esse usuario", 403, "STORE_MISMATCH");
 
+        //atualizar o store_id do usuario no banco de dados
+        await this.userRepository.loginUserIntoStore(user, store);
+        
         //tendo passado todas essa validacoes, agora preciso criar um novo token JWT para o usuario utilizar.
         //esse token agora vai ter os dados da loja selecionada
 

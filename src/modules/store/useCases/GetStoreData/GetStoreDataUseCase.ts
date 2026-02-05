@@ -2,6 +2,7 @@ import type { IStoreRepository } from "../../repositories/store.repository.inter
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { User } from "../../../user/entities/user.js";
+import { Store } from "../../entities/store.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 
 interface IGetStoreDataUseCaseRequest {
@@ -29,28 +30,20 @@ export class GetStoreDataUseCase {
 
             const cachedData = await this.cacheProvider.get(cacheKey);
 
-            if (cachedData) {
-                return JSON.parse(cachedData) as IGetStoreDataUseCaseResponse;
-            }
+            if (cachedData) return JSON.parse(cachedData) as IGetStoreDataUseCaseResponse;
 
             // ---------------------------------------------------------
             //CACHE MISS - precisa buscar no Banco
             // ---------------------------------------------------------
 
-            const store = await this.storeRepository.findSavedStoreById(store_id);
-
-            if (!store) {
-                throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
-            }
+            const store: Store | null = await this.storeRepository.findSavedStoreById(store_id);
+            if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
+    
 
             const owner: User | null = await this.userRepository.findSavedUserById(store.ownerId);
+            if (!owner) throw new AppError("Proprietário da loja não encontrado", 404, "OWNER_NOT_FOUND");
 
-            if (!owner) {
-                //caso raro de integridade de banco (loja sem dono), tratamos com fallback
-                throw new AppError("Proprietário da loja não encontrado", 404, "OWNER_NOT_FOUND");
-            }
-
-            if (owner.storeId != store_id) throw new AppError("Proprietario nao é dessa loja", 403, "STORE_MISMATCH");
+            if (owner.id != store.ownerId) throw new AppError("Proprietario nao é dessa loja", 403, "STORE_MISMATCH");
 
             //monta o Objeto de Resposta
             const response: IGetStoreDataUseCaseResponse = {

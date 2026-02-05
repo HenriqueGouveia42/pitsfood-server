@@ -4,6 +4,7 @@ import type { IUserRepository } from "../../user.repository.interface.js";
 
 import { prisma } from "../../../../../shared/infra/prisma.js"
 import { AppError } from "../../../../../shared/errors/AppError.js";
+import type { Store } from "../../../../store/entities/store.js";
 
 export class PrismaUserRepository implements IUserRepository {
 
@@ -130,5 +131,32 @@ export class PrismaUserRepository implements IUserRepository {
         return PrismaUserRepository.prismaToEntityDataMapper(prismaUserData);
     
     }
+
+    async logoutUserFromStore(user: User): Promise<void> {
+
+        await prisma.user.update({
+            where:{
+                user_id: user.id
+            },
+            data:{
+                store_id: null,
+                updated_at: new Date()
+            }
+        })
+    }
+
+    async loginUserIntoStore(user: User, store: Store): Promise<void>{
+        
+        await prisma.user.update({
+            where:{
+                user_id: user.id
+            },
+            data:{
+                store_id: store.id,
+                updated_at: new Date()
+            }
+        })
+    }
+
 
 }

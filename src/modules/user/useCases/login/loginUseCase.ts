@@ -64,6 +64,11 @@ export class LoginUseCase {
             tokenVersion,
             user.paying_user //se ele for o dono, o gestor paga que paga o plano, etc, isso vai no token
         )
+
+        //alem disso, precisamos garantir que, se for um usuario pago, o banco de dados esteja sempre "store_id" == null;
+        if (user.paying_user){
+            await this.userRepository.logoutUserFromStore(user);
+        }
         
         return {
             token,

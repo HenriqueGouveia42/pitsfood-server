@@ -113,7 +113,7 @@ export class User {
         })
     }
 
-    public setStoreId(store_id: string): User {
+    public setStoreId(store_id: string | null): User {
 
         return new User({
             ...this.props,

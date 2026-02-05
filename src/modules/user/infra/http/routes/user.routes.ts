@@ -41,7 +41,7 @@ userRoutes.get("/is-logged-in", (request, response) => {
     return isLoggedInController.handle(request, response);
 });
 
-userRoutes.get("/logout", (request, response) =>{
+userRoutes.post("/logout", (request, response) =>{
     return logoutController.handle(request, response)
 });
 
