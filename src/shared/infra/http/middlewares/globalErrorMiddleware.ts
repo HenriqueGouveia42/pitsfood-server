@@ -20,5 +20,5 @@ export function globalErrorMiddleware(
     }
 
 
-    return response.status(500).json({status: "error", message: "Internal Server Error - Ocorreu um erro inesperado."});
+    return response.status(500).json({ message: "Internal Server Error - Ocorreu um erro inesperado.", code: "UNKNOW_ERROR"});
 }

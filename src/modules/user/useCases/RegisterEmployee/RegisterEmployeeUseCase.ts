@@ -3,7 +3,7 @@ import { User } from "../../entities/user.js";
 import bcrypt from "bcryptjs";
 import { UserRole } from "../../entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
-import type { IStoreRepository } from "../../../store/repositories/store.repository.interface.js";
+import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 import type { Store } from "../../../store/entities/store.js";
 
 interface RegisterEmployeeUseCaseRequest{

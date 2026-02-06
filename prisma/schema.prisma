@@ -53,6 +53,42 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+enum InvoiceStatus {
+  PENDING   //gerou o PIX mas nao pagou
+  PAID      //pago com sucesso
+  FAILED    //expirou ou erro
+  REFUNDED  //estornado
+}
+
+model SubscriptionInvoice {
+
+  invoice_id     String   @id @default(uuid())
+  
+  amount_in_cents Int
+  currency        String  @default("BRL")
+  
+  status          InvoiceStatus @default(PENDING)
+  
+  //dados do Gateway (Abacate Pay)
+  gateway_invoice_id  String?  // ID da cobrança lá no Abacate
+  pix_code            String?  @db.Text // O "copia e cola" do PIX para o front exibir
+  payment_url         String?  //link externo se houver
+
+  //ciclo de vida
+  created_at      DateTime @default(now())
+  paid_at         DateTime?
+  due_date        DateTime? //data de vencimento do PIX
+
+  // Relações
+  store_id String
+  store   Store   @relation(fields: [store_id], references: [store_id])
+
+  plan_tag  SubscriptionPlan // Qual plano ele tentou comprar (BASIC, PREMIUM...)
+
+  @@index([store_id])
+  @@map("subscription_invoices")
+}
+
 model Store{
   store_id String @id @default(uuid())
   name String
@@ -83,6 +119,7 @@ model Store{
   sale_payments SalePayment[]
   stock_entries StockEntry[]
   physical_bill_cards PhysicalBillCard[]
+  invoices SubscriptionInvoice[]
 
   @@map("stores")
 }

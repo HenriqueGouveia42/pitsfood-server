@@ -16,7 +16,6 @@ export class CreateStoreController{
         await this.createStoreUseCase.execute({
             name,
             cnpj,
-            active: false, //loja criada inicialmente desativada, sem nenhum plano
             owner_id
         })
 

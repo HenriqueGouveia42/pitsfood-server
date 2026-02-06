@@ -6,7 +6,7 @@ import cors from "cors";
 
 const app = express();
 
-const PORT = 3000;
+const PORT = process.env.PORT ? process.env.PORT : 3000;
 
 const isProduction = process.env.NODE_ENV === "production";
 const productionOrigin = process.env.ALLOWED_ORIGIN;

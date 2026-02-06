@@ -1,7 +1,8 @@
 import type { StoreProps } from "../../../entities/store.js";
 import { Store } from "../../../entities/store.js";
-import type { IStoreRepository } from "../../store.repository.interface.js"
+import type { IStoreRepository } from "../../interfaces/store.repository.interface.js";
 import { PhysicalBill } from "../../../../bill/entities/physicalBIllCard.js";
+import { InvoiceStatus } from "../../../../../generated/prisma/client.js";
 
 import { prisma } from "../../../../../shared/infra/prisma.js";
 import { AppError } from "../../../../../shared/errors/AppError.js";
@@ -144,4 +145,34 @@ export class PrismaStoreRepository implements IStoreRepository {
         return true
     }
 
+    async activateSubscription(
+        store_id: string, 
+        invoice_id: string, 
+        plan: EntityPlan,
+        expires_at: Date
+    ): Promise<void> {
+        
+        // Tudo aqui dentro roda como uma unidade indivisível
+        await prisma.$transaction([
+            // 1. Atualiza a Loja
+            prisma.store.update({
+                where: { store_id },
+                data: {
+                    subscription_status: 'ACTIVE', // String literal ou Enum do Prisma
+                    plan: plan as any, // Cast se necessário para o enum do Prisma
+                    subscription_expires_at: expires_at,
+                    updated_at: new Date()
+                }
+            }),
+
+            // 2. Atualiza a Fatura para PAGA
+            prisma.subscriptionInvoice.update({
+                where: { invoice_id },
+                data: {
+                    status: InvoiceStatus.PAID,
+                    paid_at: new Date()
+                }
+            })
+        ]);
+    }
 }

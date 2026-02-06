@@ -1,9 +1,9 @@
-import type { IStoreRepository } from "../../repositories/store.repository.interface.js";
+import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import type { ITokenProvider } from "../../../user/providers/token.provider.interface.js";
 import type { ILoginResponse } from "../../../user/useCases/login/loginUseCase.js";
 
-import { Store } from "../../entities/store.js";
+import { Store, SubscriptionPlan, SubscriptionStatus } from "../../entities/store.js";
 import type { StoreProps } from "../../entities/store.js";
 import { User, UserRole } from "../../../user/entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
@@ -28,14 +28,16 @@ export class LoginIntoStoreUseCase{
         if (current_store_id) throw new AppError("Usuario já está vinculado a uma loja. Deslogue da loja atual primeiro para entrar em outra loja", 409, "LOGOUT_FIRST")
 
         const store: Store | null = await this.storeRepository.findSavedStoreById(store_id_to_login);
-        if (!store) throw new AppError("Loja nao encotrada", 404, "STORE_NOT_FOUND");
-        if(!store.active) throw new AppError("Loja encontra-se desativada", 403, "DEACTIVATED_STORE")
+        if (!store) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND");
+        if(!store.active) throw new AppError("Loja encontra-se desativada", 403, "STORE_DEACTIVATED");
+        if (store.subscription_status === SubscriptionStatus.CANCELED) throw new AppError("A assinatura desta loja foi cancelada.", 403, "SUBSCRIPTION_CANCELED");
+
 
         const user: User | null = await this.userRepository.findSavedUserById(user_id);
         if (!user) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
+
         if (!user.paying_user) throw new AppError("Usuario nao é usuario pago", 403, "NOT_PAYING_USER"); //SO DEVE USAR ESSE USECASE O DONO DA LOJA QUERENDO LOGAR EM SUA LOJA
         if (user.role != UserRole.GESTOR) throw new AppError("Usuario nao é gestor", 403, "INVALID_USER_ROLE");
-
         if(store.ownerId != user.id) throw new AppError("Essa loja nao pertence a esse usuario", 403, "STORE_MISMATCH");
 
         //atualizar o store_id do usuario no banco de dados

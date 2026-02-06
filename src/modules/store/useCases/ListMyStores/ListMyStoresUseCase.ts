@@ -1,4 +1,4 @@
-import type { IStoreRepository } from "../../repositories/store.repository.interface.js";
+import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import { Store } from "../../entities/store.js";
 

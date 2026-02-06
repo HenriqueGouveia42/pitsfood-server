@@ -3,6 +3,7 @@ import { response, Router } from "express"
 import { authMiddleware} from "../../../../../shared/infra/http/middlewares/authMiddleware.js"
 import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js"
 import { ensureStoreSelectedMiddleware } from "../../../../../shared/infra/http/middlewares/ensureStoreSelectedMiddleware.js"
+import { ensureSubscriptionActiveMiddleware } from "../../../../../shared/infra/http/middlewares/ensureSubscriptionActiveMiddleware.js"
 
 import { createProductController } from "../../../useCases/createProduct/index.js"
 import { getAllProductsController } from "../../../useCases/getAllProducts/index.js"
@@ -20,6 +21,7 @@ const productRoutes = Router();
 //todas as rotas utilizarao, nessa ordem, esses middlewares, antes de chegarem aos controllers
 productRoutes.use(authMiddleware);
 productRoutes.use(ensureStoreSelectedMiddleware);
+productRoutes.use(ensureSubscriptionActiveMiddleware);
 
 productRoutes.post("/create-product",
     validateSchema(CreateProductSchema),

@@ -70,7 +70,8 @@ export class ChangePasswordUseCase {
             updatedUser.role,
             updatedUser.storeId ? updatedUser.storeId : null,
             false, //'must_change_password' agora é explicitamente false
-            newVersion //versão sincronizada com o redis
+            newVersion, //versão sincronizada com o redis
+            false
         );
 
         return { token: newToken };

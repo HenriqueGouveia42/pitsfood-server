@@ -1,5 +1,5 @@
 import { Store } from "../../../store/entities/store.js";
-import type { IStoreRepository } from "../../repositories/store.repository.interface.js";
+import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import { User } from "../../../user/entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
@@ -8,7 +8,6 @@ import { UserRole } from "../../../../generated/prisma/enums.js";
 export interface ICreateStoreUseCase{
     name: string,
     cnpj: string | null,
-    active: boolean,
     owner_id: string,
 }
 
@@ -34,7 +33,6 @@ export class CreateStoreUseCase{
     async execute({
         name,
         cnpj,
-        active,
         owner_id,
     }: ICreateStoreUseCase){
 
@@ -51,7 +49,7 @@ export class CreateStoreUseCase{
         
         const created_store: Store = Store.buildStore(
             finalName,
-            active,
+            true,
             cnpj,
             owner_id
         );

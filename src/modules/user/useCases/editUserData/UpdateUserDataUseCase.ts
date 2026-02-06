@@ -3,7 +3,7 @@ import type { IUserRepository } from "../../repositories/user.repository.interfa
 import { AppError } from "../../../../shared/errors/AppError.js";
 import { User } from "../../entities/user.js";
 import { UserRole } from "../../entities/user.js"; 
-import type { IStoreRepository } from "../../../store/repositories/store.repository.interface.js";
+import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 import { Store } from "../../../store/entities/store.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 
