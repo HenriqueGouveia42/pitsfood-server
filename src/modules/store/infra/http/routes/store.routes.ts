@@ -36,7 +36,7 @@ storeRoutes.post("/login-into-store",
     //missing zod schema
     authMiddleware,
     (request, response) =>{
-        loginIntoStoreController.handle(request, response)
+        return loginIntoStoreController.handle(request, response)
     }
 )
 

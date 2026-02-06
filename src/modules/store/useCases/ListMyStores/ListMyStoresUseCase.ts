@@ -7,10 +7,16 @@ type UseCaseRequestDTO = {
     is_paying_user: boolean
 }
 
+import { SubscriptionPlan, SubscriptionStatus} from "../../entities/store.js";
+
 export type UseCaseResponseDTO = {
     stores:{
         store_id: string,
-        store_name: string
+        store_name: string,
+        store_is_active: boolean,
+        store_subscription_plan: SubscriptionPlan
+        store_subscription_plan_status: SubscriptionStatus
+
     }[]
 }
 
@@ -28,7 +34,10 @@ export class ListMyStoresUseCase{
         return {
             stores: (stores || []).map(s => ({
                 store_id: s.id,
-                store_name: s.name
+                store_name: s.name,
+                store_is_active: s.active,
+                store_subscription_plan: s.plan,
+                store_subscription_plan_status: s.subscription_status
             }))
         }
     }

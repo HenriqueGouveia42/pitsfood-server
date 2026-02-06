@@ -25,19 +25,8 @@ export class FindAllOpenBillsController{
 
     public async handle(req: Request, res: Response ): Promise<Response>{
 
-        try{
+        const openBills: BillDTO[] = await this.findAllOpenBillsUseCase.execute();
+        return res.status(200).json(openBills);
 
-            const openBills: BillDTO[] = await this.findAllOpenBillsUseCase.execute();
-
-            return res.status(200).json(openBills);
-
-        }catch(error){
-
-            if (error instanceof AppError){
-                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
-            }
-            return res.status(400).json({message: "Erro"})
-
-        }
     }
 }

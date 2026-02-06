@@ -9,24 +9,13 @@ export class GetStoreDataController{
     ){}
 
     public async handle(req: Request, res: Response): Promise<Response>{
-        try{
-
-            const store_id: string = req.user.store_id;
-            const user_id: string = req.user.id;
+        
+        const store_id: string = req.user.store_id;
+        const user_id: string = req.user.id;
             
-            const storeData: IGetStoreDataUseCaseResponse  = await this.getStoreDataUseCase.execute({store_id, user_id});
+        const storeData: IGetStoreDataUseCaseResponse  = await this.getStoreDataUseCase.execute({store_id, user_id});
 
-            return res.status(200).json(storeData);
+        return res.status(200).json(storeData);
 
-        }catch(error){
-
-            console.log(error)
-            
-            if (error instanceof AppError){
-                return res.status(error.statusCode).json({message:error.errorCode});
-            }
-
-            return res.status(500).json({message: "Erro ao recuperar dados da loja"})
-        }
     }
 }

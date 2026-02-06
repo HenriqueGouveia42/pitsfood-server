@@ -73,11 +73,12 @@ export class PrismaBillRepository implements IBillRepository {
     }
 
     //methods
-    async findOpenBillByGtinCode(gtin_code: string): Promise<Bill | null> {
+    async findOpenBillByGtinCode(gtin_code: string, store_id: string): Promise<Bill | null> {
 
         const prismaBill = await prisma.bill.findFirst({
             where:{
                 bill_code_gtin: gtin_code,
+                store_id: store_id,
                 status: billStates.ABERTA
             },
             include: {
@@ -95,7 +96,7 @@ export class PrismaBillRepository implements IBillRepository {
 
     }
 
-    async createOpenBill(bill: Bill): Promise<void> {
+    async createOpenBill(bill: Bill, store_id: string): Promise<void> {
 
         const rawPrismaData = PrismaBillRepository.entityToPrismaDataMapper(bill);
 
@@ -106,14 +107,13 @@ export class PrismaBillRepository implements IBillRepository {
             const alreadyOpennedBill = await tx.bill.findFirst({
                 where:{
                     bill_code_gtin: bill.bill_code,
+                    store_id: store_id,
                     status: BillStatus.ABERTA
                 }
             })
 
-            if(alreadyOpennedBill){
-                throw new Error("Proibido criar novo uso de comanda pois esta comanda física ainda está aberta")
-            }
-
+            if(alreadyOpennedBill) throw new Error("Proibido criar novo uso de comanda pois esta comanda física ainda está aberta")
+        
             await tx.bill.create({
                 data: prismaData
             })
@@ -185,11 +185,12 @@ export class PrismaBillRepository implements IBillRepository {
     }
 
 
-    async billWithThisGtinCodeExists(gtin_code: string){
+    async billWithThisGtinCodeExists(gtin_code: string, store_id: string){
 
         const billExists = await prisma.bill.findFirst({
             where:{
-                bill_code_gtin: gtin_code
+                bill_code_gtin: gtin_code,
+                store_id: store_id
             }
         })
 

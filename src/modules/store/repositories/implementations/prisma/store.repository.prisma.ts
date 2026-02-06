@@ -130,4 +130,18 @@ export class PrismaStoreRepository implements IStoreRepository {
 
         return stores;
     }
+
+    async storeWithThisNameExists(name: string): Promise<boolean>{
+
+        const prismaStore = await prisma.store.findFirst({
+            where:{
+                name
+            }
+        })
+
+        if(!prismaStore) return false
+
+        return true
+    }
+
 }

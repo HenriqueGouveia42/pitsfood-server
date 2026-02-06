@@ -1,5 +1,6 @@
 import  express  from "express"
 import { router } from "./shared/infra/http/routes/index.js"
+import { globalErrorMiddleware } from "./shared/infra/http/middlewares/globalErrorMiddleware.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
@@ -20,6 +21,8 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 app.use(router);
+
+app.use(globalErrorMiddleware);
 
 app.get("/", (req, res) =>{
     res.json({status: "Server Working!"});

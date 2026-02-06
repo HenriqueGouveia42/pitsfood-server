@@ -12,12 +12,24 @@ export interface ICreateStoreUseCase{
     owner_id: string,
 }
 
+function toTitleCase(text: string): string {
+  if (!text) return "";
+  
+  return text
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export class CreateStoreUseCase{
 
     constructor(
         private storeRepository: IStoreRepository,
         private userRepository: IUserRepository
     ) {}
+
 
     async execute({
         name,
@@ -30,9 +42,15 @@ export class CreateStoreUseCase{
         if (!user) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
 
         if (user.role != UserRole.GESTOR) throw new AppError("'role' nao permitido", 403, "INVALID_ROLE");
+
+        const finalName: string = toTitleCase(name);
+
+        const alreadyExists: boolean = await this.storeRepository.storeWithThisNameExists(finalName);
+
+        if (alreadyExists) throw new AppError("Já existe uma loja com esse nome", 409, "STORE_WITH_THIS_NAME_ALREADY_EXISTS")
         
         const created_store: Store = Store.buildStore(
-            name,
+            finalName,
             active,
             cnpj,
             owner_id

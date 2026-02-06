@@ -10,37 +10,18 @@ export class BatchAddItemsController  {
 
         //veio anexado pelo middleware
         const user_id = req.user.id;
-
-        if (!user_id) {
-            return res.status(400).json({ error: "'user_id' ausente no middleware" });
-        }
+        const store_id = req.user.store_id;
         
         const { bill_code, items } = req.body;
 
-        if (!bill_code) {
-            return res.status(400).json({ error: "O campo 'bill_code' é obrigatório." });
-        }
-        
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ error: "O campo 'items' deve ser um array contendo produtos." });
-        }
+        await this.batchAddItemsUseCase.execute({
+            bill_code_gtin: bill_code,
+            user_id: user_id,
+            store_id: store_id,
+            items: items
+        })
 
-        try {
+        return res.status(200).json({ message: "Itens adicionados com sucesso" })
 
-            await this.batchAddItemsUseCase.execute({
-                bill_code_gtin: bill_code,
-                user_id: user_id,
-                items: items
-            })
-
-            return res.status(200).json({ message: "Itens adicionados com sucesso" })
-
-        } catch(error) {
-
-            if (error instanceof AppError){
-                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
-            }
-            return res.status(400).json({message: "Erro"})
-        }
     }
 }

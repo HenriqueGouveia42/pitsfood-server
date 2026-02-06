@@ -11,22 +11,12 @@ export class GetAllProductsController{
 
     public async handle(req: Request, res: Response): Promise<Response>{
 
-        try{
+        const store_id = req.user.store_id
 
-            const store_id = req.user.store_id
+        const allActiveProductsResponse: IGetAllProductsResponse[] = await this.getAllActiveProductsUseCase.execute({store_id});
 
-            const allActiveProductsResponse: IGetAllProductsResponse[] = await this.getAllActiveProductsUseCase.execute({store_id});
+        return res.status(200).json(allActiveProductsResponse);
 
-            return res.status(200).json(allActiveProductsResponse);
-
-        }catch(error){
-
-            console.log(error)
-
-            if (error instanceof AppError){
-                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
-            }
-            return res.status(404).json({message: "Erro interno"});
-        }
+        
     }
 }

@@ -4,7 +4,7 @@ export const PLAN_LIMITS = {
     [SubscriptionPlan.BASIC]:{
         title: "Plano Basic",
         description: "Ideal para food trucks, quiosques e comedorias em geral.",
-        price_in_cents: 6900,
+        price_in_cents: 10000,
         currency: "BRL",
         
         limits: {

@@ -102,6 +102,13 @@ export class Store{
             subscription_status: SubscriptionStatus.NONE
         })
 
+        if (
+            (store.plan != SubscriptionPlan.NONE) &&
+            (store.subscription_status == SubscriptionStatus.NONE)
+        ){
+            throw new AppError("Se uma loja já contratou um plano, deve existir um status para esse plano contratado")
+        }
+
         return store
     }
 

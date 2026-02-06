@@ -17,29 +17,23 @@ export class UpdateProductController{
 
     public async handle(req: Request, res: Response): Promise<Response>{
         //public async execute({ product_id, store_id, user_id, name, unit_price_in_reais, active }: UpdateProductUseCaseRequest){  
-        try{
+      
+        const { name, unit_price_in_reais, active }: IUpdatedProductController = req.body;
+        const { product_id } = req.params;
+        const user_id: string = req.user.id;
+        const store_id: string = req.user.store_id;
 
-            const { name, unit_price_in_reais, active }: IUpdatedProductController = req.body;
-            const { product_id } = req.params;
-            const user_id: string = req.user.id;
-            const store_id: string = req.user.store_id;
+        await this.updatedProductUseCase.execute({
+            product_id: product_id as string,
+            store_id,
+            user_id,
+            name,
+            unit_price_in_reais,
+            active
+        })
 
-            await this.updatedProductUseCase.execute({
-                product_id: product_id as string,
-                store_id,
-                user_id,
-                name,
-                unit_price_in_reais,
-                active
-            })
+        return res.status(200).json({message: "Produto atualizado com sucesso"})
 
-            return res.status(200).json({message: "Produto atualizado com sucesso"})
-
-        }catch(error){
-            if(error instanceof AppError){
-                return res.status(error.statusCode).json({message:error.message});
-            }
-            return res.status(500).json({message: "Erro interno ao atualizar produto"})
-        }
+        
     }
 }

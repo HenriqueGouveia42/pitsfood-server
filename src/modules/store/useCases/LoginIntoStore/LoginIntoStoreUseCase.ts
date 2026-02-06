@@ -29,6 +29,7 @@ export class LoginIntoStoreUseCase{
 
         const store: Store | null = await this.storeRepository.findSavedStoreById(store_id_to_login);
         if (!store) throw new AppError("Loja nao encotrada", 404, "STORE_NOT_FOUND");
+        if(!store.active) throw new AppError("Loja encontra-se desativada", 403, "DEACTIVATED_STORE")
 
         const user: User | null = await this.userRepository.findSavedUserById(user_id);
         if (!user) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");

@@ -19,34 +19,22 @@ export class IsLoggedInController {
 
     handle = async(req: Request, res: Response): Promise<Response> =>{
 
-        try{
+        const  user_id = req.user.id;
+        const user: User | null = await this.userRepository.findSavedUserById(user_id);
 
-            const  user_id = req.user.id;
-
-            const user: User | null = await this.userRepository.findSavedUserById(user_id);
-
-            if (!user){
-                throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND")
-            }
-
-            const response: IIsLogedInResponse = {
-                id: user.id,
-                username: user.username,
-                role: user.role,
-                store_id: user.storeId,
-                must_change_password: user.mustChangePassword
-            }
-
-            return res.status(200).json({message: "Usuario logado", response})
-
-        }catch(error){
-
-            if (error instanceof AppError){
-                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
-            }
-
-            return res.status(500).json({message: "Erro interno"})
+        if (!user){
+            throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND")
         }
+
+        const response: IIsLogedInResponse = {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            store_id: user.storeId,
+            must_change_password: user.mustChangePassword
+        }
+
+        return res.status(200).json({message: "Usuario logado", response})
     
     }
 }
