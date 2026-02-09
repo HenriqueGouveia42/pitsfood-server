@@ -1,5 +1,11 @@
 import { Store } from "../../entities/store.js"
 import { SubscriptionPlan, SubscriptionStatus } from "../../entities/store.js";
+import { PhysicalBill } from "../../../bill/entities/physicalBIllCard.js";
+
+export type SubscriptionPlanAndStatus = {
+    plan: SubscriptionPlan,
+    plan_status: SubscriptionStatus
+}
 
 export interface IStoreRepository{
     saveStore(store: Store): Promise<Store | null>;
@@ -13,6 +19,9 @@ export interface IStoreRepository{
         store_id: string, 
         invoice_id: string, 
         plan: SubscriptionPlan, 
-        expires_at: Date
+        expires_at: Date,
+        physicalBIllCards: PhysicalBill[]
     ): Promise<void>;
+
+    getSubscriptionPlanAndStatus(store_id: string): Promise<SubscriptionPlanAndStatus>;
 }

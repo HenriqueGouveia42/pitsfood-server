@@ -1,6 +1,7 @@
 import type { IProductRepository } from "../../repositories/product.repository.interface.js";
 import { Product } from "../../entities/product.js";
-import type { Decimal } from "decimal.js"
+import { Decimal } from "decimal.js"
+import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 
 /*
     name
@@ -26,15 +27,27 @@ interface IGetAllProductsRequest{
 
 export class GetAllProductsUseCase{
 
+
     constructor(
-        private productRepository: IProductRepository
+        private productRepository: IProductRepository,
+        private cacheProvider: ICacheProvider
     ) {}
 
     public async execute({ store_id }: IGetAllProductsRequest): Promise<IGetAllProductsResponse[]> {
 
+        const cacheKey: string = `store-products:${store_id}`;
+
+        //const cachedData = await this.cacheProvider.get<any[]>(cacheKey);
+
+        //if (cachedData){
+        //    return cachedData.map(item =>({
+        //        ...item,
+        //        unit_price_in_reais: new Decimal(item.unit_price_in_reais)            }))
+        //}
+
         const products: Product[] | [] = await this.productRepository.listSavedProducts(store_id);
 
-        const allActiveProductsResponse: IGetAllProductsResponse[] = products.map(p =>({
+        const allProductsResponse: IGetAllProductsResponse[] = products.map(p =>({
             name: p.name,
             unit_price_in_reais:p.price,
             gtin_code: p.gtin,
@@ -46,7 +59,9 @@ export class GetAllProductsUseCase{
             product_id: p.id
         }))
 
-        return allActiveProductsResponse
+        await this.cacheProvider.save(cacheKey, allProductsResponse, 3600)
+
+        return allProductsResponse
 
     }
 };

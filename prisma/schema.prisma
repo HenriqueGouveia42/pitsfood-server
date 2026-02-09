@@ -153,6 +153,9 @@ model StagedUser {
   username      String
   password_hash String
 
+  cpf_cnpj  String
+  phone     String?
+
   //controle de validacao
   verification_code String   //codigo de 6 digitos
   expires_at        DateTime //expira em 10 minutos
@@ -172,6 +175,9 @@ model User {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
   active        Boolean @default(true)
+
+  cpf_cnpj      String //se for o dono, isso é obrigatorio para poder gerar as cobrancas no gateway de pagamentos
+  phone         String?
 
   paying_user   Boolean @default(false)//isso indica se o gestor é o que paga, o que criou sua conta, etc, ou se é um gestor criado por um gestor pago
   

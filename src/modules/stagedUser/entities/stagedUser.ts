@@ -7,8 +7,9 @@ export type StagedUserProps = {
     readonly username: string,
     readonly password_hash: string,
     readonly verification_code: string,
-    readonly created_at: string
+    readonly created_at: string,
     readonly expires_at: string,
+    readonly cpf_cnpj
 }
 
 export class StagedUser{

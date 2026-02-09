@@ -32,7 +32,6 @@ export class LoginIntoStoreUseCase{
         if(!store.active) throw new AppError("Loja encontra-se desativada", 403, "STORE_DEACTIVATED");
         if (store.subscription_status === SubscriptionStatus.CANCELED) throw new AppError("A assinatura desta loja foi cancelada.", 403, "SUBSCRIPTION_CANCELED");
 
-
         const user: User | null = await this.userRepository.findSavedUserById(user_id);
         if (!user) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
 

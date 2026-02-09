@@ -1,4 +1,5 @@
-import { SubscriptionPlan, UserRole } from "../generated/prisma/enums.js";
+import { SubscriptionPlan } from "../modules/store/entities/store.js";
+import { UserRole } from "../modules/user/entities/user.js";
 
 export const PLAN_LIMITS = {
 
@@ -51,7 +52,7 @@ export const PLAN_LIMITS = {
 
     [SubscriptionPlan.PREMIUM]: {
         title: "Plano Premium",
-        description: "Potência total para para operações de qualquer tamanaho. Comandas e funcionarios ilimitados",
+        description: "Potência total para para operações de qualquer tamanaho.",
         price_in_cents: 30000,
         currency: "BRL",
 

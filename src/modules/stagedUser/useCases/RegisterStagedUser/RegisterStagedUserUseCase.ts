@@ -9,7 +9,9 @@ import { randomInt } from 'node:crypto';
 export interface SendVerificationCodeToEmailUseCaseRequest{
     email: string,
     username: string,
-    password: string
+    password: string,
+    cpf_cnpj: string,
+    phone: string | nulls
 }
 
 export class RegisterStagedUserUseCase{
@@ -20,19 +22,13 @@ export class RegisterStagedUserUseCase{
         private stagedUserSendEmail: IStagedUserSendEmail,
     ){}
 
-    async execute( { email, username, password  }: SendVerificationCodeToEmailUseCaseRequest ){
+    async execute( { email, username, password, cpf_cnpj, phone }: SendVerificationCodeToEmailUseCaseRequest ){
 
         const stagedUserAlreadyExists = await this.stagedUserRepository.findStagedUserByEmail(email);
-
-        if (stagedUserAlreadyExists){
-            throw new AppError("Usuario já e está só esperando colocar o codigo de confirmacao", 400, "STAGED_USER_ALREADY_EXISTS");
-        }
+        if (stagedUserAlreadyExists){ throw new AppError("Usuario já e está só esperando colocar o codigo de confirmacao", 400, "STAGED_USER_ALREADY_EXISTS");}
 
         const userAlreadyExists = await this.userRepository.findUserByEmail(email);
-
-        if (userAlreadyExists){
-            throw new AppError("Usuario já cadastrado", 400, "USER_ALREADY_EXISTS");
-        }
+        if (userAlreadyExists) throw new AppError("Usuario já cadastrado", 400, "USER_ALREADY_EXISTS")
 
         const verification_code = randomInt(100000, 1000000).toString();
         

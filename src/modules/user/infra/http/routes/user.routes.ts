@@ -4,6 +4,8 @@ import { Router } from "express";
 import { authMiddleware } from "../../../../../shared/infra/http/middlewares/authMiddleware.js";
 import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js";
 import { ensureStoreSelectedMiddleware } from "../../../../../shared/infra/http/middlewares/ensureStoreSelectedMiddleware.js";
+import { ensureSubscriptionActiveMiddleware } from "../../../../../shared/infra/http/middlewares/ensureSubscriptionActiveMiddleware.js";
+
 import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
 
 //controllers
@@ -23,18 +25,12 @@ import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
 import { loginSchema } from "../zodSchemas/LoginSchema.js";
 
 const userRoutes = Router();
-//rotas publicas - INICIO
+
 userRoutes.post("/login",
     validateSchema(loginSchema),
     (request, response) => loginController.handle(request, response)
 );
-//rotas publicas - FIM
-//
-//
-//
-//
-//
-//rotas autenticadas globais (lobby) - INICIO
+
 userRoutes.use(authMiddleware); 
 
 userRoutes.get("/is-logged-in", (request, response) => {
@@ -45,18 +41,7 @@ userRoutes.post("/logout", (request, response) =>{
     return logoutController.handle(request, response)
 });
 
-userRoutes.post("/change-my-password",
-    (request, response) =>{
-        return changePasswordController.handle(request, response)
-    }
-);
-//rotas autenticadas globais (lobby) - FIM
-//
-//
-//
-//
-//
-//rotas autenticadas de loja (CONTEXTO DE LOJA)
+
 userRoutes.use(ensureStoreSelectedMiddleware);
 
 userRoutes.get("/get-all-users-data",
@@ -64,6 +49,14 @@ userRoutes.get("/get-all-users-data",
     validateSchema(getUsersDataSchema), // Schema depois
     (request, response) =>{
         return getUsersDataController.handle(request, response);
+    }
+);
+
+userRoutes.use(ensureSubscriptionActiveMiddleware);
+
+userRoutes.post("/change-my-password",
+    (request, response) =>{
+        return changePasswordController.handle(request, response)
     }
 );
 

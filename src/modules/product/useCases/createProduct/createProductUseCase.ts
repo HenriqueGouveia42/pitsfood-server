@@ -4,6 +4,7 @@ import { Decimal } from "decimal.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import type { User } from "../../../user/entities/user.js";
+import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 
 interface IRequest{
     name: string,
@@ -25,17 +26,16 @@ export class CreateProductUseCase{
 
     constructor(
         private productRepository: IProductRepository,
-        private userRepository: IUserRepository
+        private userRepository: IUserRepository,
+        private cacheProvider: ICacheProvider
     ) {}
 
     public async execute( { name, unit_price_in_reais, gtin_code, is_internal, active, store_id, track_stock, stock_quantity, user_id, requires_preparation }: IRequest ){
         
         if (!user_id) throw new AppError("id de usuario nao encontrado", 404, "USER_NOT_FOUND");
-
         const user: User | null = await this.userRepository.findSavedUserById(user_id)
 
         if (!user) throw new AppError("usuario nao encontrado", 404, "USER_NOT_FOUND");
-
         if(user.storeId != store_id) throw new AppError("Usuario nao pertence a loja", 404, "STORE_MISMATCH");
 
         const product: Product = Product.buildProduct(
@@ -60,5 +60,10 @@ export class CreateProductUseCase{
         }
 
         await this.productRepository.saveProduct(product, store_id);
+
+        const cacheKey: string = `store-products:${store_id}`
+
+        await this.cacheProvider.invalidate(cacheKey);
+        
     }
 }

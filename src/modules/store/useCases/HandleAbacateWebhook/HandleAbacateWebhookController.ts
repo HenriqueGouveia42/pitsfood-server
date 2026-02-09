@@ -9,16 +9,16 @@ export class HandleAbacateWebhookController {
 
     async handle(req: Request, res: Response): Promise<Response> {
         
-        // O AbacatePay envia o payload no corpo da requisição
-        // Estrutura esperada: { event: "billing.paid", data: { ... } }
+        
+        // estrutura esperada: { event: "billing.paid", data: { ... } } a ser enviada pelo AbacatePay
         const { event, data } = req.body;
 
-        // Logs de entrada são vitais para debugar webhooks em produção
-        // console.log("Webhook payload received:", JSON.stringify(req.body, null, 2));
+        //logs de entrada para debugar webhooks em produção
+        // onsole.log("Webhook payload received:", JSON.stringify(req.body, null, 2));
 
         if (!event || !data) {
-            // Se o payload vier vazio ou mal formatado, retornamos 400 para indicar erro de integração
-            // Mas cuidado: alguns gateways ficam tentando reenviar se receberem 400.
+            //se o payload vier vazio ou mal formatado, retornamos 400 para indicar erro de integração
+            //mas cuidado: alguns gateways ficam tentando reenviar se receberem 400.
             return res.status(400).send();
         }
 

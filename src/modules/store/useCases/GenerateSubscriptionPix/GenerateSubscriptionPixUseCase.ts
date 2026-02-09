@@ -3,20 +3,21 @@ import type { IStoreRepository } from "../../repositories/interfaces/store.repos
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import type { IPaymentProvider } from "../../../../shared/providers/PaymentProvider/models/IPaymentProvider.js";
 import { SubscriptionCalculator } from "../../providers/SubscriptionCalculator.js";
-import { SubscriptionPlan, Store } from "../../entities/store.js";
+import { SubscriptionPlan, SubscriptionStatus } from "../../entities/store.js";
 import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
-import type { ISubscriptionInvoiceRepository } from "../../repositories/interfaces/subscriptionInvoice.repository.interface.js"; // Interface que você criará
+import type { ISubscriptionInvoiceRepository } from "../../repositories/interfaces/subscriptionInvoice.repository.interface.js";
 
 interface IRequest {
     store_id: string;
     user_id: string;
-    plan: SubscriptionPlan; //plano escolhido BASIC, PREMIUM...)
+    plan: SubscriptionPlan; 
 }
 
 interface IResponse {
     payment_url: string;
     amount: number;
     days_charged: number;
+    invoice_id: string
 }
 
 export class GenerateSubscriptionPixUseCase {
@@ -24,49 +25,87 @@ export class GenerateSubscriptionPixUseCase {
         private storeRepository: IStoreRepository,
         private userRepository: IUserRepository,
         private paymentProvider: IPaymentProvider,
-        private invoiceRepository: ISubscriptionInvoiceRepository //novo repo para salvar a fatura
+        private invoiceRepository: ISubscriptionInvoiceRepository
     ) {}
 
     async execute({ store_id, user_id, plan }: IRequest): Promise<IResponse> {
         
-        //validações iniciais
-        if (plan === SubscriptionPlan.NONE) throw new AppError("Plano inválido", 400, "MUST_CHOSE_PLAN");
+        //1- validação básica
+        if (plan === SubscriptionPlan.NONE) {
+            throw new AppError("Plano inválido.", 400, "MUST_CHOOSE_PLAN");
+        }
 
+        //2 - busca e Validação da Loja/Dono
         const store = await this.storeRepository.findSavedStoreById(store_id);
-        if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
+        if (!store) throw new AppError("Loja não encontrada.", 404, "STORE_NOT_FOUND");
         
         const owner = await this.userRepository.findSavedUserById(user_id);
-        if (!owner) throw new AppError("Dono não encontrado", 404, "USER_NOT_FOUN");
+        if (!owner) throw new AppError("Dono não encontrado.", 404, "USER_NOT_FOUND");
+
+        //3  - TRAVA DE SEGURANÇA 1: Assinatura Ativa
+        // Se já paga, não gera nova cobrança
+        if (store.subscription_status === SubscriptionStatus.ACTIVE) {
+            throw new AppError(
+                "Sua loja já possui uma assinatura ativa. Aguarde o vencimento para renovar.", 
+                409, // Conflict
+                "SUBSCRIPTION_ALREADY_ACTIVE"
+            );
+        }
+
+        //4 - TRAVA DE SEGURANÇA 2: Fatura Pendente (Idempotência)
+        //se já existe um PIX gerado e não pago, não criamos lixo no Gateway.
+        const pendingInvoice = await this.invoiceRepository.findPendingByStoreId(store_id);
         
-        //validar se já existe fatura pendente para não gerar duplicado (opcional)
+        if (pendingInvoice) {
+            //se ele tentou comprar o MESMO plano antes, devolvemos o mesmo PIX
+            if (pendingInvoice.planTag === plan) {
+                return {
+                    payment_url: pendingInvoice.paymentUrl || "",
+                    amount: pendingInvoice.amount,
+                    days_charged: 0,
+                    invoice_id: pendingInvoice.id
+                };
+            }
+
+            //se ele tentou comprar OUTRO plano (ex: queria Basic, agora quer Premium)
+            //BLOQUEIO: "Resolva a pendência anterior primeiro"
+            throw new AppError(
+                "Você já possui uma fatura pendente para outro plano. Aguarde ela expirar ou entre em contato com o suporte.",
+                409,
+                "PENDING_INVOICE_EXISTS"
+            );
+        }
+
+        //5 - Fluxo de Criação (Só chega aqui se não tiver pendências)
         const { amount_in_cents, days_charged } = SubscriptionCalculator.calculateProRata(plan);
 
-        //criar cliente no Gateway
+        //6 - garante que enviamos apenas números no taxId (CPF/CNPJ)
+        const rawTaxId = store.cnpj || "11900862476";
+        const cleanTaxId = rawTaxId.replace(/\D/g, "");
+
         const gatewayCustomerId = await this.paymentProvider.createCustomer({
             name: owner.username,
             email: owner.email,
-            taxId: store.cnpj || "11900862476",
-            cellphone: "(00) 00000-0000" // Você precisará pedir isso no cadastro ou update
+            taxId: cleanTaxId,
+            cellphone: "(00) 00000-0000"
         });
 
-        //gerar a Cobrança no gateway
         const paymentData = await this.paymentProvider.createPixPayment({
             customerId: gatewayCustomerId,
             amount_in_cents: amount_in_cents,
-            description: `Assinatura ${plan} - Proporcional (${days_charged} dias) até dia 28.`,
-            dueDate: new Date() // Vence hoje
+            description: `Assinatura ${plan} - Proporcional (${days_charged} dias)`,
+            dueDate: new Date()
         });
 
-        //salvar a fatura no banco (Para controle interno e Webhook futuro)
-        const invoice: SubscriptionInvoice = SubscriptionInvoice.buildInvoice(
+        const invoice = SubscriptionInvoice.buildInvoice(
             amount_in_cents,
             store.id,
             plan,
-            new Date().toISOString(), //due Date
+            new Date().toISOString(),
             {
                 gateway_invoice_id: paymentData.payment_id,
                 payment_url: paymentData.payment_url,
-                pix_code: "" //endpoint billing não retorna o Pix copia e cola direto no JSON as vezes, usa a URL
+                pix_code: "" 
             }
         );
 
@@ -75,7 +114,8 @@ export class GenerateSubscriptionPixUseCase {
         return {
             payment_url: paymentData.payment_url,
             amount: amount_in_cents,
-            days_charged
+            days_charged,
+            invoice_id: invoice.id
         };
     }
 }

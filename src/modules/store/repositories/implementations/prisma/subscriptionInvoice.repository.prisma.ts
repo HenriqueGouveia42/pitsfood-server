@@ -97,4 +97,17 @@ export class PrismaSubscriptionInvoiceRepository implements ISubscriptionInvoice
         return PrismaSubscriptionInvoiceRepository.prismaToEntityMapper(prismaData);
         
     }
+
+    async findPendingByStoreId(store_id: string): Promise<SubscriptionInvoice | null> {
+        const prismaData = await prisma.subscriptionInvoice.findFirst({
+            where: { 
+                store_id: store_id,
+                status: PrismaInvoiceStatus.PENDING 
+            }
+        });
+
+        if (!prismaData) return null;
+
+        return PrismaSubscriptionInvoiceRepository.prismaToEntityMapper(prismaData);
+    }
 }

@@ -1,7 +1,10 @@
 import type { StoreProps } from "../../../entities/store.js";
 import { Store } from "../../../entities/store.js";
 import type { IStoreRepository } from "../../interfaces/store.repository.interface.js";
-import { PhysicalBill } from "../../../../bill/entities/physicalBIllCard.js";
+
+import { PhysicalBill as EntityPhysicalBill } from "../../../../bill/entities/physicalBIllCard.js";
+import type { PhysicalBillCard as PrismaPhysicalBill } from "../../../../../generated/prisma/client.js";
+
 import { InvoiceStatus } from "../../../../../generated/prisma/client.js";
 
 import { prisma } from "../../../../../shared/infra/prisma.js";
@@ -17,6 +20,9 @@ import { SubscriptionStatus as PrismaSubscriptionStatus } from "../../../../../g
 import { SubscriptionPlan  as EntityPlan} from "../../../entities/store.js";
 import { SubscriptionStatus as EntitySubscriptionStatus } from "../../../entities/store.js";
 
+import type { SubscriptionPlanAndStatus } from "./../../interfaces/store.repository.interface.js"
+
+import { PLAN_LIMITS } from "../../../../../config/plans.config.js";
 
 export class PrismaStoreRepository implements IStoreRepository {
 
@@ -53,6 +59,17 @@ export class PrismaStoreRepository implements IStoreRepository {
             updated_at: new Date(),
             plan: props.plan,
             subscription_status: props.subscription_status
+        }
+    }
+
+    private static entityToPrismaPhysicalBillDataMapper(entity_physical_bill: EntityPhysicalBill): PrismaPhysicalBill{
+        return {
+            store_id: entity_physical_bill.store_id,
+            created_at: new Date(entity_physical_bill.createdAt),
+            updated_at: new Date(entity_physical_bill.updatedAt),
+            id: entity_physical_bill.id,
+            code: entity_physical_bill.code,
+            is_lost: entity_physical_bill.is_lost
         }
     }
 
@@ -145,34 +162,72 @@ export class PrismaStoreRepository implements IStoreRepository {
         return true
     }
 
+
     async activateSubscription(
         store_id: string, 
         invoice_id: string, 
         plan: EntityPlan,
-        expires_at: Date
+        expires_at: Date,
+        physicalBIllCards: EntityPhysicalBill[]
+
     ): Promise<void> {
-        
-        // Tudo aqui dentro roda como uma unidade indivisível
+
+        //const stores = storesPrismaData.map((s) => 
+        //    PrismaStoreRepository.prismaToEntityDataMapper(s)
+        //)
+
+        const prismaPhysicalBills: PrismaPhysicalBill[] = physicalBIllCards.map((b) => 
+            PrismaStoreRepository.entityToPrismaPhysicalBillDataMapper(b)
+        );
+
         await prisma.$transaction([
-            // 1. Atualiza a Loja
+            //atualiza loja
             prisma.store.update({
                 where: { store_id },
                 data: {
-                    subscription_status: 'ACTIVE', // String literal ou Enum do Prisma
-                    plan: plan as any, // Cast se necessário para o enum do Prisma
+                    subscription_status: PrismaSubscriptionStatus.ACTIVE,
+                    plan: plan as any,
                     subscription_expires_at: expires_at,
                     updated_at: new Date()
                 }
             }),
 
-            // 2. Atualiza a Fatura para PAGA
+            
             prisma.subscriptionInvoice.update({
                 where: { invoice_id },
                 data: {
                     status: InvoiceStatus.PAID,
                     paid_at: new Date()
                 }
+            }),
+
+
+            prisma.physicalBillCard.createMany({
+                data: prismaPhysicalBills
             })
+
         ]);
     }
+
+
+    async getSubscriptionPlanAndStatus(store_id: string): Promise<SubscriptionPlanAndStatus>{
+
+        const prismaStore: PrismaStoreModel = await prisma.store.findFirstOrThrow({
+            where:{
+                store_id: store_id
+            }
+        });
+
+        const entityStore: Store = PrismaStoreRepository.prismaToEntityDataMapper(prismaStore);
+
+        const entityPlan: EntityPlan = entityStore.plan;
+        const entityPlanStatus: EntitySubscriptionStatus = entityStore.subscription_status;
+
+        return{
+            plan: entityPlan,
+            plan_status: entityPlanStatus
+        }
+        
+    }
+
 }

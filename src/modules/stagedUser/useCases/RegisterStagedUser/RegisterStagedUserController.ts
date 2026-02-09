@@ -10,12 +10,14 @@ export class RegisterStagedUserController {
 
     public async handle(req: Request, res: Response): Promise<Response>{
 
-        const { email, username, password } = req.body
+        const { email, username, password, cpf_cnpj, phone } = req.body
 
         await this.registerStagedUserUseCase.execute({
             email,
             username,
-            password
+            password,
+            cpf_cnpj,
+            phone
         })
             
         return res.status(200).json({message: "Usuario staged criado com sucesso e codigo enviado por email"})

@@ -1,4 +1,5 @@
 import { AppError } from "../../../shared/errors/AppError.js";
+import { validCNPJ } from "../../store/entities/valid.cnpj.js";
 
 export enum UserRole {
     GESTOR = "GESTOR",
@@ -17,7 +18,10 @@ export type UserProps = {
     readonly role: UserRole;
     readonly active: boolean;
     readonly must_change_password: boolean,
-    readonly paying_user: boolean
+    readonly paying_user: boolean,
+
+    readonly cpf_cnpj: string,
+    readonly phone: string | null
 }
 
 export class User {
@@ -44,6 +48,61 @@ export class User {
             .join(' ');
     }
 
+    private static validateCPF(cpf: string): boolean{
+
+       
+        let Soma: number = 0
+        let Resto: number;
+
+        let strCPF = String(cpf).replace(/[^\d]/g, '')
+  
+        if (strCPF.length !== 11)
+            return false
+  
+        if ([
+            '00000000000',
+            '11111111111',
+            '22222222222',
+            '33333333333',
+            '44444444444',
+            '55555555555',
+            '66666666666',
+            '77777777777',
+            '88888888888',
+            '99999999999',
+            ].indexOf(strCPF) !== -1)
+            return false
+
+        for (let i=1; i<=9; i++)
+
+        Soma = Soma + parseInt(strCPF.substring(i-1, i)) * (11 - i);
+
+        Resto = (Soma * 10) % 11
+
+        if ((Resto == 10) || (Resto == 11)) 
+            Resto = 0
+
+        if (Resto != parseInt(strCPF.substring(9, 10)) )
+            return false
+
+        Soma = 0
+
+        for (let i = 1; i <= 10; i++)
+        Soma = Soma + parseInt(strCPF.substring(i-1, i)) * (12 - i)
+
+        Resto = (Soma * 10) % 11
+
+        if ((Resto == 10) || (Resto == 11)) 
+        Resto = 0
+
+        if (Resto != parseInt(strCPF.substring(10, 11) ) )
+        return false
+
+        return true
+    }
+
+    
+
     //fabric apara criação de novos usuários (cadastrar novo usuario)
     public static buildUser(
         username: string,
@@ -52,11 +111,20 @@ export class User {
         email: string,
         store_id: string | null,
         must_change_password: boolean,
-        is_paying_user: boolean
+        is_paying_user: boolean,
+        cpf_cnpj: string,
+        phone: string | null
     
     ): User {
 
         User.validateUsername(username);
+
+        //ou ele enviou um CPF ou ele enviou um CNPJ
+
+        const is_valid_cpf: boolean = User.validateCPF(cpf_cnpj);
+        const is_valid_cnpj: boolean = validCNPJ(cpf_cnpj);
+
+        if ((!is_valid_cnpj)&&(!is_valid_cpf)) throw new AppError("Precisa de um CPF ou CNPJ valido");
 
         const finalName: string = this.formatUsername(username);
 
@@ -73,7 +141,9 @@ export class User {
             active: true,
             store_id: store_id ? store_id : null,
             must_change_password,
-            paying_user: is_paying_user //o usuario comum é o que nao paga, ele nao é o
+            paying_user: is_paying_user, //o usuario comum é o que nao paga, ele nao é o
+            cpf_cnpj,
+            phone
         })
 
         User.validatePayingUser(user);
@@ -98,6 +168,8 @@ export class User {
     get email() {return this.props.email}
     get mustChangePassword() {return this.props.must_change_password; }
     get paying_user() {return this.props.paying_user; }
+    get cpf_cnpj() {return this.props.cpf_cnpj; }
+    get phone() {return this.props.phone; }
 
     //setters que retornam novos objetos, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newUsername:string, newHashedPassword: string, active: boolean): User {
