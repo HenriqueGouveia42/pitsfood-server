@@ -42,7 +42,8 @@ export class PrismaStoreRepository implements IStoreRepository {
             created_at: prismaStore.created_at.toISOString(),
             updated_at: prismaStore.updated_at.toISOString(),
             plan: prismaStore.plan as EntityPlan,
-            subscription_status: prismaStore.subscription_status as EntitySubscriptionStatus
+            subscription_status: prismaStore.subscription_status as EntitySubscriptionStatus,
+            store_icon_url: prismaStore.store_icon_url
         })
     }
 
@@ -58,7 +59,8 @@ export class PrismaStoreRepository implements IStoreRepository {
             created_at: new Date(props.created_at),
             updated_at: new Date(),
             plan: props.plan,
-            subscription_status: props.subscription_status
+            subscription_status: props.subscription_status,
+            store_icon_url: props.store_icon_url
         }
     }
 
@@ -123,6 +125,7 @@ export class PrismaStoreRepository implements IStoreRepository {
     }
 
     async updateSavedStore(store: Store): Promise<void> {
+        
         const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
 
         const { created_at, ...dataToUpdate } = storePrismaData;
@@ -172,9 +175,6 @@ export class PrismaStoreRepository implements IStoreRepository {
 
     ): Promise<void> {
 
-        //const stores = storesPrismaData.map((s) => 
-        //    PrismaStoreRepository.prismaToEntityDataMapper(s)
-        //)
 
         const prismaPhysicalBills: PrismaPhysicalBill[] = physicalBIllCards.map((b) => 
             PrismaStoreRepository.entityToPrismaPhysicalBillDataMapper(b)

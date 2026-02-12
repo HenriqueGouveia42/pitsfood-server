@@ -35,8 +35,10 @@ export class CheckVerificationCodeStageUserUseCase{
             updated_at: now,
             role: UserRole.GESTOR,
             active: true,
-            must_change_password: false,
-            paying_user: true //esse usuario é pago!
+            must_change_password: false, //esse usuario é pago!
+            paying_user: true, //esse usuario é pago!
+            cpf_cnpj: stagedUser.cpf_cnpj,
+            phone: stagedUser.phone ? stagedUser.phone : null
         }
 
         const user: User = User.restore(userProps);

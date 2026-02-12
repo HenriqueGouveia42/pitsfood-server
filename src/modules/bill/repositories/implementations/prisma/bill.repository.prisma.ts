@@ -1,6 +1,7 @@
 import { Bill, billStates, type BillProps} from "../../../entities/bill.js"
 import type { IBillRepository } from "../../bill.repository.interface.js";
-import { PhysicalBill } from "../../../entities/physicalBIllCard.js";
+import { PhysicalBill as EntityPhysicalBill } from "../../../entities/physicalBIllCard.js";
+import type { PhysicalBillCard as PrismaPhysicalBill } from "../../../../../generated/prisma/client.js";
 import { prisma } from "../../../../../shared/infra/prisma.js"
 import { Decimal } from 'decimal.js';
 
@@ -61,16 +62,34 @@ export class PrismaBillRepository implements IBillRepository {
 
     }
 
-    public static entityToPrismaPhysicalBillDataMapper(physical_bill: PhysicalBill): any{
+    private static entityToPrismaPhysicalBillDataMapper(physical_bill: EntityPhysicalBill): PrismaPhysicalBill{
         return{
             id: physical_bill.id,
             code: physical_bill.code,
             store_id: physical_bill.store_id,
             is_lost: physical_bill.is_lost,
-            created_at: physical_bill.createdAt,
-            updated_at: physical_bill.updatedAt
+            created_at: new Date(physical_bill.createdAt),
+            updated_at: new Date(physical_bill.updatedAt)
         }
     }
+
+    private static prismaToEntityPhysicalBillDataMapper(prisma_physical_bill: PrismaPhysicalBill): EntityPhysicalBill{
+
+        const entityPhysicalBill: EntityPhysicalBill = EntityPhysicalBill.restore({
+            id: prisma_physical_bill.id,
+            code: prisma_physical_bill.code,
+            store_id: prisma_physical_bill.store_id,
+            is_lost: prisma_physical_bill.is_lost,
+            created_at: prisma_physical_bill.created_at.toISOString(),
+            updated_at: prisma_physical_bill.updated_at.toISOString()
+        })
+          
+
+        return entityPhysicalBill
+    }
+
+
+    
 
     //methods
     async findOpenBillByGtinCode(gtin_code: string, store_id: string): Promise<Bill | null> {
@@ -274,6 +293,24 @@ export class PrismaBillRepository implements IBillRepository {
 
     listSavedBills(): Promise<Bill[]> {
         throw new Error("Method not implemented.");
+    }
+    
+    async getPhysicalBills(store_id: string): Promise<EntityPhysicalBill[] | null>{
+
+        const prismaPhysicalBills: PrismaPhysicalBill[] = await prisma.physicalBillCard.findMany({
+            where:{
+                store_id: store_id
+            }
+        })
+
+        if (prismaPhysicalBills.length == 0) return null
+
+        const entitiesPhysicalBills: EntityPhysicalBill[] = prismaPhysicalBills.map(prisma_bill => (
+            PrismaBillRepository.prismaToEntityPhysicalBillDataMapper(prisma_bill)
+        ));
+
+        return entitiesPhysicalBills;
+
     }
 
 

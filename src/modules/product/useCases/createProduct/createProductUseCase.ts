@@ -5,6 +5,7 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import type { User } from "../../../user/entities/user.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 interface IRequest{
     name: string,
@@ -61,7 +62,8 @@ export class CreateProductUseCase{
 
         await this.productRepository.saveProduct(product, store_id);
 
-        const cacheKey: string = `store-products:${store_id}`
+        //const cacheKey: string = `store-products:${store_id}`
+        const cacheKey: string = CacheKeys.Product.LIST(store_id);
 
         await this.cacheProvider.invalidate(cacheKey);
         

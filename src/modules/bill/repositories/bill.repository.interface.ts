@@ -12,4 +12,5 @@ export interface IBillRepository {
     listSavedBills(): Promise<Bill[]>;
     findManyOpenBillsByGtinCodes(bill_code_gtins: string[]): Promise<Bill[]>;
     closeManyBillsByGtinsCodes(bill_code_gtins: string[]): Promise<Bill[]>;
+    getPhysicalBills(store_id: string): Promise<PhysicalBill[] | null>;
 }

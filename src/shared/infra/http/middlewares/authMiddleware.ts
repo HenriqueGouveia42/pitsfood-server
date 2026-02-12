@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { AppError } from "../../../errors/AppError.js";
 import { cacheProvider } from "../../../providers/CacheProvider/index.js";
+import { CacheKeys } from "../../../constants/cache-keys.js";
 
 interface IPayLoad {
     sub: string,
@@ -39,9 +40,11 @@ export async function authMiddleware( //agora é um funcao assincrona, pois faz 
         // VALIDAÇÃO VIA REDIS (WHITELIST) - INICIO
         // -------------------------------------------------------------
 
-        const currentVersion: string | null = await cacheProvider.get(`user-token-version:${sub}`);
+        const cacheKey = CacheKeys.User.TOKEN_VERSION(sub);
 
-        if (!currentVersion || Number(currentVersion) !== token_version){
+        const currentCacheVersion = await cacheProvider.get<number>(cacheKey);
+
+        if (currentCacheVersion === null || Number(currentCacheVersion) !== token_version){
 
             response.clearCookie('token');
 

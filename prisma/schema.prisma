@@ -109,6 +109,8 @@ model Store{
   affiliate_id  String?
   referrer  Affiliate? @relation("StoreReferrer", fields: [affiliate_id], references: [id])
 
+  store_icon_url String?
+
   users User[] @relation("StoreUsers")
   products Product[]
   sales Sale[]

@@ -4,6 +4,7 @@ import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/
 import { User } from "../../../user/entities/user.js";
 import { Store } from "../../entities/store.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 interface IGetStoreDataUseCaseRequest {
     store_id: string,
@@ -12,7 +13,8 @@ interface IGetStoreDataUseCaseRequest {
 
 export interface IGetStoreDataUseCaseResponse {
     store_name: string,
-    owner_name: string
+    owner_name: string,
+    store_icon_url: string | null
 }
 
 export class GetStoreDataUseCase {
@@ -24,38 +26,38 @@ export class GetStoreDataUseCase {
 
     async execute({ store_id, user_id }: IGetStoreDataUseCaseRequest): Promise<IGetStoreDataUseCaseResponse> {
 
-        if (store_id !== undefined && store_id !== null){
+        if (store_id) { 
 
-            const cacheKey = `store-summary-data:${store_id}`;
+            //const cacheKey = `store-summary-data:${store_id}`;
+            const cacheKey: string = CacheKeys.Store.SUMMARY(store_id); 
 
-            const cachedData = await this.cacheProvider.get(cacheKey);
+            
+            const cachedData = await this.cacheProvider.get<IGetStoreDataUseCaseResponse>(cacheKey);
 
-            if (cachedData) return JSON.parse(cachedData) as IGetStoreDataUseCaseResponse;
+            if (cachedData) return cachedData;
 
             // ---------------------------------------------------------
-            //CACHE MISS - precisa buscar no Banco
+            // CACHE MISS - precisa buscar no Banco
             // ---------------------------------------------------------
 
             const store: Store | null = await this.storeRepository.findSavedStoreById(store_id);
             if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
     
-
             const owner: User | null = await this.userRepository.findSavedUserById(store.ownerId);
             if (!owner) throw new AppError("Proprietário da loja não encontrado", 404, "OWNER_NOT_FOUND");
 
             if (owner.id != store.ownerId) throw new AppError("Proprietario nao é dessa loja", 403, "STORE_MISMATCH");
 
-            //monta o Objeto de Resposta
             const response: IGetStoreDataUseCaseResponse = {
                 store_name: store.name,
-                owner_name: owner.username // Pegamos o username da entidade User
+                owner_name: owner.username,
+                store_icon_url: store.store_icon_url ? store.store_icon_url : null
             };
 
-            //salva no cache para as próximas requisições
-            //salvamos o objeto inteiro como string. TTL de 24h (86400s)
+            
             await this.cacheProvider.save(
                 cacheKey,
-                JSON.stringify(response),
+                response, 
                 86400 
             );
 
@@ -63,16 +65,12 @@ export class GetStoreDataUseCase {
         }
 
         const owner: User | null = await this.userRepository.findSavedUserById(user_id);
-        if (!owner) throw new AppError("Usuario gestor inexistente, algo muito estranho aconteceu", 404, "USER_NOT_FOUND");
+        if (!owner) throw new AppError("Usuario gestor inexistente", 404, "USER_NOT_FOUND");
 
-        const response: IGetStoreDataUseCaseResponse = {
+        return {
             store_name: "NOME DO SEU NEGÓCIO",
-            owner_name: owner.username
-        }
-
-        return response
-
+            owner_name: owner.username,
+            store_icon_url: ""
+        };
     }
-
-        
 }

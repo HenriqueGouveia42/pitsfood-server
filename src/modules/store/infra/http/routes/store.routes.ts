@@ -15,10 +15,15 @@ import { handleAbacateWebhookController } from "../../../useCases/HandleAbacateW
 import { checkPaymentStatusController } from "../../../useCases/CheckPaymentStatus/index.js";
 import { getPlanAndPlanStatusController } from "../../../useCases/GetPlanAndPlanStatus/index.js";
 import { getPlansController } from "../../../useCases/GetPlans/index.js";
+import { updateStoreIconController } from "../../../useCases/UpdateStoreIcon/index.js";
 
 import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
 import { createStoreSchema } from "../zodSchemas/CreateStoreSchema.js";
 
+import multer from "multer";
+
+import { uploadConfig } from "../../../../../config/uploads.js"; 
+const upload = multer(uploadConfig);
 
 const storeRoutes = Router();
 
@@ -91,7 +96,12 @@ storeRoutes.get("/get-store-data",
     }
 )
 
-// Exemplo futuro:
-// storeRoutes.post("/create-product", createProductController.handle);
+storeRoutes.patch("/icon",
+    upload.single("icon"),
+    (request, response) => {
+        return updateStoreIconController.handle(request, response);
+    }
+)
+
 
 export { storeRoutes }

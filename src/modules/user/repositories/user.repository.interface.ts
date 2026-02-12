@@ -8,6 +8,7 @@ export interface IUserRepository {
     listAllSavedUsers(store_id: string, active?: boolean | undefined): Promise<User[]>;
     findUserByEmail(email: string): Promise<User | null>;
     logoutUserFromStore(user: User): Promise<void>
-    loginUserIntoStore(user: User, store:Store): Promise<void>
+    loginUserIntoStore(user: User, store:Store): Promise<void>;
+    findUserByCPFCNPJ(cpf_cnpj: string): Promise<User | null>;
 
 }

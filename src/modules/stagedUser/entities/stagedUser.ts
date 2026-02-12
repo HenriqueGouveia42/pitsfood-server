@@ -1,5 +1,6 @@
 import { AppError } from "../../../shared/errors/AppError.js";
-
+import { validCNPJ } from "../../../shared/validators/valid.cnpj.js";
+import { validateCPF } from "../../../shared/validators/valid.cpf.js";
 
 export type StagedUserProps = {
     readonly id: string,
@@ -9,7 +10,8 @@ export type StagedUserProps = {
     readonly verification_code: string,
     readonly created_at: string,
     readonly expires_at: string,
-    readonly cpf_cnpj
+    readonly cpf_cnpj: string
+    readonly phone: string | null
 }
 
 export class StagedUser{
@@ -60,11 +62,18 @@ export class StagedUser{
         username: string,
         password_hash: string,
         verification_code: string,
+        cpf_cnpj: string,
+        phone: string | null
     ): StagedUser{
 
         StagedUser.validateEmail(email);
         StagedUser.validateUsername(username);
         StagedUser.validateVerificationCode(verification_code);
+        
+        const is_valid_cnpj = validCNPJ(cpf_cnpj);
+        const is_valid_cpf = validateCPF(cpf_cnpj);
+
+        if ((!is_valid_cnpj)&&(!is_valid_cpf)) throw new AppError("CPF ou CNPJ invalido");
 
         const nowObj = new Date();
 
@@ -79,19 +88,22 @@ export class StagedUser{
             password_hash,
             verification_code,
             created_at: created_at,
-            expires_at: expires_at 
+            expires_at: expires_at ,
+            cpf_cnpj,
+            phone: phone ? phone : null
         })
     }
-    //public static restore(props: UserProps): User{
-    //        User.validateUsername(props.username);
-    //        return new User(props);
-    //    }
-
+   
     public static restore(props: StagedUserProps): StagedUser{
 
         StagedUser.validateEmail(props.email);
         StagedUser.validateUsername(props.username);
         StagedUser.validateVerificationCode(props.verification_code);
+
+        const is_valid_cnpj = validCNPJ(props.cpf_cnpj);
+        const is_valid_cpf = validateCPF(props.cpf_cnpj);
+
+        if ((!is_valid_cnpj)&&(!is_valid_cpf)) throw new AppError("CPF ou CNPJ invalido");
 
         return new StagedUser(props);
         
@@ -104,5 +116,7 @@ export class StagedUser{
     get createdAt() {return this.props.created_at}
     get expiresAt() {return this.props.expires_at}
     get password_hash() {return this.props.password_hash}
+    get cpf_cnpj() {return this.props.cpf_cnpj}
+    get phone() {return this.props.phone}
 
 }

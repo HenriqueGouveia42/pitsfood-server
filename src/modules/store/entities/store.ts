@@ -1,4 +1,4 @@
-import { validCNPJ } from "./valid.cnpj.js";
+import { validCNPJ } from "../../../shared/validators/valid.cnpj.js";
 import { AppError } from "../../../shared/errors/AppError.js";
 
 /**
@@ -41,11 +41,12 @@ export type StoreProps = {
     readonly updated_at: string;
     readonly plan: SubscriptionPlan
     readonly subscription_status: SubscriptionStatus
+    readonly store_icon_url: string | null
 }
 
 export class Store{
 
-    private constructor(private readonly props: StoreProps){}
+    private constructor(private props: StoreProps){}
 
     public get getProps(): StoreProps{
         return this.props
@@ -70,13 +71,28 @@ export class Store{
             .join(' ');
     }
 
+    private static validateIconUrl(url: string | null): void {
+        if (!url) return;
 
-    public static buildStore(name: string, active: boolean, cnpj: string | null, owner_id: string): Store{
+        try {
 
+            const parsedUrl = new URL(url);
+            
+            //forçar HTTPS para segurança
+            if (parsedUrl.protocol !== "https:") throw new AppError("A URL da imagem deve ser segura (HTTPS).", 400, "INVALID_ICON_PROTOCOL");
         
-        Store.validateNameLength(name);
+        } catch (error) {
 
+            if (error instanceof AppError) throw error;
+            throw new AppError("A URL do ícone fornecida é inválida.", 400, "INVALID_ICON_URL");
+        }
+    }
+
+    public static buildStore(name: string, active: boolean, cnpj: string | null, owner_id: string, store_icon_url: string | null): Store{
+
+        Store.validateNameLength(name);
         const formattedName = Store.formatNameTitleCase(name);
+        Store.validateIconUrl(store_icon_url);
 
         if(cnpj !== null){
             
@@ -99,7 +115,8 @@ export class Store{
             created_at: now,
             updated_at: now,
             plan: SubscriptionPlan.NONE,
-            subscription_status: SubscriptionStatus.NONE
+            subscription_status: SubscriptionStatus.NONE,
+            store_icon_url: store_icon_url ? store_icon_url : null
         })
 
         if (
@@ -123,6 +140,21 @@ export class Store{
         return new Store(props);
     }
 
+    public rename(newName: string): Store {
+        return new Store({ ...this.props, name: newName })
+    }
+
+    public updateIcon(newIconUrl: string | null): Store {
+
+        Store.validateIconUrl(newIconUrl);
+
+        return new Store({
+            ...this.props,
+            store_icon_url: newIconUrl,
+            updated_at: new Date().toISOString()
+        });
+    }
+
     get id() {return this.props.store_id}
     get name() {return this.props.name}
     get cnpj() {return this.props.cnpj}
@@ -132,5 +164,6 @@ export class Store{
     get ownerId() {return this.props.owner_id}
     get plan() {return this.props.plan}
     get subscription_status() {return this.props.subscription_status}
+    get store_icon_url() {return this.props.store_icon_url}
 
 }

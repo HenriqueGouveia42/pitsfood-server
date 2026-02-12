@@ -33,7 +33,6 @@ export function globalErrorMiddleware(
         });
     }
 
-    // Corrigi o typo: "UNKNOW" -> "UNKNOWN"
     return response.status(500).json({ 
         message: "Internal Server Error - Ocorreu um erro inesperado.", 
         code: "UNKNOWN_ERROR"

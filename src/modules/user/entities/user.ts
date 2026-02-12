@@ -1,5 +1,6 @@
 import { AppError } from "../../../shared/errors/AppError.js";
-import { validCNPJ } from "../../store/entities/valid.cnpj.js";
+import { validCNPJ } from "../../../shared/validators/valid.cnpj.js";
+import { validateCPF } from "../../../shared/validators/valid.cpf.js";
 
 export enum UserRole {
     GESTOR = "GESTOR",
@@ -48,61 +49,6 @@ export class User {
             .join(' ');
     }
 
-    private static validateCPF(cpf: string): boolean{
-
-       
-        let Soma: number = 0
-        let Resto: number;
-
-        let strCPF = String(cpf).replace(/[^\d]/g, '')
-  
-        if (strCPF.length !== 11)
-            return false
-  
-        if ([
-            '00000000000',
-            '11111111111',
-            '22222222222',
-            '33333333333',
-            '44444444444',
-            '55555555555',
-            '66666666666',
-            '77777777777',
-            '88888888888',
-            '99999999999',
-            ].indexOf(strCPF) !== -1)
-            return false
-
-        for (let i=1; i<=9; i++)
-
-        Soma = Soma + parseInt(strCPF.substring(i-1, i)) * (11 - i);
-
-        Resto = (Soma * 10) % 11
-
-        if ((Resto == 10) || (Resto == 11)) 
-            Resto = 0
-
-        if (Resto != parseInt(strCPF.substring(9, 10)) )
-            return false
-
-        Soma = 0
-
-        for (let i = 1; i <= 10; i++)
-        Soma = Soma + parseInt(strCPF.substring(i-1, i)) * (12 - i)
-
-        Resto = (Soma * 10) % 11
-
-        if ((Resto == 10) || (Resto == 11)) 
-        Resto = 0
-
-        if (Resto != parseInt(strCPF.substring(10, 11) ) )
-        return false
-
-        return true
-    }
-
-    
-
     //fabric apara criação de novos usuários (cadastrar novo usuario)
     public static buildUser(
         username: string,
@@ -121,7 +67,7 @@ export class User {
 
         //ou ele enviou um CPF ou ele enviou um CNPJ
 
-        const is_valid_cpf: boolean = User.validateCPF(cpf_cnpj);
+        const is_valid_cpf: boolean = validateCPF(cpf_cnpj);
         const is_valid_cnpj: boolean = validCNPJ(cpf_cnpj);
 
         if ((!is_valid_cnpj)&&(!is_valid_cpf)) throw new AppError("Precisa de um CPF ou CNPJ valido");

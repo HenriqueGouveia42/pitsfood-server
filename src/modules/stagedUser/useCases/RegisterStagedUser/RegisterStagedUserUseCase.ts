@@ -5,13 +5,14 @@ import type { IStagedUserRepository } from "../../repositories/staged_user.repos
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import { randomInt } from 'node:crypto';
+import type { User } from "../../../user/entities/user.js";
 
 export interface SendVerificationCodeToEmailUseCaseRequest{
     email: string,
     username: string,
     password: string,
     cpf_cnpj: string,
-    phone: string | nulls
+    phone: string | null
 }
 
 export class RegisterStagedUserUseCase{
@@ -31,6 +32,9 @@ export class RegisterStagedUserUseCase{
         if (userAlreadyExists) throw new AppError("Usuario já cadastrado", 400, "USER_ALREADY_EXISTS")
 
         const verification_code = randomInt(100000, 1000000).toString();
+
+        const CPF_CNPJ_user_already_exists: User | null = await this.userRepository.findUserByCPFCNPJ(cpf_cnpj);
+        if (CPF_CNPJ_user_already_exists) throw new AppError("Já existe um usuário com este CPF/CPNJ cadastrado no sistema", 422, "CPF_CNPJ_ALREADY_EXISTS");
         
         const hashedPassword = await hash(password, 8);
 
@@ -39,6 +43,8 @@ export class RegisterStagedUserUseCase{
             username,
             hashedPassword,
             verification_code,
+            cpf_cnpj,
+            phone
         )
 
         await this.stagedUserRepository.saveStagedUser(stagedUser);

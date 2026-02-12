@@ -42,6 +42,10 @@ export class PhysicalBill{
 
     }
 
+    public static restore(props: PhysicalBillProps): PhysicalBill {
+        return new PhysicalBill(props);
+    }
+
     get id() {return this.props.id}
     get code() {return this.props.code}
     get store_id() {return this.props.store_id}

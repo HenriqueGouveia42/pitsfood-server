@@ -17,7 +17,9 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
             password_hash: prismaStagedUser.password_hash, 
             verification_code: prismaStagedUser.verification_code,
             expires_at: prismaStagedUser.expires_at,
-            created_at: prismaStagedUser.created_at
+            created_at: prismaStagedUser.created_at,
+            cpf_cnpj: prismaStagedUser.cpf_cnpj,
+            phone: prismaStagedUser.phone
         }
 
         return StagedUser.restore(staged_user_props);
@@ -32,7 +34,9 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
             verification_code: staged_user.verificationCode,
             expires_at: staged_user.expiresAt,
             created_at: staged_user.createdAt,
-            password_hash: staged_user.password_hash
+            password_hash: staged_user.password_hash,
+            cpf_cnpj: staged_user.cpf_cnpj,
+            phone: staged_user.phone
         }
     }
 
@@ -87,32 +91,7 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
     }
 
     async deleteStagedUserAndCreateUser(staged_user: StagedUser, user: User): Promise<void>{
-        /*
-            model User {
-                email         String   @unique
-                user_id       String   @id
-                username      String   //@unique - username nao pode ser unique, pois se for unique, o mesmo username nao poderá se repetir em todo o banco de dados, o que é ruim, basta que o username nao se repita somente dentro da mesma loja
-                password_hash String
-                role          UserRole
-                created_at    DateTime @default(now())
-                updated_at    DateTime @updatedAt
-                active        Boolean @default(true)
-                
-                store_id  String?
-                store Store? @relation("StoreUsers", fields: [store_id], references: [store_id])
-                owned_store Store? @relation("StoreOwner")
-
-                //relacionamentos
-                sales_closed  Sale[]        @relation("UserClosedSale")
-                items_added   BillProduct[] @relation("UserAddedItem")
-
-                @@unique([username, store_id]) //um username deve ser unico APENAS dentro daquela loja
-                @@unique([user_id, store_id]) //indice composto que sera utilizado por BillProduct e Sale
-                @@map("users")
-                must_change_password
-            }
-        */
-
+        
         const newUserData: UserProps = {
 
             email:user.email,
@@ -125,7 +104,9 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
             active: user.active,
             store_id: user.storeId || null,
             must_change_password: user.mustChangePassword, //deve ser false, pois esse é o usuario que se cadastrou pelo email
-            paying_user: true //deve ser true, pois se está sendo criado por esse repo, quer dizer que é um usuario pago
+            paying_user: true, //deve ser true, pois se está sendo criado por esse repo, quer dizer que é um usuario pago
+            cpf_cnpj: user.cpf_cnpj,
+            phone: user.phone ? user.phone : null
         }
         
         await prisma.$transaction(async (tx) =>{

@@ -2,6 +2,7 @@ import type { IProductRepository } from "../../repositories/product.repository.i
 import { Product } from "../../entities/product.js";
 import { Decimal } from "decimal.js"
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 /*
     name
@@ -35,15 +36,15 @@ export class GetAllProductsUseCase{
 
     public async execute({ store_id }: IGetAllProductsRequest): Promise<IGetAllProductsResponse[]> {
 
-        const cacheKey: string = `store-products:${store_id}`;
+        const cacheKey:string = CacheKeys.Product.LIST(store_id);
 
-        //const cachedData = await this.cacheProvider.get<any[]>(cacheKey);
+        const cachedData = await this.cacheProvider.get<IGetAllProductsResponse[]>(cacheKey);
 
-        //if (cachedData){
-        //    return cachedData.map(item =>({
-        //        ...item,
-        //        unit_price_in_reais: new Decimal(item.unit_price_in_reais)            }))
-        //}
+        if (cachedData){
+           return cachedData
+        }
+
+        //cache miss
 
         const products: Product[] | [] = await this.productRepository.listSavedProducts(store_id);
 

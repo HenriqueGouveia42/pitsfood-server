@@ -51,7 +51,8 @@ export class CreateStoreUseCase{
             finalName,
             true,
             cnpj,
-            owner_id
+            owner_id,
+            null
         );
 
         await this.storeRepository.saveStore(created_store);

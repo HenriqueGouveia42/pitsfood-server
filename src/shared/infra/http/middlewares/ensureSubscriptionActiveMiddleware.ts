@@ -17,12 +17,12 @@ export async function ensureSubscriptionActiveMiddleware(
 
     const cacheKey = `store-subscription-status:${store_id}`;
 
-    // 1. Tenta pegar do Cache (Rápido)
+    //tenta pegar do Cache (Rápido)
     let status = await cacheProvider.get(cacheKey);
 
-    // 2. Cache Miss? Vai no Banco (Lento, mas necessário na primeira vez)
+    //cache Miss? Vai no Banco (Lento, mas necessário na primeira vez)
     if (!status) {
-        // Instancia aqui mesmo ou usa injeção se estiver usando tsyringe/inversify
+        
         const storeRepository = new PrismaStoreRepository();
         const store = await storeRepository.findSavedStoreById(store_id);
 

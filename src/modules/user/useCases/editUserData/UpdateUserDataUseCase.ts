@@ -6,6 +6,7 @@ import { UserRole } from "../../entities/user.js";
 import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 import { Store } from "../../../store/entities/store.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 export interface IRequestUseCase {
     target_user_id: string;
@@ -58,15 +59,33 @@ export class UpdateUserDataUseCase {
         const finalActive: boolean = (active !== undefined) ? active : user_target.active;
         let finalPasswordHash: string = user_target.passwordHash;
 
+
+
+
+
+
+
+
+
         // Flags de controle
-        let shouldInvalidateSession = false;     //derrubar sessão no redis
+        let shouldInvalidateUserSession = false;  //derrubar sessão do usuario no redis
         let shouldForcePasswordChange = false;   //setar flag no banco
-        let shouldInvalidateNameCache = false;
+        let shouldInvalidateNameCache = false;   //obrigar o usuario a trocar de senha na proxima vez que for logar
+
+
+
+
+
+
+
+
 
         //SENHA FOI DEFINIDA
-        if (password !== undefined){ 
+        if (password !== undefined){
+
             finalPasswordHash = await hash(password, 8);
-            shouldInvalidateSession = true;
+
+            shouldInvalidateUserSession = true;
             shouldForcePasswordChange = true;
 
             //apenas o gestor OWNER PODE alterar senhas
@@ -88,17 +107,20 @@ export class UpdateUserDataUseCase {
 
         //USUARIO FOI DESATIVADO
         if (finalActive === false && user_target.active === true){ 
-            shouldInvalidateSession = true;
+            shouldInvalidateUserSession = true;
         }
 
         // --------------------------
         // INVALIDAÇÃO NO REDIS
         // --------------------------
-        if (shouldInvalidateSession){ //a partir de agora a proxima requisicao ja sera barrada no 'authMiddleware'
-            const newVersion = Date.now(); 
+        if (shouldInvalidateUserSession){ //a partir de agora a proxima requisicao ja sera barrada no 'authMiddleware'
+            const newVersion = Date.now();
+
+            const cacheKey:string = CacheKeys.User.TOKEN_VERSION(target_user_id);
+
             await this.cacheProvider.save(
-                `user-token-version:${target_user_id}`,
-                newVersion.toString(),
+                cacheKey,
+                newVersion,
                 86400 
             )
         }
@@ -106,9 +128,8 @@ export class UpdateUserDataUseCase {
         // --------------------------
         // ATUALIZAÇÃO NO BANCO
         // --------------------------
-        if(finalActive === false && target_user_id == userTryingToUpdate.id){
-            throw new AppError("Dono da loja nao pode desativar a si mesmo", 403, "OWNER_CANNOT_DEACTIVATE_ITSELF")
-        }
+        if(finalActive === false && target_user_id == userTryingToUpdate.id) throw new AppError("Dono da loja nao pode desativar a si mesmo", 403, "OWNER_CANNOT_DEACTIVATE_ITSELF")
+        
 
         //gera a entidade com dados básicos atualizados
         let updatedUser: User = user_target.withUpdatedData(finalName, finalPasswordHash, finalActive);

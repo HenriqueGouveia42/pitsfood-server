@@ -1,5 +1,6 @@
 import type { UserProps, UserRole } from "../../../entities/user.js";
 import { User } from "../../../entities/user.js";
+import type { User as PrismaUser } from "../../../../../generated/prisma/client.js";
 import type { IUserRepository } from "../../user.repository.interface.js";
 
 import { prisma } from "../../../../../shared/infra/prisma.js"
@@ -160,6 +161,20 @@ export class PrismaUserRepository implements IUserRepository {
                 updated_at: new Date()
             }
         })
+    }
+
+    async findUserByCPFCNPJ(cpf_cnpj: string): Promise<User | null> {
+        
+        const user: PrismaUser | null = await prisma.user.findFirst({
+            where:{
+                cpf_cnpj: cpf_cnpj
+            }
+        })
+
+        if (user) return PrismaUserRepository.prismaToEntityDataMapper(user);
+
+        return user
+
     }
 
 
