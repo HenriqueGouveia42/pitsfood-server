@@ -7,6 +7,8 @@ import type { IStoreRepository } from "../../../store/repositories/interfaces/st
 import { Store } from "../../../store/entities/store.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
+import { SubscriptionPlan } from "../../../store/entities/store.js";
+import { PLAN_LIMITS } from "../../../../config/plans.config.js";
 
 export interface IRequestUseCase {
     target_user_id: string;
@@ -47,20 +49,49 @@ export class UpdateUserDataUseCase {
 
         const store: Store | null = await this.storeRepository.findSavedStoreById(modifier_user_store_id);
         if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
-        //VALIDACOES DE USUARIO
-        //------------------------------------------------------------------------------------------------ FIM
-
-
-        // --------------------------
-        // PREPARAÇÃO DE DADOS
-        // --------------------------
+    
 
         const finalName: string = (name !== undefined) ? name : user_target.username;
-        const finalActive: boolean = (active !== undefined) ? active : user_target.active;
+
+        let finalActive: boolean = user_target.active;
+
+        if(active !== undefined){
+
+            //queremos reativar um funcionario
+            if (active === true && !user_target.active){
+
+                const store_plan: SubscriptionPlan = store.plan as SubscriptionPlan;
+                const user_role: UserRole = user_target.role as UserRole;
+                const max_quantity_users_this_role_for_this_store: number = PLAN_LIMITS[store_plan].limits.max_users[user_role];
+
+                const all_users: User[] | null = await this.userRepository.listAllSavedUsers(store.id, true); //retorna usuarios ATIVOS
+
+                const all_user_role: User[] = all_users.filter( u => (
+                    u.role === user_role
+                ));
+
+                if (all_user_role.length >= max_quantity_users_this_role_for_this_store){
+                    throw new AppError(`
+                        Seu plano ${store_plan} só lhe permite ter até ${max_quantity_users_this_role_for_this_store}
+                        para o cargo ${user_role}`, 403, "MAX_ACTIVE_USER_REACHED"
+                    );
+                }
+                
+                finalActive = true;
+            }
+
+            //queremos desativar um funcionario
+            if (active === false && user_target.active){
+                finalActive = false;
+            }
+
+        } else {
+            finalActive = user_target.active
+        }
+
+
+
         let finalPasswordHash: string = user_target.passwordHash;
-
-
-
 
 
 

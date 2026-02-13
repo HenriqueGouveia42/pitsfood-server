@@ -23,7 +23,14 @@ export const registerEmployeeSchema = z.object({
             .min(6, { message: "A senha deve ter no mínimo 6 caracteres" }),
 
         email: z
-            .email({message: "Email é obrigatorio"})
+            .email({message: "Email é obrigatorio"}),
+        cpf_cnpj : z
+            .string( { message: "Precisa ser string" })
+            .min(11, { message: "Precisa ter no minimo 11 digitos"}),
+        
+        phone: z
+            .string( { message: "Precisa ser string" })
+            .max(20, { message: "Maximo de 20 caracteres" })
     })
     .strict()
 });

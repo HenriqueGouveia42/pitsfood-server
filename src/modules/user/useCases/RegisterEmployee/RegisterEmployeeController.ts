@@ -9,7 +9,9 @@ interface RegisterEmployeeControllerRequest{
     role: UserRole,
     plain_text_password: string,
     email: string,
-    store_id: string | null
+    store_id: string | null,
+    cpf_cnpj: string,
+    phone: string | null
 }
 
 export class RegisterEmployeeController{
@@ -21,11 +23,11 @@ export class RegisterEmployeeController{
     public async handle(req: Request, res: Response): Promise<Response>{
 
       
-        const { name, role, plain_text_password, email }: RegisterEmployeeControllerRequest  = req.body;
+        const { name, role, plain_text_password, email, cpf_cnpj, phone }: RegisterEmployeeControllerRequest  = req.body;
 
         const userId = req.user.id; //userId vem da requisiticao
 
-        if(!name || !role || !plain_text_password || !email || !userId){
+        if(!name || !role || !plain_text_password || !email || !userId || !cpf_cnpj){
             throw new AppError("Algum dado para criar um usuario está faltando", 400, "INVALID_USER_DATA_SENT")
         }
 
@@ -35,7 +37,7 @@ export class RegisterEmployeeController{
 
         //console.log(name, role, plain_text_password, email, userId);
 
-        const userData: RegisterEmployeeUseCaseResponse = await this.createUserUseCase.execute({name, role, plain_text_password, email, userId});
+        const userData: RegisterEmployeeUseCaseResponse = await this.createUserUseCase.execute({name, role, plain_text_password, email, userId, cpf_cnpj, phone});
 
         return res.status(200).json(userData);
 

@@ -92,7 +92,8 @@ export class PrismaUserRepository implements IUserRepository {
 
     async listAllSavedUsers(store_id: string, active: boolean | undefined): Promise<User[]> {
 
-        let prismaUsers;
+        let prismaUsers: PrismaUser[];
+
         if(active != undefined ){
 
             prismaUsers = await prisma.user.findMany({

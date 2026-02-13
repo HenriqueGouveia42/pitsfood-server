@@ -13,7 +13,8 @@ export enum SubscriptionPlan {
     NONE = "NONE",
     BASIC = "BASIC",
     EXTENDED = "EXTENDED",
-    PREMIUM = "PREMIUM"
+    PREMIUM = "PREMIUM",
+    PERSONALIZED = "PERSONALIZED"
 }
 
 /*

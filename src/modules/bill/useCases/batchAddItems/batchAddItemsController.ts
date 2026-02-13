@@ -8,17 +8,16 @@ export class BatchAddItemsController  {
 
     public async handle (req: Request, res: Response): Promise<Response> {
 
-        //veio anexado pelo middleware
         const user_id = req.user.id;
         const store_id = req.user.store_id;
         
-        const { bill_code, items } = req.body;
+        const { bill_code, products_ids } = req.body;
 
         await this.batchAddItemsUseCase.execute({
             bill_code_gtin: bill_code,
             user_id: user_id,
             store_id: store_id,
-            items: items
+            products_ids: products_ids
         })
 
         return res.status(200).json({ message: "Itens adicionados com sucesso" })

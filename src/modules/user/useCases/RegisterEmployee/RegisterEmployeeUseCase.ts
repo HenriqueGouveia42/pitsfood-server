@@ -5,13 +5,20 @@ import { UserRole } from "../../entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 import type { Store } from "../../../store/entities/store.js";
+import { validateCPF } from "../../../../shared/validators/valid.cpf.js";
+import { validCNPJ } from "../../../../shared/validators/valid.cnpj.js";
+
+import { PLAN_LIMITS } from "../../../../config/plans.config.js";
+import { SubscriptionPlan } from "../../../store/entities/store.js";
 
 interface RegisterEmployeeUseCaseRequest{
     name: string,
     role: string,
     plain_text_password: string,
     userId: string,
-    email: string
+    email: string,
+    cpf_cnpj: string,
+    phone: string | null
 }
 
 export interface RegisterEmployeeUseCaseResponse{
@@ -25,10 +32,9 @@ export class RegisterEmployeeUseCase{
         private storeRepository: IStoreRepository
    ){} 
 
-   async execute({ name, role, plain_text_password, userId, email}: RegisterEmployeeUseCaseRequest): Promise<RegisterEmployeeUseCaseResponse>{
+   async execute({ name, role, plain_text_password, userId, email, cpf_cnpj, phone}: RegisterEmployeeUseCaseRequest): Promise<RegisterEmployeeUseCaseResponse>{
     
         const userAlreadyExists = await this.userRepository.findUserByEmail(email);
-
         if (userAlreadyExists) throw new AppError("Este e-mail está indisponível.", 400, "INVALID_EMAIL");
 
         const manager_user: User | null = await this.userRepository.findSavedUserById(userId);
@@ -43,8 +49,34 @@ export class RegisterEmployeeUseCase{
         if (store === null) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND")
         if (store.ownerId != manager_user.id) throw new AppError("O usuario não é o dono da loja", 403, "MUST_BE_THE_OWNER");
 
+        //PRECISAMOS SABER SE A LOJA JÁ ATINGIU A QUANTIDADE MAXIMA DE USUARIOS COM ESSE CARGO PARA O SEU PLANO
+
+        const store_plan: SubscriptionPlan = store.plan as SubscriptionPlan;
+        const user_role: UserRole = role as UserRole;
+        const max_quantity_users_this_role_for_this_store: number = PLAN_LIMITS[store_plan].limits.max_users[user_role];
+
+        const all_users: User[] | null = await this.userRepository.listAllSavedUsers(store.id, true);
+
+        const all_user_role: User[] = all_users.filter( u => (
+            u.role === user_role
+        ));
+
+        if (all_user_role.length >= max_quantity_users_this_role_for_this_store){
+            throw new AppError(`
+                Seu plano ${store_plan} só lhe permite ter até ${max_quantity_users_this_role_for_this_store}
+                para o cargo ${user_role}`, 403, "MAX_ACTIVE_USER_REACHED");
+        }
+            
 
         const hashed_password = await bcrypt.hash(plain_text_password, 8);
+
+        const isCPFValid: boolean = validateCPF(cpf_cnpj);
+        const isCNPJValid: boolean = validCNPJ(cpf_cnpj);
+
+        if (!isCPFValid && !isCNPJValid) throw new AppError("CPF/CNPJ invalido", 400, "CPF_CNPJ_MUST_BE_VALID");
+
+        const cpf_cnpj_user: User | null = await this.userRepository.findUserByCPFCNPJ(cpf_cnpj);
+        if (cpf_cnpj_user) throw new AppError("Usario com esse CPF/CNPJ ja existe no sistema", 403, "CPF_CNPJ_USER_ALREADY_EXISTS");
 
         const user: User = User.buildUser(
             name,
@@ -53,7 +85,9 @@ export class RegisterEmployeeUseCase{
             email,
             store.id,
             true, //'must_change_password' deve ser true pois um funcionario recem criado PRECISA que mudar sua senha inicialmente criada pelo gestor
-            false //'is_paying_user' aqui precisa ser false, pois esse é um usuario criado pelo usuario gestor inicial
+            false, //'is_paying_user' aqui precisa ser false, pois esse é um usuario criado pelo usuario gestor inicial
+            cpf_cnpj,
+            phone ? phone : null
         ); 
 
         await this.userRepository.saveUser(user);

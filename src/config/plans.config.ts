@@ -25,7 +25,7 @@ export const PLAN_LIMITS = {
         currency: "BRL",
         
         limits: {
-            max_physical_bills: 30,
+            max_physical_bills: 12,
             max_users: {
                 [UserRole.GESTOR]: 1,
                 [UserRole.CAIXA]: 1,
@@ -41,7 +41,7 @@ export const PLAN_LIMITS = {
         currency: "BRL",
         
         limits:{
-            max_physical_bills: 80,
+            max_physical_bills: 30,
             max_users: {
                 [UserRole.GESTOR]: 2,
                 [UserRole.CAIXA]: 2,
@@ -52,17 +52,34 @@ export const PLAN_LIMITS = {
 
     [SubscriptionPlan.PREMIUM]: {
         title: "Plano Premium",
-        description: "Potência total para para operações de qualquer tamanaho.",
+        description: "Potência total para para operações robustas",
         price_in_cents: 30000,
         currency: "BRL",
 
         limits:{
-            max_physical_bills: 500,
+            max_physical_bills: 200,
             max_users: {
-                [UserRole.GESTOR]: 40,
-                [UserRole.CAIXA]: 40,
-                [UserRole.VENDEDOR]: 40
+                [UserRole.GESTOR]: 20,
+                [UserRole.CAIXA]: 20,
+                [UserRole.VENDEDOR]: 20
             }
         }
+    },
+
+    [SubscriptionPlan.PERSONALIZED]: {
+        tile: "Plano Personalized",
+        description: "Um plano personalizado para o seu negócio. Entre em contato para negociarmos um preços e condicoes",
+        price_in_cents: null,
+        currency: "BRL",
+
+        limits: {
+            max_physical_users: null,
+            max_users: {
+                [UserRole.GESTOR]: 0,
+                [UserRole.CAIXA]: 0,
+                [UserRole.VENDEDOR]: 0
+            }
+        }
+                
     }
 }

@@ -17,18 +17,19 @@ export class BillCodeExistsController{
       
         const { bill_code_gtin } = req.params;
 
-        if(!bill_code_gtin){
-            throw new AppError("Codigo GTIN da comanda ausente", 400, "GTIN_CODE_NOT_FOUND");
-        }
+        const store_id = req.user.store_id;
 
-        const billExists: boolean = await this.billCodeExistsUseCase.execute({ bill_code_gtin });
+        if(!bill_code_gtin) throw new AppError("Codigo GTIN da comanda ausente", 400, "GTIN_CODE_NOT_FOUND");
+        
 
-        if(!billExists){
-            throw new AppError(`Comanda com o codigo: ${bill_code_gtin} nao existe`, 404, "BILL_NOT_FOUND")
-        }
+        const billExists: boolean = await this.billCodeExistsUseCase.execute({
+            store_id,
+            gtin_code: bill_code_gtin
+        });
+
+        if(!billExists) throw new AppError(`Comanda com o codigo: ${bill_code_gtin} nao existe`, 404, "BILL_NOT_FOUND");
 
         return res.status(200).json({message: "Comanda existe no sistema!"});
-
     
     }
 }
