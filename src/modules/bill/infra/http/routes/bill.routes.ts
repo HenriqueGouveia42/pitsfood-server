@@ -6,9 +6,9 @@ import { authMiddleware } from "../../../../../shared/infra/http/middlewares/aut
 import { ensureStoreSelectedMiddleware } from "../../../../../shared/infra/http/middlewares/ensureStoreSelectedMiddleware.js";
 import { ensureSubscriptionActiveMiddleware } from "../../../../../shared/infra/http/middlewares/ensureSubscriptionActiveMiddleware.js";
 
-import { UserRole } from "../../../../user/entities/user.js";
+import { User, UserRole } from "../../../../user/entities/user.js";
 
-import { batchAddItemsController } from "../../../useCases/batchAddItems/index.js"
+import { batchAddItemsController } from "../../../useCases/batchAddProducts/index.js";
 import { getOpenBillByGtinCodeController } from "../../../useCases/getOpenBillByGtinCode/index.js"
 import { findAllOpenBillsController } from "../../../useCases/findAllOpenBills/index.js"
 import { billCodeExistsController } from "../../../useCases/checkIfBillCodeExists/index.js";
@@ -37,8 +37,8 @@ billRoutes.get("/physical-bills-codes",
 )
 
 billRoutes.post("/batch-add",
-    validateSchema(batchAddItemsSchema),
-    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR]),
+    //validateSchema(batchAddItemsSchema),
+    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR, UserRole.GESTOR]),
     (request, response) => {
     return batchAddItemsController.handle(request, response);
 })
@@ -59,7 +59,7 @@ billRoutes.get("/get-open-bill-by-gtin-code/:bill_code_gtin",
 })
 
 billRoutes.get("/get-all-open-bills",
-    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR]),
+    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR,  UserRole.GESTOR]),
     (request, response) => {
         return findAllOpenBillsController.handle(request, response);
     }

@@ -75,6 +75,23 @@ export class PrismaStoreRepository implements IStoreRepository {
         }
     }
 
+    private static mapEntityPlanToPrismaPlan(plan: EntityPlan): PrismaPlan {
+        
+        const planMap: Record<EntityPlan, PrismaPlan> = {
+            [EntityPlan.NONE]: PrismaPlan.NONE,
+            [EntityPlan.BASIC]: PrismaPlan.BASIC,
+            [EntityPlan.EXTENDED]: PrismaPlan.EXTENDED,
+            [EntityPlan.PREMIUM]: PrismaPlan.PREMIUM,
+            [EntityPlan.PERSONALIZED]: PrismaPlan.PERSONALIZED
+        };
+
+        const prismaPlan = planMap[plan];
+
+        if (!prismaPlan) throw new AppError(`Erro de mapeamento: O plano '${plan}' não existe no banco de dados.`, 500, "PLAN_MAPPING_ERROR");
+        
+        return prismaPlan;
+    }
+
     async saveStore(store: Store): Promise<Store | null> {
 
         const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
@@ -165,22 +182,22 @@ export class PrismaStoreRepository implements IStoreRepository {
         return true
     }
 
-
     async activateSubscription(
         store_id: string, 
         invoice_id: string, 
         plan: EntityPlan,
         expires_at: Date,
-        physicalBIllCards: EntityPhysicalBill[]
+        physicalBIllCards: Set<EntityPhysicalBill>
 
     ): Promise<void> {
 
 
-        const prismaPhysicalBills: PrismaPhysicalBill[] = physicalBIllCards.map((b) => 
+        const prismaPhysicalBills: PrismaPhysicalBill[] = Array.from(physicalBIllCards, (b) => 
             PrismaStoreRepository.entityToPrismaPhysicalBillDataMapper(b)
         );
 
         await prisma.$transaction([
+
             //atualiza loja
             prisma.store.update({
                 where: { store_id },
@@ -209,7 +226,6 @@ export class PrismaStoreRepository implements IStoreRepository {
         ]);
     }
 
-
     async getSubscriptionPlanAndStatus(store_id: string): Promise<SubscriptionPlanAndStatus>{
 
         const prismaStore: PrismaStoreModel = await prisma.store.findFirstOrThrow({
@@ -229,5 +245,5 @@ export class PrismaStoreRepository implements IStoreRepository {
         }
         
     }
-
+    
 }

@@ -10,19 +10,33 @@ export type PhysicalBillProps = {
 }
 
 export class PhysicalBill{
+
     private constructor(private readonly props: PhysicalBillProps){}
 
-    private static validatePhysicalBillCode(code: string){
+    private static validatePhysicalBillCode(code: string): void{
         
-        //precisa ter somente numeros
+        if (code.length !== 4) throw new AppError("Codigo precisa ter exatamente 4 digitos", 422, "INVALID_GTIN_CODE_LENGTH");
+        if (!/^\d+$/.test(code)) throw new AppError("Codigo precisa conter apenas números", 422, "INVALID_GTIN_CODE");
+
+        let sum: number = 0;
+        let impar: boolean = true;
+
+        const code_to_verify: string = code.slice(0, -1);
+
+        for (const char of code_to_verify){
+            impar ?
+                sum += Number(char)
+                :
+                sum += 3 * Number(char)
+            
+            impar = !impar
+        }
+
+        const verifier_number: number = ( 10 - (sum % 10) ) % 10;
         
-        const to_number: number = Number(code);
+        const lastDigit: number = Number(code.slice(-1));
 
-        if (typeof(to_number) != "number") throw new AppError("Codigo precisa ser numerico", 422, "INVALID_GTIN_CODE")
-
-        //precisa ter exatamente 4 numeros
-
-        if (code.length != 4) throw new AppError("Codigo precisa ter exatamente 4 numeros", 422, "INVALID_GTIN_CODE_LENGHT")
+        if (verifier_number !== lastDigit) throw new AppError(`Código ${code} inválido. Dígito esperado: ${verifier_number}, Recebido: ${lastDigit}`);
     }
 
     public static buildPhysicalBill(code: string, store_id:string): PhysicalBill{
@@ -39,6 +53,18 @@ export class PhysicalBill{
             created_at: now,
             updated_at: now
         })
+
+    }
+
+    public static buildManyPhysicallBills(codes: Set<string>, store_id: string): Set<PhysicalBill>{
+
+        let physical_bills: Set<PhysicalBill> = new Set<PhysicalBill>();
+
+        for (const code of codes){
+            physical_bills.add(this.buildPhysicalBill(code, store_id));
+        }
+
+        return physical_bills
 
     }
 

@@ -1,6 +1,7 @@
 import { Router } from "express"
-import { authMiddleware } from "../../../../../shared/infra/http/middlewares/authMiddleware.js";
 import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js";
+
+import { authMiddleware } from "../../../../../shared/infra/http/middlewares/authMiddleware.js";
 import { ensureStoreSelectedMiddleware } from "../../../../../shared/infra/http/middlewares/ensureStoreSelectedMiddleware.js";
 import { ensureSubscriptionActiveMiddleware } from "../../../../../shared/infra/http/middlewares/ensureSubscriptionActiveMiddleware.js";
 
@@ -46,6 +47,7 @@ storeRoutes.post("/create-store",
 )
 
 storeRoutes.get("/list-my-stores",
+    authorizeRoles([UserRole.GESTOR]),
     (request, response) => {
         return listMyStoresController.handle(request, response)
     }
@@ -53,6 +55,7 @@ storeRoutes.get("/list-my-stores",
 
 storeRoutes.post("/login-into-store",
     //missing zod schema
+    authorizeRoles([UserRole.GESTOR]),
     (request, response) =>{
         return loginIntoStoreController.handle(request, response)
     }
@@ -62,7 +65,6 @@ storeRoutes.use(ensureStoreSelectedMiddleware);
 
 //gera o qr code
 storeRoutes.post("/generate-subscription-pix",
-    //missing zod schema
     authorizeRoles([UserRole.GESTOR]),
     (request, response) => {
         return generateSubscriptionPixController.handle(request, response)
@@ -71,12 +73,14 @@ storeRoutes.post("/generate-subscription-pix",
 
 //rota de pooling
 storeRoutes.get("/check-payment-status/:invoice_id",
+    authorizeRoles([UserRole.GESTOR]),
     (request, response) => {
         return checkPaymentStatusController.handle(request, response);
     }
 );
 
 storeRoutes.get("/plan-and-plan-status",
+    authorizeRoles([UserRole.GESTOR]),
     (request, response) => {
         return getPlanAndPlanStatusController.handle(request, response)
     }
@@ -97,6 +101,7 @@ storeRoutes.get("/get-store-data",
 )
 
 storeRoutes.patch("/icon",
+    authorizeRoles([UserRole.GESTOR]),
     upload.single("icon"),
     (request, response) => {
         return updateStoreIconController.handle(request, response);

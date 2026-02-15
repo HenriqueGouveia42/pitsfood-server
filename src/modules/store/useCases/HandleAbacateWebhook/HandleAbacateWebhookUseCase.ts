@@ -2,10 +2,12 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
 import type { ISubscriptionInvoiceRepository } from "../../repositories/interfaces/subscriptionInvoice.repository.interface.js";
 import { cacheProvider } from "../../../../shared/providers/CacheProvider/index.js";
-import { PhysicalBill as EntityPhysicalBill } from "../../../bill/entities/physicalBIllCard.js";
+import { PhysicalBill as EntityPhysicalBill, PhysicalBill } from "../../../bill/entities/physicalBIllCard.js";
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
 import { SubscriptionPlan } from "../../entities/store.js";
 import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
+
+import { generateValid4DigitsPhysicalCodes } from "../../../bill/functions/GenerateValidPhysicalBillCodes.js";
 
 interface IWebhookRequest {
     event: string;
@@ -51,52 +53,23 @@ export class HandleAbacateWebhookUseCase {
 
         const expiresAt = invoice.dueDate ? new Date(invoice.dueDate) : new Date();
 
-        // --- LÓGICA DE GERAÇÃO DE COMANDAS (MANTIDA IGUAL) ---
-        const codigos = new Set<string>();
         const plan: SubscriptionPlan = invoice.planTag;
-        
-        if (!PLAN_LIMITS[plan]) {
-            throw new AppError(`Plano desconhecido ou inválido: ${plan}`, 500);
-        }
-
+        if (!PLAN_LIMITS[plan]) throw new AppError(`Plano desconhecido ou inválido: ${plan}`, 500);
         const physical_bills_quantity: number = PLAN_LIMITS[plan].limits.max_physical_bills;
 
-        let attempts: number = 0;
-        const maxAttempts = physical_bills_quantity * 20;
-        
-        while (codigos.size < physical_bills_quantity && attempts < maxAttempts){
-            attempts++;
-            const randomInt = Math.floor(Math.random() * 9999) + 1;
-            const formatedCode = randomInt.toString().padStart(4, '0');
-            codigos.add(formatedCode);
-        }
+        const codes: Set<string> = generateValid4DigitsPhysicalCodes(physical_bills_quantity);
+        const physical_bills: Set<PhysicalBill> = PhysicalBill.buildManyPhysicallBills(codes, invoice.storeId);
 
-        if (codigos.size < physical_bills_quantity) {
-             throw new AppError("Não foi possivel gerar codigos únicos suficientes", 500, "ERROR_QUANTITY_PHYSICAL_BILLS");
-        }
-
-        let physical_bills: EntityPhysicalBill[] = [];
-        
-        for (const codigo of codigos){
-            const physical_bill = EntityPhysicalBill.buildPhysicalBill(
-                codigo,
-                invoice.storeId
-            )
-            physical_bills.push(physical_bill)
-        }
-
-        // Ativação no Banco
         await this.storeRepository.activateSubscription(
             invoice.storeId,
             invoice.id,
-            invoice.planTag,
+            plan,
             expiresAt,
             physical_bills
-        );
+        )
 
-        // Invalidação do Cache
         await cacheProvider.invalidate(`store-subscription-status:${invoice.storeId}`);
 
-        console.log(`🚀 [Webhook] SUCESSO! Loja ${invoice.storeId} ativada e cache limpo.`);
+        console.log(`[Webhook] SUCESSO! Loja ${invoice.storeId} ativada e cache limpo.`);
     }
 }

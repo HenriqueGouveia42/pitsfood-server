@@ -17,7 +17,7 @@ export class BillCodeExistsUseCase{
 
         if(!gtin_code) throw new AppError("Codigo GTIN da comanda ausente", 400, "GTIN_CODE_NOT_FOUND");
         
-        const exists: boolean = await this.billRep.billWithThisGtinCodeExists(gtin_code, store_id);
+        const exists: boolean = await this.billRep.physicalBillWithThisGtinCodeExists(gtin_code, store_id);
 
         if(!exists) return false
         

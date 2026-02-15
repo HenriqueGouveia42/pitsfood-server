@@ -44,6 +44,7 @@ enum SubscriptionPlan {
   BASIC
   EXTENDED
   PREMIUM
+  PERSONALIZED
 }
 
 enum SubscriptionStatus {
@@ -299,7 +300,6 @@ model PhysicalBillCard{
 //representa um produto adicionado a comanda
 model BillProduct {
   bill_item_id      String  @id
-  quantity          Int
   price_at_addition Decimal @db.Decimal(10, 2) // Preço congelado no momento do bipe
   product_name      String
   product_gtin_code String
@@ -311,6 +311,9 @@ model BillProduct {
   product_id String
   user_id    String
   store_id String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
 
   //relacionamentos

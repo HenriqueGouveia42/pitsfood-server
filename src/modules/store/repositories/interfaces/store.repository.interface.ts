@@ -20,7 +20,7 @@ export interface IStoreRepository{
         invoice_id: string, 
         plan: SubscriptionPlan, 
         expires_at: Date,
-        physicalBIllCards: PhysicalBill[]
+        physicalBIllCards: Set<PhysicalBill>
     ): Promise<void>;
 
     getSubscriptionPlanAndStatus(store_id: string): Promise<SubscriptionPlanAndStatus>;
