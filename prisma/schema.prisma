@@ -354,8 +354,8 @@ model Sale {
 model SaleProduct {
   sale_product_id String  @id
   quantity        Int
-  unit_price_sold Decimal @db.Decimal(10, 2)
 
+  unit_price_snapshot Decimal @db.Decimal(10, 2)
   product_name_snapshot String //preserva o nome original do momento da venda para sempre
   product_gtin_snapshot String //preserva o gtin code original do momento da venda para sempre 
   
