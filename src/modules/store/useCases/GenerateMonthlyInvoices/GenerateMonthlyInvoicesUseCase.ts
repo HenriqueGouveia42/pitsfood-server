@@ -30,6 +30,7 @@ export class GenerateMonthlyInvoicesUseCase {
         let errorCount = 0;
 
         // 2. Processa cada loja individualmente
+        
         // Em um cenário de altíssima escala, isso deveria ser jogado em uma fila (SQS/RabbitMQ/BullMQ)
         // Para nossa escala, um loop for...of assíncrono é perfeitamente seguro e evita estourar o limite de requisições da Abacate Pay.
         for (const store of activeStores) {
