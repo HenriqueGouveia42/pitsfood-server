@@ -10,6 +10,8 @@ import { validCNPJ } from "../../../../shared/validators/valid.cnpj.js";
 
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
 import { SubscriptionPlan } from "../../../store/entities/store.js";
+import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 interface RegisterEmployeeUseCaseRequest{
     name: string,
@@ -29,7 +31,8 @@ export interface RegisterEmployeeUseCaseResponse{
 export class RegisterEmployeeUseCase{
    constructor(
         private userRepository: IUserRepository,
-        private storeRepository: IStoreRepository
+        private storeRepository: IStoreRepository,
+        private cacheProvider: ICacheProvider
    ){} 
 
    async execute({ name, role, plain_text_password, userId, email, cpf_cnpj, phone}: RegisterEmployeeUseCaseRequest): Promise<RegisterEmployeeUseCaseResponse>{
@@ -53,8 +56,11 @@ export class RegisterEmployeeUseCase{
 
         const store_plan: SubscriptionPlan = store.plan as SubscriptionPlan;
         const user_role: UserRole = role as UserRole;
-        const max_quantity_users_this_role_for_this_store: number = PLAN_LIMITS[store_plan].limits.max_users[user_role];
+        const max_quantity_users_this_role_for_this_store: number | null | undefined = PLAN_LIMITS[store_plan].limits.max_users[user_role];
 
+        if (!max_quantity_users_this_role_for_this_store){
+            throw new Error("Erro. Plano sem quantidade maxima de usuarios")
+        }
         const all_users: User[] | null = await this.userRepository.listAllSavedUsers(store.id, true);
 
         const all_user_role: User[] = all_users.filter( u => (
@@ -88,7 +94,11 @@ export class RegisterEmployeeUseCase{
             false, //'is_paying_user' aqui precisa ser false, pois esse é um usuario criado pelo usuario gestor inicial
             cpf_cnpj,
             phone ? phone : null
-        ); 
+        );
+
+        //limpa o cache
+        const cacheKey: string = CacheKeys.User.USERS_DATA(store.id);
+        await this.cacheProvider.invalidate(cacheKey);
 
         await this.userRepository.saveUser(user);
 

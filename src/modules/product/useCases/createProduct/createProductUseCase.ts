@@ -62,7 +62,6 @@ export class CreateProductUseCase{
 
         await this.productRepository.saveProduct(product, store_id);
 
-        //const cacheKey: string = `store-products:${store_id}`
         const cacheKey: string = CacheKeys.Product.LIST(store_id);
 
         await this.cacheProvider.invalidate(cacheKey);

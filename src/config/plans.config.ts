@@ -34,14 +34,14 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
     [SubscriptionPlan.BASIC]: {
         title: "Plano Basic",
         description: "Ideal para food trucks, quiosques e comedorias em geral.",
-        price_in_cents: 10000,
+        price_in_cents: 12000,
         currency: "BRL",
         limits: {
-            max_physical_bills: 12,
+            max_physical_bills: 20,
             max_users: {
                 [UserRole.GESTOR]: 1,
                 [UserRole.CAIXA]: 1,
-                [UserRole.VENDEDOR]: 2
+                [UserRole.VENDEDOR]: 4
             }
         }
     },
@@ -52,11 +52,11 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
         price_in_cents: 20000,
         currency: "BRL",
         limits: {
-            max_physical_bills: 30,
+            max_physical_bills: 35,
             max_users: {
                 [UserRole.GESTOR]: 2,
                 [UserRole.CAIXA]: 2,
-                [UserRole.VENDEDOR]: 6
+                [UserRole.VENDEDOR]: 10
             }
         }
     },

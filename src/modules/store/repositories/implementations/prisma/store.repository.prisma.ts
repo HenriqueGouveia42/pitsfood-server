@@ -22,6 +22,8 @@ import { SubscriptionStatus as EntitySubscriptionStatus } from "../../../entitie
 
 import type { SubscriptionPlanAndStatus } from "./../../interfaces/store.repository.interface.js"
 
+import { SubscriptionStatus } from "../../../entities/store.js";
+
 import { PLAN_LIMITS } from "../../../../../config/plans.config.js";
 
 export class PrismaStoreRepository implements IStoreRepository {
@@ -245,5 +247,59 @@ export class PrismaStoreRepository implements IStoreRepository {
         }
         
     }
+
+    async findActiveAndExpiredStores(currentDate: Date): Promise<Store[]> {
+
+        const prismaStores: PrismaStoreModel[] = await prisma.store.findMany({
+            where: {
+                active: true, //A loja não foi "apagada" ou banida do sistema
+                subscription_status: SubscriptionStatus.ACTIVE, //O banco ainda acha que ela está em dia
+                subscription_expires_at: {
+                    lte: currentDate //A data de expiração é menor ou igual a agora
+                }
+            }
+        });
+
+        if (prismaStores.length === 0) return [];
+
+        const entityStores: Store[] = prismaStores.map(s => 
+            PrismaStoreRepository.prismaToEntityDataMapper(s)
+        );
+
+        return entityStores;
+    }
+
+    async markStoresAsPastDue(storeIds: string[]): Promise<void>{
+
+        if (storeIds.length === 0) return;
+
+        await prisma.store.updateMany({
+            where: {
+                store_id: {
+                    in: storeIds //Busca todas as lojas cujos IDs estejam dentro deste array
+                }
+            },
+            data: {
+                subscription_status: PrismaSubscriptionStatus.PAST_DUE,
+                updated_at: new Date()
+            }
+        });
+    }
+
+    async findActiveStores(): Promise<Store[]> {
+        
+        const prismaStores = await prisma.store.findMany({
+            where:{
+                active: true
+            }
+        })
+
+        if (prismaStores.length === 0) return [];
+
+        const entityStores: Store[] = prismaStores.map(s => PrismaStoreRepository.prismaToEntityDataMapper(s));
+
+        return entityStores;
+    }
+
     
 }

@@ -13,6 +13,7 @@ export class AbacatePayProvider implements IPaymentProvider {
     private api: AxiosInstance;
 
     constructor() {
+
         const apiToken = process.env.ABACATE_PAY_API_TOKEN;
 
         this.api = axios.create({
@@ -40,7 +41,9 @@ export class AbacatePayProvider implements IPaymentProvider {
 
                 // Se a lista retornou dados e tem pelo menos um cliente, usamos esse ID
                 if (listResponse.data?.data && Array.isArray(listResponse.data.data)) {
+
                     const existingCustomer = listResponse.data.data.find((c: any) => c.email === email);
+
                     if (existingCustomer) {
                         console.log(`[AbacatePay] Cliente já existente encontrado: ${existingCustomer.id}`);
                         return existingCustomer.id;
@@ -55,10 +58,14 @@ export class AbacatePayProvider implements IPaymentProvider {
             // 2. HIGIENIZAÇÃO DE DADOS (Remove pontuação)
             // ---------------------------------------------------------
             // Remove tudo que não for número do CPF e Telefone
-            const cleanTaxId = taxId ? taxId.replace(/\D/g, "") : undefined;
+            if (!taxId) throw new AppError("CPF/CNPJ ausentes", 400, "MUST_HAVE_CPF_CNPJ_TO_PAY");
+            
+            const isProduction: boolean = process.env.NODE_ENV === 'production';
+
+            const cleanTaxId: string = taxId.replace(/\D/g, "");
             const cleanPhone = cellphone ? cellphone.replace(/\D/g, "") : undefined;
 
-            console.log(`[AbacatePay] Criando cliente: ${email} | CPF Limpo: ${cleanTaxId}`);
+            if (!isProduction) console.log(`[AbacatePay] Criando cliente: ${email} | CPF Limpo: ${cleanTaxId}`);
 
             // ---------------------------------------------------------
             // 3. CRIAÇÃO DO CLIENTE
@@ -70,16 +77,16 @@ export class AbacatePayProvider implements IPaymentProvider {
                 cellphone: cleanPhone
             });
 
-            // Proteção contra retorno nulo da API (A causa do seu erro)
+            // Proteção contra retorno nulo da API
             if (!response.data || !response.data.data || !response.data.data.id) {
-                console.error("[AbacatePay] Resposta inesperada da API:", JSON.stringify(response.data, null, 2));
+                if (!isProduction) console.error("[AbacatePay] Resposta inesperada da API:", JSON.stringify(response.data, null, 2));
                 throw new Error("A API retornou sucesso (200) mas não enviou o ID do cliente.");
             }
 
             return response.data.data.id;
 
         } catch (error: any) {
-            // Logs detalhados para você ver no terminal o motivo real
+
             const errorData = error.response?.data || error.message;
             console.error("Erro AbacatePay CreateCustomer:", JSON.stringify(errorData, null, 2));
             
@@ -98,13 +105,13 @@ export class AbacatePayProvider implements IPaymentProvider {
                 frequency: "ONE_TIME",
                 methods: ["PIX"],
                 customerId: customerId,
-                returnUrl: `${process.env.APP_URL}/payment/success`, // Ajuste conforme sua rota real
+                returnUrl: `${process.env.APP_URL}/payment/success`,
                 completionUrl: `${process.env.APP_URL}/payment/completed`,
                 products: [
                     {
                         externalId: `sub-prorata-${Date.now()}`,
-                        name: "Assinatura Proporcional (Pitstop)",
-                        description: description || "Assinatura do sistema",
+                        name: "Assinatura Proporcional",
+                        description: description || "Assinatura da plataforma",
                         quantity: 1,
                         price: amount_in_cents
                     }

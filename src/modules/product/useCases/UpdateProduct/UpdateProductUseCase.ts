@@ -6,6 +6,7 @@ import { AppError } from '../../../../shared/errors/AppError.js';
 import type { Product } from '../../entities/product.js';
 import { UserRole } from '../../../../generated/prisma/enums.js';
 import type { ICacheProvider } from '../../../../shared/providers/CacheProvider/models/ICacheProvider.js';
+import { CacheKeys } from '../../../../shared/constants/cache-keys.js';
 // Store entity import removido pois a busca redundante foi removida
 
 interface UpdateProductUseCaseRequest{
@@ -73,8 +74,8 @@ export class UpdateProductUseCase{
         
         await this.productRepository.updateSavedProduct(updated_product, store_id);
 
-        const cacheKey: string = `store-products:${store_id}`
+        const cacheKey: string = CacheKeys.Store.SUMMARY(store_id);
 
-        await this.cacheProvider.invalidate
+        await this.cacheProvider.invalidate(cacheKey);
     }
 }

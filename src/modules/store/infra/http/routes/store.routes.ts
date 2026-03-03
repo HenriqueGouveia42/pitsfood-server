@@ -1,4 +1,4 @@
-import { Router } from "express"
+import { response, Router } from "express"
 import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js";
 
 import { authMiddleware } from "../../../../../shared/infra/http/middlewares/authMiddleware.js";
@@ -17,6 +17,7 @@ import { checkPaymentStatusController } from "../../../useCases/CheckPaymentStat
 import { getPlanAndPlanStatusController } from "../../../useCases/GetPlanAndPlanStatus/index.js";
 import { getPlansController } from "../../../useCases/GetPlans/index.js";
 import { updateStoreIconController } from "../../../useCases/UpdateStoreIcon/index.js";
+import { updateStoreDataController } from "../../../useCases/UpdateStoreData/index.js";
 
 import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
 import { createStoreSchema } from "../zodSchemas/CreateStoreSchema.js";
@@ -105,6 +106,14 @@ storeRoutes.patch("/icon",
     upload.single("icon"),
     (request, response) => {
         return updateStoreIconController.handle(request, response);
+    }
+)
+
+storeRoutes.patch("/name",
+    authorizeRoles([UserRole.GESTOR]),
+    //missing zod schema
+    (request, response) => {
+        return updateStoreDataController.handle(request, response);
     }
 )
 

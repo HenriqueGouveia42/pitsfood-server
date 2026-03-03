@@ -37,7 +37,7 @@ export class HandleAbacateWebhookUseCase {
           
         if (!gatewayBillingId) throw new AppError("[Webhook] ERRO CRÍTICO: ID da fatura (data.billing.id) não encontrado no payload!", 422, "INVOICE_ID_MISSING")
         
-        //debug -> console.log(`🔎 [Webhook] Buscando fatura com ID: ${gatewayBillingId}`);
+        //debug -> console.log(`[Webhook] Buscando fatura com ID: ${gatewayBillingId}`);
 
         const invoice: SubscriptionInvoice | null  = await this.invoiceRepository.findByGatewayId(gatewayBillingId);
 
@@ -45,11 +45,11 @@ export class HandleAbacateWebhookUseCase {
 
         //idempotência
         //verificamos se jã está paga no banco OU se o webhook diz que não é PAID (vai que...)
-        if (invoice.status === "PAID") throw new AppError(`ℹ️ [Webhook] A fatura ${gatewayBillingId} já consta como PAGA no banco. Ignorando.`, 422, "INVOICE_ALREADY_PAID")
+        if (invoice.status === "PAID") throw new AppError(`[Webhook] A fatura ${gatewayBillingId} já consta como PAGA no banco. Ignorando.`, 422, "INVOICE_ALREADY_PAID")
            
         if (billingStatus !== "PAID") throw new AppError(`[Webhook] Evento é billing.paid, mas status dentro do objeto é ${billingStatus}. Investigar.`, 422, "EVENT_STATUS_MISMATCH");
            
-        //debug -> console.log(`✅ [Webhook] Fatura encontrada para a loja: ${invoice.storeId}. Iniciando ativação...`);
+        //debug -> console.log(`[Webhook] Fatura encontrada para a loja: ${invoice.storeId}. Iniciando ativação...`);
 
         const expiresAt = invoice.dueDate ? new Date(invoice.dueDate) : new Date();
 

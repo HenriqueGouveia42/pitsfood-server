@@ -1,6 +1,7 @@
 import { Decimal } from "decimal.js";
 import { SubscriptionPlan } from "../entities/store.js";
 import { PLAN_LIMITS } from "../../../config/plans.config.js";
+import { AppError } from "../../../shared/errors/AppError.js";
 
 export class SubscriptionCalculator {
     
@@ -19,11 +20,12 @@ export class SubscriptionCalculator {
         //o preço do plano do mes é proporcional aos dias que serão utilizados nesse mes especifico
         const planConfig = PLAN_LIMITS[plan];
         
+        if (!planConfig.price_in_cents) throw new AppError("Erro. Plano sem preco.", 409, "PLAN_WITHOUT_PRICE");
         //objeto da classe Decimal para evitar float math do JS
-        const fullPriceInCents = new Decimal(planConfig.price_in_cents);
+        const fullPriceInCents: Decimal = new Decimal(planConfig.price_in_cents);
         
         //preço por dia com precisão decimal
-        const pricePerDayInCents = fullPriceInCents.dividedBy(this.COMMERCIAL_MONTH_DAYS);
+        const pricePerDayInCents: Decimal = fullPriceInCents.dividedBy(this.COMMERCIAL_MONTH_DAYS);
 
         let daysToCharge = 0;
 

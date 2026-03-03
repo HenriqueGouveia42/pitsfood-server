@@ -1,6 +1,7 @@
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
+import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { User } from "../../entities/user.js";
 import type { IUserRepository } from "../../repositories/user.repository.interface.js";
-
 
 export interface GetUsersDataUseCaseResponse {
     name: string;
@@ -15,11 +16,21 @@ export interface GetUsersDataUseCaseResponse {
 export class GetUsersDataUseCase {
 
     constructor(
-        private userRepository: IUserRepository
+        private userRepository: IUserRepository,
+        private cacheProvider: ICacheProvider
     ){}
 
-    async execute(store_id: string, active?: boolean): Promise<GetUsersDataUseCaseResponse[]> {
+    async execute(store_id: string): Promise<GetUsersDataUseCaseResponse[]> {
+
+        const cacheKey: string = CacheKeys.User.USERS_DATA(store_id);
+
+        const cachedUsers = await this.cacheProvider.get<GetUsersDataUseCaseResponse[]>(cacheKey);
+
+        if (cachedUsers) {
+            return cachedUsers; 
+        }
         
+        //CACHE MISS
         const users: User[] = await this.userRepository.listAllSavedUsers(store_id);
 
         const usersDataToReturn: GetUsersDataUseCaseResponse[] = users.map((user) => ({
@@ -31,6 +42,12 @@ export class GetUsersDataUseCase {
             cpf_cnpj: user.cpf_cnpj,
             phone: user.phone ? user.phone : null
         }));
+
+        await this.cacheProvider.save(
+            cacheKey,
+            usersDataToReturn,
+            86400
+        );
 
         return usersDataToReturn;
     }

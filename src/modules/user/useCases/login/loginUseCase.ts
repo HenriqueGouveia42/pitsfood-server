@@ -59,16 +59,11 @@ export class LoginUseCase {
         const token = this.tokenProvider.generateToken(
             user.id,
             user.role,
-            user.paying_user ? null : user.storeId, //agora quando logar, nunca recebe de cara o "store_id" da loja, pois ele pode ter varias lojas!
+            user.paying_user ? null : user.storeId, //agora quando logar, se for dono da loja, recebe "null" pois ele ainda nao se vinculou a loja
             user.mustChangePassword,
             tokenVersion,
             user.paying_user //se ele for o dono, o gestor paga que paga o plano, etc, isso vai no token
         )
-
-        //alem disso, precisamos garantir que, se for um usuario pago, o banco de dados esteja sempre "store_id" == null;
-        if (user.paying_user){
-            await this.userRepository.logoutUserFromStore(user);
-        }
         
         return {
             token,

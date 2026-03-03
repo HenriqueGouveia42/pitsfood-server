@@ -1,9 +1,18 @@
-import type { Sale } from '../../../entities/sale.js';
+import { Prisma } from '../../../../../generated/prisma/client.js';
+import { Sale } from '../../../entities/sale.js';
 import type { ISaleRepository } from '../../sale.repository.interface.js';
 import { prisma } from "../../../../../shared/infra/prisma.js";
-import { PaymentMethod } from '../../../entities/sale.js';
 import { Decimal } from "decimal.js"
 import type { SalesReportDTO } from "../../sale.repository.interface.js"
+
+import type { Sale as PrismaSaleModel, SaleProduct as PrismaSaleProduct, SalePayment as PrismaSalePayment } from "../../../../../generated/prisma/client.js";
+import { SaleStatus, PaymentMethod, type SaleProp } from "../../../entities/sale.js";
+
+type PrismaSaleWithRelations = PrismaSaleModel & {
+    items?: PrismaSaleProduct[];
+    payments?: PrismaSalePayment[];
+};
+
 export class PrismaSaleRepository implements ISaleRepository {
 
     /**
@@ -11,66 +20,97 @@ export class PrismaSaleRepository implements ISaleRepository {
      * Responsável por converter a Entidade de Domínio (Sale) para o objeto de escrita do Prisma.
      * Estrutura o objeto para realizar "Nested Writes" (Salvar Venda, Itens e Pagamentos de uma vez).
      */
-    private static entityToPrismaDataMapper(sale: Sale) {
+    private static entityToPrismaSaleDataMapper(sale: Sale): Prisma.SaleCreateInput {
         return {
             sale_id: sale.id,
-            user_id: sale.userId,
-            total_price: sale.total.toNumber(), // Decimal.js -> Number/Float
+            total_price: sale.total.toNumber(),
             status: sale.status,
+
             created_at: new Date(sale.createdAt),
             updated_at: new Date(sale.updatedAt),
 
-            //mapeamento dos ITENS (Nested Write)
+            // Relacionamentos Fortes (Resolvendo o "Unknown argument")
+            store: { connect: { store_id: sale.store_id } },
+            user: { connect: { user_id: sale.userId, store_id: sale.store_id } }, // Usando chave composta baseada no seu schema
+            
+            // Mapeamento dos ITENS (Nested Write com Connect)
             items: { 
                 create: sale.items.map(item => ({
                     sale_product_id: item.sale_product_id,
-                    product_id: item.product_id,
                     quantity: item.quantity,
-                    unit_price_sold: item.unit_price_sold.toNumber(),
-                    origin_bill_id: item.origin_bill_id ?? null 
+
+                    unit_price_snapshot: item.unit_price_snapshot.toNumber(),
+                    product_name_snapshot: item.product_name_snapshot,
+                    product_gtin_snapshot: item.product_gtin_snapshot,
+
+                    // Conexões relacionais para os itens
+                    store: { connect: { store_id: item.store_id } },
+                    product: { connect: { product_id: item.product_id, store_id: item.store_id } },
+                    
+                    // Condicional elegante para a comanda de origem
+                    ...(item.origin_bill_id 
+                        ? { origin_bill: { connect: { bill_id: item.origin_bill_id, store_id: item.store_id } } } 
+                        : {})
                 }))
             },
 
-            //mapeamento dos PAGAMENTOS (Nested Write)
+            // Mapeamento dos PAGAMENTOS (Nested Write com Connect)
             payments: {
                 create: sale.payments.map(pay => ({
                     sale_payment_id: pay.sale_payment_id,
                     amount: pay.amount.toNumber(),
-                    method: pay.method
+                    method: pay.method,
+                    store: { connect: { store_id: sale.store_id } }
                 }))
             }
         };
     }
 
-    private static prismaToEntityMapper(prismaSale: any): Sale {
-        return {
-            id: prismaSale.sale_id,
-            userId: prismaSale.user_id,
-            total: new Decimal(prismaSale.total_price), // Reconstrói o Decimal
-            status: prismaSale.status,
-            createdAt: prismaSale.created_at,
-            updatedAt: prismaSale.updated_at,
+    private static prismaToEntitySaleDataMapper(prismaSale: PrismaSaleWithRelations): Sale {
+        
+        // Montamos o objeto de props respeitando estritamente a interface SaleProp
+        const saleProps: SaleProp = {
+            sale_id: prismaSale.sale_id,
+            total_price: new Decimal(prismaSale.total_price.toString()), // Decimal seguro
+            status: prismaSale.status as SaleStatus,
             
-            items: prismaSale.items ? prismaSale.items.map((item: any) => ({
+            created_at: prismaSale.created_at.toISOString(),
+            updated_at: prismaSale.updated_at.toISOString(),
+            
+            store_id: prismaSale.store_id,
+            user_id: prismaSale.user_id,
+            
+            items: prismaSale.items ? prismaSale.items.map(item => ({
                 sale_product_id: item.sale_product_id,
-                product_id: item.product_id,
                 quantity: item.quantity,
-                unit_price_sold: new Decimal(item.unit_price_sold),
-                origin_bill_id: item.origin_bill_id
+                
+                // Os snapshots que garantem a imutabilidade do histórico
+                unit_price_snapshot: new Decimal(item.unit_price_snapshot.toString()),
+                product_name_snapshot: item.product_name_snapshot,
+                product_gtin_snapshot: item.product_gtin_snapshot,
+                
+                store_id: item.store_id,
+                sale_id: item.sale_id,
+                product_id: item.product_id,
+                ...(item.origin_bill_id !== null ? { origin_bill_id: item.origin_bill_id } : {})
             })) : [],
 
-            payments: prismaSale.payments ? prismaSale.payments.map((pay: any) => ({
+            payments: prismaSale.payments ? prismaSale.payments.map(pay => ({
                 sale_payment_id: pay.sale_payment_id,
-                amount: new Decimal(pay.amount),
-                method: pay.method as PaymentMethod
+                amount: new Decimal(pay.amount.toString()),
+                method: pay.method as PaymentMethod,
+                sale_id: pay.sale_id
             })) : []
-        } as Sale;
+        };
+
+        //método de restauração da entidade para manter o encapsulamento
+        return Sale.restore(saleProps);
     }
 
 
     async makeSale(sale: Sale): Promise<void> {
         
-        const prismaData = PrismaSaleRepository.entityToPrismaDataMapper(sale);
+        const prismaData: Prisma.SaleCreateInput = PrismaSaleRepository.entityToPrismaSaleDataMapper(sale);
 
         await prisma.sale.create({
             data: prismaData
@@ -78,21 +118,33 @@ export class PrismaSaleRepository implements ISaleRepository {
     }
 
     //salvar Venda + Fechar Comandas (Transação Atômica)
+    // salvar Venda + Fechar Comandas + Baixa de Estoque (Transação Atômica)
     async createSaleAndCloseBills(sale: Sale, billCodesToClose: string[]): Promise<void> {
         
-        //prepara os dados antes de abrir a transação
-        const prismaData = PrismaSaleRepository.entityToPrismaDataMapper(sale);
+        // 1. Prepara os dados da venda para o Prisma
+        const prismaData: Prisma.SaleCreateInput = PrismaSaleRepository.entityToPrismaSaleDataMapper(sale);
 
+        // 2. Otimização: Agrupa as quantidades totais por produto para abater no estoque.
+        // Isso evita fazer 2 queries de decremento para o mesmo produto caso ele apareça 2x na venda.
+        const stockToDecrement = new Map<string, number>();
+        for (const item of sale.items) {
+            const currentQuantity = stockToDecrement.get(item.product_id) || 0;
+            stockToDecrement.set(item.product_id, currentQuantity + item.quantity);
+        }
+
+        // 3. Executa a Transação Atômica
         await prisma.$transaction(async (tx) => {
             
+            // Passo A: Persiste a Venda (Venda, Itens e Pagamentos)
             await tx.sale.create({
                 data: prismaData
             });
 
+            // Passo B: Fecha as Comandas Físicas
             if (billCodesToClose.length > 0) {
-
                 const updateResult = await tx.bill.updateMany({
                     where: {
+                        store_id: sale.store_id,
                         bill_code_gtin: { in: billCodesToClose },
                         status: 'ABERTA'
                     },
@@ -105,6 +157,24 @@ export class PrismaSaleRepository implements ISaleRepository {
                 if (updateResult.count !== billCodesToClose.length) {
                     throw new Error(`Erro de Concorrência: Uma ou mais comandas foram alteradas por outro usuário durante o processo. Operação cancelada.`);
                 }
+            }
+
+            // Passo C: Baixa de Estoque
+            for (const [productId, quantitySold] of stockToDecrement.entries()) {
+                
+                await tx.product.updateMany({
+                    where: {
+                        store_id: sale.store_id,
+                        product_id: productId,
+                        track_stock: true // O BANCO VAI IGNORAR A QUERY SE ISSO FOR FALSE
+                    },
+                    data: {
+                        stock_quantity: {
+                            decrement: quantitySold // Permite ficar negativo
+                        }
+                    }
+                });
+                
             }
         });
     }
@@ -137,7 +207,8 @@ export class PrismaSaleRepository implements ISaleRepository {
         });
 
        
-        return sales.map(sale => PrismaSaleRepository.prismaToEntityMapper(sale));    }
+        return sales.map(sale => PrismaSaleRepository.prismaToEntitySaleDataMapper(sale));
+    }
 
     async getSalesSummaryByPeriod(startDate: Date, endDate: Date): Promise<SalesReportDTO>{
 

@@ -9,6 +9,7 @@ import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import { SubscriptionPlan } from "../../../store/entities/store.js";
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
+import { string } from "zod";
 
 export interface IRequestUseCase {
     target_user_id: string;
@@ -62,6 +63,9 @@ export class UpdateUserDataUseCase {
 
                 const store_plan: SubscriptionPlan = store.plan as SubscriptionPlan;
                 const user_role: UserRole = user_target.role as UserRole;
+
+                if (!PLAN_LIMITS[store_plan].limits.max_users[user_role]) throw new Error("Erro! Plano sem numero maximo de usuarios");
+                
                 const max_quantity_users_this_role_for_this_store: number = PLAN_LIMITS[store_plan].limits.max_users[user_role];
 
                 const all_users: User[] | null = await this.userRepository.listAllSavedUsers(store.id, true); //retorna usuarios ATIVOS
@@ -102,13 +106,6 @@ export class UpdateUserDataUseCase {
         let shouldInvalidateUserSession = false;  //derrubar sessão do usuario no redis
         let shouldForcePasswordChange = false;   //setar flag no banco
         let shouldInvalidateNameCache = false;   //obrigar o usuario a trocar de senha na proxima vez que for logar
-
-
-
-
-
-
-
 
 
         //SENHA FOI DEFINIDA
@@ -171,8 +168,13 @@ export class UpdateUserDataUseCase {
         }
 
         if (shouldInvalidateNameCache){
-            await this.cacheProvider.invalidate(`store-summary-data:${modifier_user_store_id}`);
+            const cacheKey: string = CacheKeys.Store.SUMMARY(modifier_user_store_id);
+            await this.cacheProvider.invalidate(cacheKey);
         }
+
+        //limpa o cache
+        const cacheKey: string = CacheKeys.User.USERS_DATA(store.id);
+        await this.cacheProvider.invalidate(cacheKey);
 
         await this.userRepository.updateSavedUser(updatedUser);
     }

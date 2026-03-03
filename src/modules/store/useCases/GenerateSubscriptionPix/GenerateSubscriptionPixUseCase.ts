@@ -3,9 +3,10 @@ import type { IStoreRepository } from "../../repositories/interfaces/store.repos
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import type { IPaymentProvider } from "../../../../shared/providers/PaymentProvider/models/IPaymentProvider.js";
 import { SubscriptionCalculator } from "../../providers/SubscriptionCalculator.js";
-import { SubscriptionPlan, SubscriptionStatus } from "../../entities/store.js";
+import { Store, SubscriptionPlan, SubscriptionStatus } from "../../entities/store.js";
 import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
 import type { ISubscriptionInvoiceRepository } from "../../repositories/interfaces/subscriptionInvoice.repository.interface.js";
+import type { User } from "../../../user/entities/user.js";
 
 interface IRequest {
     store_id: string;
@@ -36,10 +37,10 @@ export class GenerateSubscriptionPixUseCase {
         }
 
         //2 - busca e Validação da Loja/Dono
-        const store = await this.storeRepository.findSavedStoreById(store_id);
+        const store: Store | null = await this.storeRepository.findSavedStoreById(store_id);
         if (!store) throw new AppError("Loja não encontrada.", 404, "STORE_NOT_FOUND");
         
-        const owner = await this.userRepository.findSavedUserById(user_id);
+        const owner: User | null = await this.userRepository.findSavedUserById(user_id);
         if (!owner) throw new AppError("Dono não encontrado.", 404, "USER_NOT_FOUND");
 
         //3  - TRAVA DE SEGURANÇA 1: Assinatura Ativa
@@ -80,14 +81,14 @@ export class GenerateSubscriptionPixUseCase {
         const { amount_in_cents, days_charged } = SubscriptionCalculator.calculateProRata(plan);
 
         //6 - garante que enviamos apenas números no taxId (CPF/CNPJ)
-        const rawTaxId = store.cnpj || "11900862476";
+        const rawTaxId: string = owner.cpf_cnpj;
         const cleanTaxId = rawTaxId.replace(/\D/g, "");
 
         const gatewayCustomerId = await this.paymentProvider.createCustomer({
             name: owner.username,
             email: owner.email,
             taxId: cleanTaxId,
-            cellphone: "(00) 00000-0000"
+            cellphone: owner.phone ? owner.phone : "(00) 00000-0000"
         });
 
         const paymentData = await this.paymentProvider.createPixPayment({

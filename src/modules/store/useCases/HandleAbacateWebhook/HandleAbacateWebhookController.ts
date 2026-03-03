@@ -10,7 +10,7 @@ export class HandleAbacateWebhookController {
 
     async handle(req: Request, res: Response): Promise<Response> {
         
-        console.log("📦 [Webhook Payload Bruto]:", JSON.stringify(req.body, null, 2));
+        //console.log("[Webhook Payload Bruto]:", JSON.stringify(req.body, null, 2));
         const { event, data } = req.body;
 
         if (!event || !data) throw new AppError("Erro de integracao com o gateway de pagamento", 400, "INTEGRATION_ERROR")

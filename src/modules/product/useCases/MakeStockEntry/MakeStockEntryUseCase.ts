@@ -1,4 +1,4 @@
-import type { IStoreRepository } from "../../../store/repositories/store.repository.interface.js";
+import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import type { IProductRepository } from "../../repositories/product.repository.interface.js";
 import { User, UserRole } from "../../../user/entities/user.js";
@@ -6,6 +6,8 @@ import { Store } from "../../../store/entities/store.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { Product } from "../../entities/product.js";
 import { Decimal } from "decimal.js";
+import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 interface MakeStockEntryUseCaseRequestDTO{
     user_id: string,
@@ -24,6 +26,7 @@ export class MakeStockEntryUseCase{
         private userRepository: IUserRepository,
         private storeRepository: IStoreRepository,
         private productRepository: IProductRepository,
+        private cacheProvider: ICacheProvider
     ){}
 
     public async execute( {user_id, store_id, product_id, entry_stock_quantity, unit_cost}: MakeStockEntryUseCaseRequestDTO ): Promise<MakeStockEntryUseCaseResponseDTO>{
@@ -65,6 +68,9 @@ export class MakeStockEntryUseCase{
         const total_cost: Decimal = new Decimal(entry_stock_quantity).times(new Decimal(unit_cost));
 
         await this.productRepository.makeEntryStock(product_id, store_id, user_trying_to_make_entry.id, user_trying_to_make_entry.username, entry_stock_quantity, unit_cost_Decimal, total_cost);
+
+        const cacheKey: string = CacheKeys.Product.LIST(store_id);
+        await this.cacheProvider.invalidate(cacheKey);
 
         return {
             user_name: user_trying_to_make_entry.username

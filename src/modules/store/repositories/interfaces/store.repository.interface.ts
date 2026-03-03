@@ -24,4 +24,8 @@ export interface IStoreRepository{
     ): Promise<void>;
 
     getSubscriptionPlanAndStatus(store_id: string): Promise<SubscriptionPlanAndStatus>;
+
+    findActiveAndExpiredStores(currentDate: Date): Promise<Store[]>;
+    markStoresAsPastDue(storeIds: string[]): Promise<void>;
+    findActiveStores(): Promise<Store[]>;
 }

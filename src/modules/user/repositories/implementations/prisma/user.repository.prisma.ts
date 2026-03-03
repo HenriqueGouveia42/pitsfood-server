@@ -138,32 +138,6 @@ export class PrismaUserRepository implements IUserRepository {
     
     }
 
-    async logoutUserFromStore(user: User): Promise<void> {
-
-        await prisma.user.update({
-            where:{
-                user_id: user.id
-            },
-            data:{
-                store_id: null,
-                updated_at: new Date()
-            }
-        })
-    }
-
-    async loginUserIntoStore(user: User, store: Store): Promise<void>{
-        
-        await prisma.user.update({
-            where:{
-                user_id: user.id
-            },
-            data:{
-                store_id: store.id,
-                updated_at: new Date()
-            }
-        })
-    }
-
     async findUserByCPFCNPJ(cpf_cnpj: string): Promise<User | null> {
         
         const user: PrismaUser | null = await prisma.user.findFirst({

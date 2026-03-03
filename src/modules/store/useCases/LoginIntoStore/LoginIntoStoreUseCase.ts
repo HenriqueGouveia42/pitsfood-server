@@ -7,6 +7,8 @@ import { Store, SubscriptionPlan, SubscriptionStatus } from "../../entities/stor
 import type { StoreProps } from "../../entities/store.js";
 import { User, UserRole } from "../../../user/entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
+import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 type UseCaseRequestDTO = {
     user_id: string
@@ -19,7 +21,8 @@ export class LoginIntoStoreUseCase{
     constructor(
         private storeRepository: IStoreRepository,
         private userRepository: IUserRepository,
-        private tokenProvider: ITokenProvider
+        private tokenProvider: ITokenProvider,
+        private cacheProvider: ICacheProvider
         
     ){}
 
@@ -39,9 +42,14 @@ export class LoginIntoStoreUseCase{
         if (user.role != UserRole.GESTOR) throw new AppError("Usuario nao é gestor", 403, "INVALID_USER_ROLE");
         if(store.ownerId != user.id) throw new AppError("Essa loja nao pertence a esse usuario", 403, "STORE_MISMATCH");
 
-        //atualizar o store_id do usuario no banco de dados
-        await this.userRepository.loginUserIntoStore(user, store);
-        
+        //aquecer o cache para que a primeira verificação de "ensureSubscriptionActiveMiddleware" nao de cache-miss!
+        const cacheKey: string = CacheKeys.Store.SUBSCRIPTION_STATUS(store.id);
+        await this.cacheProvider.save(
+            cacheKey,
+            store.subscription_status,
+            86400
+        );
+
         //tendo passado todas essa validacoes, agora preciso criar um novo token JWT para o usuario utilizar.
         //esse token agora vai ter os dados da loja selecionada
 

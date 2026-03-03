@@ -21,10 +21,15 @@ export class Product {
     //constructor e propriedade props são estritamente readonly
     private constructor(private readonly props: ProductProps) {}
 
-    private static validateStock(track_stock: boolean, stock_quantity:number | null){
-        if (track_stock && stock_quantity == 0){
-            throw new AppError("Um produto que vai ter estoque precisa ter alguma quantidade em estoque", 422, "INVALID_PRODUCT")
+    private static validateStock(track_stock: boolean, stock_quantity: number | null) {
+
+        // Se NÃO controla estoque, a quantidade DEVE ser estritamente zero.
+        if (!track_stock && stock_quantity !== 0) {
+            throw new AppError("Um produto que não controla estoque deve ter quantidade igual a zero.", 400, "INVALID_STOCK");
         }
+
+        // Se controla estoque (track_stock === true), a quantidade pode ser POSITIVA, ZERO ou NEGATIVA.
+        // Portanto, não lançamos erro nenhum aqui para esse caso.
     }
 
     //remove zeros à esquerda
@@ -125,8 +130,6 @@ export class Product {
         } else {
             finalStockQuantity = 0;
         }
-
-        if(!track_stock && stock_quantity != 0) throw new AppError("Um produto que nao ter acompanhamento de estoque deve ter quantidade de estoque igual a zero", 400, "INVALID_STOCK")
         
         if (requires_preparation && track_stock) throw new AppError("Um produto que precisa ser preparado nao pode ter estoque", 422, "INVALID_PRODUCT")
 

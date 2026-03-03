@@ -9,10 +9,9 @@ const app = express();
 const PORT = process.env.PORT ? process.env.PORT : 3000;
 
 const isProduction = process.env.NODE_ENV === "production";
-const productionOrigin = process.env.ALLOWED_ORIGIN;
 
 app.use(cors({
-    origin: isProduction ? productionOrigin : true,
+    origin: process.env.FRONTEND_URL,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"]

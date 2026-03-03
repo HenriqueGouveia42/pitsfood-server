@@ -1,3 +1,4 @@
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import type { Store, StoreProps } from "../../entities/store.js";
@@ -21,7 +22,8 @@ export class UpdateStoreDataUseCase{
 
         const store_with_updated_name: Store = store.rename(new_name);
 
-        await this.cacheProvider.invalidate(`store-summary-data:${store_id}`)
+        const cacheKey: string = CacheKeys.Store.SUMMARY(store.id);
+        await this.cacheProvider.invalidate(cacheKey)
 
         await this.storeRepository.updateSavedStore(store_with_updated_name);
 

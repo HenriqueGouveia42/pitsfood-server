@@ -5,6 +5,7 @@ import { compare, hash } from "bcryptjs";
 
 import type { ITokenProvider } from "../../providers/token.provider.interface.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 interface IChangePasswordRequest {
     current_password: string,
@@ -58,8 +59,9 @@ export class ChangePasswordUseCase {
         const newVersion = Date.now();
 
         //persiste no redis
+        const cacheKey: string = CacheKeys.User.TOKEN_VERSION(user.id);
         await this.cacheProvider.save(
-            `user-token-version:${user.id}`, 
+            cacheKey, 
             newVersion.toString(), 
             86400 //1 dia
         );
