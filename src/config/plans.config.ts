@@ -37,7 +37,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
         price_in_cents: 12000,
         currency: "BRL",
         limits: {
-            max_physical_bills: 20,
+            max_physical_bills: 40,
             max_users: {
                 [UserRole.GESTOR]: 1,
                 [UserRole.CAIXA]: 1,
@@ -52,7 +52,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
         price_in_cents: 20000,
         currency: "BRL",
         limits: {
-            max_physical_bills: 35,
+            max_physical_bills: 80,
             max_users: {
                 [UserRole.GESTOR]: 2,
                 [UserRole.CAIXA]: 2,
