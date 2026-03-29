@@ -4,6 +4,7 @@ import type { IUserRepository } from "../../repositories/user.repository.interfa
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ITokenProvider } from "../../providers/token.provider.interface.js";
 import { cacheProvider } from "../../../../shared/providers/CacheProvider/index.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 interface IRequest {
     email: string,
@@ -47,8 +48,10 @@ export class LoginUseCase {
 
         const tokenVersion = Date.now();
 
+        const cacheKey = CacheKeys.User.TOKEN_VERSION(user.id);
+
         await cacheProvider.save(
-            `user-token-version:${user.id}`,
+            cacheKey,
             tokenVersion.toString(),
             86400 //um dia
         )
