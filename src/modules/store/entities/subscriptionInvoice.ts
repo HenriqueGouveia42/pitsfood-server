@@ -2,10 +2,11 @@ import { AppError } from "../../../shared/errors/AppError.js";
 import { SubscriptionPlan } from "./store.js"; // Importando o Enum do arquivo store.ts
 
 export enum InvoiceStatus {
-    PENDING = "PENDING",     //gerado, aguardando pagamento
-    PAID = "PAID",           //pago com sucesso
-    FAILED = "FAILED",       //expirou, falhou ou foi cancelado
-    REFUNDED = "REFUNDED"    //estornado
+    PENDING = "PENDING",     // gerado, aguardando pagamento
+    PAID = "PAID",           // pago com sucesso
+    FAILED = "FAILED",       // falha na transação (cartão recusado, erro no gateway)
+    CANCELED = "CANCELED",   // expirou o tempo do PIX ou o admin cancelou manualmente
+    REFUNDED = "REFUNDED"    // estornado
 }
 
 export type SubscriptionInvoiceProps = {
@@ -21,7 +22,7 @@ export type SubscriptionInvoiceProps = {
 
     readonly created_at: string;
     readonly paid_at: string | null;
-    readonly due_date: string | null;
+    readonly period_end: string;
 
     //relacionamentos
     readonly store_id: string;
@@ -53,7 +54,7 @@ export class SubscriptionInvoice {
         amount_in_cents: number,
         store_id: string,
         plan_tag: SubscriptionPlan,
-        due_date: string | null = null,
+        period_end: string,
         gateway_data?: {
             gateway_invoice_id: string,
             pix_code: string,
@@ -84,7 +85,7 @@ export class SubscriptionInvoice {
 
             created_at: now,
             paid_at: null,
-            due_date: due_date,
+            period_end: period_end,
 
             store_id,
             plan_tag
@@ -93,24 +94,13 @@ export class SubscriptionInvoice {
         return invoice;
     }
 
-    /**
-     * Reconstrói a entidade vinda do Banco de Dados
-     */
     public static restore(props: SubscriptionInvoiceProps): SubscriptionInvoice {
         return new SubscriptionInvoice(props);
     }
 
-    // =========================================================================
-    // Métodos de Negócio (Imutabilidade: Retornam nova instância atualizada)
-    // =========================================================================
-
-    /**
-     * Marca a fatura como PAGA.
-     * Deve ser chamado quando o Webhook confirmar o pagamento.
-     */
     public markAsPaid(): SubscriptionInvoice {
         if (this.props.status === InvoiceStatus.PAID) {
-            // Se já está paga, não faz nada ou lança erro (opcional, aqui apenas retorna a mesma)
+            //se já está paga, não faz nada ou lança erro (opcional, aqui apenas retorna a mesma)
             return this;
         }
 
@@ -131,6 +121,18 @@ export class SubscriptionInvoice {
         });
     }
 
+    public markAsCanceled(): SubscriptionInvoice {
+        
+        if (this.props.status !== InvoiceStatus.PENDING) {
+            throw new AppError("Apenas faturas pendentes podem ser canceladas.", 400, "INVALID_STATUS_TRANSITION");
+        }
+
+        return new SubscriptionInvoice({
+            ...this.props,
+            status: InvoiceStatus.CANCELED
+        });
+    }
+
     /**
      * Atualiza os dados do gateway (caso a fatura tenha sido criada antes de chamar a API externa)
      */
@@ -143,10 +145,7 @@ export class SubscriptionInvoice {
         });
     }
 
-    // =========================================================================
-    // Getters
-    // =========================================================================
-    
+   
     get id() { return this.props.invoice_id; }
     get amount() { return this.props.amount_in_cents; }
     get status() { return this.props.status; }
@@ -158,5 +157,5 @@ export class SubscriptionInvoice {
     
     get createdAt() { return this.props.created_at; }
     get paidAt() { return this.props.paid_at; }
-    get dueDate() { return this.props.due_date; }
+    get periodEnd() { return this.props.period_end; }
 }

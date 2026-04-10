@@ -1,5 +1,5 @@
-import { Sale } from "../entities/sale.js";
-import { PaymentMethod } from "../entities/sale.js";
+import { Sale } from "../../entities/sale.js";
+import { PaymentMethod } from "../../entities/sale.js";
 import { Decimal } from "decimal.js"
 
 export type PaymentBreakdownDTO = {

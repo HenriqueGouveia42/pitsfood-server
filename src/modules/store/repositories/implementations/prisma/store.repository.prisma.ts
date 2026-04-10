@@ -5,7 +5,8 @@ import type { IStoreRepository } from "../../interfaces/store.repository.interfa
 import { PhysicalBill as EntityPhysicalBill } from "../../../../bill/entities/physicalBIllCard.js";
 import type { PhysicalBillCard as PrismaPhysicalBill } from "../../../../../generated/prisma/client.js";
 
-import { InvoiceStatus } from "../../../../../generated/prisma/client.js";
+import { InvoiceStatus as PrismaInvoiceStatus } from "../../../../../generated/prisma/client.js";
+import { SubscriptionInvoice } from "../../../entities/subscriptionInvoice.js";
 
 import { prisma } from "../../../../../shared/infra/prisma.js";
 import { AppError } from "../../../../../shared/errors/AppError.js";
@@ -45,26 +46,31 @@ export class PrismaStoreRepository implements IStoreRepository {
             updated_at: prismaStore.updated_at.toISOString(),
             plan: prismaStore.plan as EntityPlan,
             subscription_status: prismaStore.subscription_status as EntitySubscriptionStatus,
-            store_icon_url: prismaStore.store_icon_url
+            store_icon_url: prismaStore.store_icon_url,
+            subscription_expires_at: prismaStore.subscription_expires_at ? prismaStore.subscription_expires_at.toISOString() : null,
+            billing_day: prismaStore.billing_day ? prismaStore.billing_day : null
         })
     }
 
     private static entityToPrismaDataMapper(store: Store) {
+
         const props: StoreProps = store.getProps;
 
         return {
-            store_id: props.store_id,
-            name: props.name,
-            cnpj: props.cnpj ?? null,
-            owner_id: props.owner_id,
-            active: props.active,
-            created_at: new Date(props.created_at),
-            updated_at: new Date(),
-            plan: props.plan,
-            subscription_status: props.subscription_status,
-            store_icon_url: props.store_icon_url
+                store_id: props.store_id,
+                name: props.name,
+                cnpj: props.cnpj ?? null,
+                owner_id: props.owner_id,
+                active: props.active,
+                created_at: new Date(props.created_at),
+                updated_at: new Date(),
+                plan: props.plan,
+                subscription_status: props.subscription_status,
+                store_icon_url: props.store_icon_url,
+                subscription_expires_at: props.subscription_expires_at ? new Date(props.subscription_expires_at) : null,
+                billing_day: props.billing_day ? props.billing_day : null
+            }
         }
-    }
 
     private static entityToPrismaPhysicalBillDataMapper(entity_physical_bill: EntityPhysicalBill): PrismaPhysicalBill{
         return {
@@ -184,48 +190,47 @@ export class PrismaStoreRepository implements IStoreRepository {
         return true
     }
 
-    async activateSubscription(
-        store_id: string, 
-        invoice_id: string, 
-        plan: EntityPlan,
-        expires_at: Date,
+    async saveActivationTransaction(
+        store: Store, 
+        paid_invoice: SubscriptionInvoice,
         physicalBIllCards: Set<EntityPhysicalBill>
 
     ): Promise<void> {
 
+        const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
 
-        const prismaPhysicalBills: PrismaPhysicalBill[] = Array.from(physicalBIllCards, (b) => 
-            PrismaStoreRepository.entityToPrismaPhysicalBillDataMapper(b)
-        );
+        const { store_id, created_at, ...storeUpdateData } = storePrismaData;
 
-        await prisma.$transaction([
+        const prismaPhysicalBills = Array.from(physicalBIllCards, (b) => 
+            PrismaStoreRepository.entityToPrismaPhysicalBillDataMapper(b));
+        
+        await prisma.$transaction(async (tx) => {
 
-            //atualiza loja
-            prisma.store.update({
-                where: { store_id },
-                data: {
-                    subscription_status: PrismaSubscriptionStatus.ACTIVE,
-                    plan: plan as any,
-                    subscription_expires_at: expires_at,
-                    updated_at: new Date()
+            //atualiza a loja
+            await tx.store.update({
+                where: { store_id: store.id },
+                data: storeUpdateData
+            });
+
+            //atualiza a fatura
+            await tx.subscriptionInvoice.update({
+                where: { invoice_id: paid_invoice.id },
+                data:{
+                    status: paid_invoice.status as unknown as PrismaInvoiceStatus,
+                    paid_at: paid_invoice.paidAt ? new Date(paid_invoice.paidAt) : new Date()
                 }
-            }),
+            });
 
-            
-            prisma.subscriptionInvoice.update({
-                where: { invoice_id },
-                data: {
-                    status: InvoiceStatus.PAID,
-                    paid_at: new Date()
-                }
-            }),
+            //cria as novas comandas em lote
+            if (prismaPhysicalBills.length > 0){
+                await tx.physicalBillCard.createMany({
+                    data: prismaPhysicalBills
+                })
+            }
 
+        })
 
-            prisma.physicalBillCard.createMany({
-                data: prismaPhysicalBills
-            })
-
-        ]);
+       
     }
 
     async getSubscriptionPlanAndStatus(store_id: string): Promise<SubscriptionPlanAndStatus>{
@@ -269,21 +274,23 @@ export class PrismaStoreRepository implements IStoreRepository {
         return entityStores;
     }
 
-    async markStoresAsPastDue(storeIds: string[]): Promise<void>{
+    async updateManyStores(stores: Store[]): Promise<void> {
+        
+        if (stores.length === 0) return;
 
-        if (storeIds.length === 0) return;
+        // Cria um array de promessas de atualização
+        const updatePromises = stores.map((store) => {
+            const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
+            const { created_at, ...dataToUpdate } = storePrismaData;
 
-        await prisma.store.updateMany({
-            where: {
-                store_id: {
-                    in: storeIds //Busca todas as lojas cujos IDs estejam dentro deste array
-                }
-            },
-            data: {
-                subscription_status: PrismaSubscriptionStatus.PAST_DUE,
-                updated_at: new Date()
-            }
+            return prisma.store.update({
+                where: { store_id: storePrismaData.store_id },
+                data: dataToUpdate
+            });
         });
+
+        // Executa todas as atualizações dentro de uma única transação atômica
+        await prisma.$transaction(updatePromises);
     }
 
     async findActiveStores(): Promise<Store[]> {
@@ -301,5 +308,4 @@ export class PrismaStoreRepository implements IStoreRepository {
         return entityStores;
     }
 
-    
 }

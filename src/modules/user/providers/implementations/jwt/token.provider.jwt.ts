@@ -2,8 +2,8 @@ import jwt from "jsonwebtoken"
 
 const { sign } = jwt;
 
-import { AppError } from "../../../../shared/errors/AppError.js";
-import type { ITokenProvider } from "../token.provider.interface.js";
+import { AppError } from "../../../../../shared/errors/AppError.js";
+import type { ITokenProvider } from "../../interfaces/token.provider.interface.js";
 
 
 

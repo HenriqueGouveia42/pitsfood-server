@@ -14,7 +14,7 @@ export class AbacatePayProvider implements IPaymentProvider {
 
     constructor() {
 
-        const apiToken = process.env.ABACATE_PAY_API_TOKEN;
+        const apiToken = process.env.ABACATE_PAY_API_TOKEN_V1;
 
         this.api = axios.create({
             baseURL: "https://api.abacatepay.com/v1",
@@ -94,23 +94,23 @@ export class AbacatePayProvider implements IPaymentProvider {
         }
     }
 
-    async createPixPayment({ customerId, amount_in_cents, description, dueDate }: ICreatePaymentDTO): Promise<IPaymentResponse> {
+    async createPixPayment({ customerId, amount_in_cents, description }: ICreatePaymentDTO): Promise<IPaymentResponse> {
         try {
-            // Validação básica
+
             if (!customerId) throw new AppError("ID do cliente é obrigatório para gerar PIX", 400);
 
-            console.log(`[AbacatePay] Gerando Billing para Customer: ${customerId}, Valor: ${amount_in_cents}`);
+            console.log(`[AbacatePay] Gerando Billing (Checkout) para Customer: ${customerId}, Valor: ${amount_in_cents}`);
 
             const response = await this.api.post("/billing/create", {
                 frequency: "ONE_TIME",
                 methods: ["PIX"],
                 customerId: customerId,
                 returnUrl: `${process.env.APP_URL}/payment/success`,
-                completionUrl: `${process.env.APP_URL}/payment/completed`,
+                completionUrl: `${process.env.APP_URL}/payment/completed`,                  
                 products: [
                     {
-                        externalId: `sub-prorata-${Date.now()}`,
-                        name: "Assinatura Proporcional",
+                        externalId: `sub-full-${Date.now()}`,
+                        name: "Assinatura Mensal",
                         description: description || "Assinatura da plataforma",
                         quantity: 1,
                         price: amount_in_cents

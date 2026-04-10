@@ -2,7 +2,7 @@ import { ChangePasswordController } from "./ChangePasswordController.js";
 import { ChangePasswordUseCase } from "./ChangePasswordUseCase.js";
 import { PrismaUserRepository } from "../../repositories/implementations/prisma/user.repository.prisma.js";
 import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
-import { JwtTokenProvider } from "../../providers/implementations/token.provider.jwt.js";
+import { JwtTokenProvider } from "../../providers/implementations/jwt/token.provider.jwt.js";
 
 //JwtTokenProvider
 

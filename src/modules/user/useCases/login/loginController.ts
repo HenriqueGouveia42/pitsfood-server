@@ -4,7 +4,9 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 
 export class LoginController {
 
-    constructor(private loginUseCase: LoginUseCase) {}
+    constructor(
+        private loginUseCase: LoginUseCase
+    ) {}
 
     handle = async(req: Request, res: Response): Promise<Response> =>{
 

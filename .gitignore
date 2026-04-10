@@ -3,5 +3,6 @@ test.test
 git_untracked_tests/
 .env
 /src/generated/prisma
+CLAUDE.md
 
 /prisma/src/generated/prisma

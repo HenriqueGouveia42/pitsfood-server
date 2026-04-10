@@ -4,6 +4,7 @@ import { cacheProvider } from "../../../providers/CacheProvider/index.js"; // Su
 import { PrismaStoreRepository } from "../../../../modules/store/repositories/implementations/prisma/store.repository.prisma.js";
 import { SubscriptionStatus } from "../../../../modules/store/entities/store.js";
 import { CacheKeys } from "../../../constants/cache-keys.js";
+import { Store } from "../../../../modules/store/entities/store.js";
 
 export async function ensureSubscriptionActiveMiddleware(
     req: Request,
@@ -12,10 +13,8 @@ export async function ensureSubscriptionActiveMiddleware(
 ) {
     const { store_id } = req.user;
 
-    if (!store_id) {
-        throw new AppError("Contexto de loja não encontrado.", 500, "INTERNAL_SERVER_ERROR");
-    }
-
+    if (!store_id) throw new AppError("Contexto de loja não encontrado.", 500, "INTERNAL_SERVER_ERROR");
+    
     const cacheKey: string = CacheKeys.Store.SUBSCRIPTION_STATUS(store_id);
 
     //tenta pegar do Cache (Rápido)
@@ -25,7 +24,7 @@ export async function ensureSubscriptionActiveMiddleware(
     if (!status) {
         
         const storeRepository = new PrismaStoreRepository();
-        const store = await storeRepository.findSavedStoreById(store_id);
+        const store: Store | null = await storeRepository.findSavedStoreById(store_id);
 
         if (!store) throw new AppError("Loja não encontrada no banco de dados.", 404, "STORE_NOT_FOUND");
 

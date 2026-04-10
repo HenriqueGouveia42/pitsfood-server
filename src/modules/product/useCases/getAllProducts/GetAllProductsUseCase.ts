@@ -1,4 +1,4 @@
-import type { IProductRepository } from "../../repositories/product.repository.interface.js";
+import type { IProductRepository } from "../../repositories/interfaces/product.repository.interface.js";
 import { Product } from "../../entities/product.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
@@ -41,13 +41,11 @@ export class GetAllProductsUseCase {
         const cacheKey: string = CacheKeys.Product.LIST(store_id);
         const cachedData = await this.cacheProvider.get<IGetAllProductsResponse[]>(cacheKey);
 
-        if (cachedData) {
-           return cachedData;
-        }
-
+        if (cachedData) return cachedData;
+        
         //CACHE MISS
-        const products = await this.productRepository.listSavedProducts(store_id);
-        const allProductsResponse = this.mapToDTO(products);
+        const products: Product[] = await this.productRepository.listSavedProducts(store_id);
+        const allProductsResponse: IGetAllProductsResponse[] = this.mapToDTO(products);
 
         //Salva por 1 hora (3600s). Nenhuma venda vai invalidar essa chave!
         //Ela só será invalidada se um produto for criado/editado/deletado.

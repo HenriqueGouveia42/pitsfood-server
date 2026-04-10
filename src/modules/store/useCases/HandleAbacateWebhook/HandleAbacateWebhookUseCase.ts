@@ -4,12 +4,13 @@ import type { ISubscriptionInvoiceRepository } from "../../repositories/interfac
 import { cacheProvider } from "../../../../shared/providers/CacheProvider/index.js";
 import { PhysicalBill as EntityPhysicalBill, PhysicalBill } from "../../../bill/entities/physicalBIllCard.js";
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
-import { SubscriptionPlan } from "../../entities/store.js";
+import { Store, SubscriptionPlan } from "../../entities/store.js";
 import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
 
 import { generateValid4DigitsPhysicalCodes } from "../../../bill/functions/GenerateValidPhysicalBillCodes.js";
+import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
-interface IWebhookRequest {
+export interface IWebhookRequest {
     event: string;
     data: {
         billing: {
@@ -19,8 +20,14 @@ interface IWebhookRequest {
         }
     }
 }
+//ISSO É ATIVADO ASSIM QUE O POST DO ABACATE PAY CHEGA NA ROTA '/webhook/payment' deste server
 
-export class HandleAbacateWebhookUseCase {
+//1 - ATIVACAO DA LOJA
+//2 - ATUALIZACAO DA FATURA INTERNA PARA PAGA
+//3 - GERACAO DAS COMANDAS FISICAS
+//4 - INVALIDACAO DO DO CACHE KEY ANTIGO DE LOJA DESATUALIZADA
+
+export class HandleAbacateWebhookUseCase { //recebeu o webhook do abacate pay
     constructor(
         private storeRepository: IStoreRepository,
         private invoiceRepository: ISubscriptionInvoiceRepository
@@ -28,48 +35,43 @@ export class HandleAbacateWebhookUseCase {
 
     async execute({ event, data }: IWebhookRequest): Promise<void> {
 
-        const gatewayBillingId = data.billing?.id;
-        const billingStatus = data.billing?.status;
-
-        //debug -> console.log(`[webhook] Evento recebido: ${event}`);
+        const gatewayBillingId: string = data.billing?.id;
+        const gatewayBillingStatus: string = data.billing?.status;
 
         if (event !== "billing.paid") throw new AppError(`[Webhook] Ignorando evento ${event} (esperado: billing.paid)`)
-          
         if (!gatewayBillingId) throw new AppError("[Webhook] ERRO CRÍTICO: ID da fatura (data.billing.id) não encontrado no payload!", 422, "INVOICE_ID_MISSING")
         
-        //debug -> console.log(`[Webhook] Buscando fatura com ID: ${gatewayBillingId}`);
+        const entityInvoice: SubscriptionInvoice | null  = await this.invoiceRepository.findByGatewayId(gatewayBillingId);
+        if (!entityInvoice) throw new AppError(`[Webhook] ERRO FATAL: Fatura ${gatewayBillingId} NÃO encontrada no banco de dados!`, 422, "INVOICE_MISSING")
+        if (entityInvoice.status === "PAID") throw new AppError(`[Webhook] A fatura ${gatewayBillingId} já consta como PAGA no banco. Ignorando.`, 422, "INVOICE_ALREADY_PAID")
+        if (!entityInvoice.periodEnd) throw new AppError(`[Webhook] ERRO CRÍTICO: A fatura ${entityInvoice.id} não possui data de vencimento (dueDate). Impossível calcular a expiração do plano.`, 500, "MISSING_INVOICE_TARGET_DATE")
 
-        const invoice: SubscriptionInvoice | null  = await this.invoiceRepository.findByGatewayId(gatewayBillingId);
-
-        if (!invoice) throw new AppError(`[Webhook] ERRO FATAL: Fatura ${gatewayBillingId} NÃO encontrada no banco de dados!`, 422, "INVOICE_MISSING")
-
-        //idempotência
-        //verificamos se jã está paga no banco OU se o webhook diz que não é PAID (vai que...)
-        if (invoice.status === "PAID") throw new AppError(`[Webhook] A fatura ${gatewayBillingId} já consta como PAGA no banco. Ignorando.`, 422, "INVOICE_ALREADY_PAID")
+        if (gatewayBillingStatus !== "PAID") throw new AppError(`[Webhook] Evento é billing.paid, mas status dentro do objeto é ${gatewayBillingStatus}. Investigar.`, 422, "EVENT_STATUS_MISMATCH");
            
-        if (billingStatus !== "PAID") throw new AppError(`[Webhook] Evento é billing.paid, mas status dentro do objeto é ${billingStatus}. Investigar.`, 422, "EVENT_STATUS_MISMATCH");
-           
-        //debug -> console.log(`[Webhook] Fatura encontrada para a loja: ${invoice.storeId}. Iniciando ativação...`);
 
-        const expiresAt = invoice.dueDate ? new Date(invoice.dueDate) : new Date();
-
-        const plan: SubscriptionPlan = invoice.planTag;
+        const plan: SubscriptionPlan = entityInvoice.planTag;
         if (!PLAN_LIMITS[plan]) throw new AppError(`Plano desconhecido ou inválido: ${plan}`, 500);
+
+        const store: Store | null = await this.storeRepository.findSavedStoreById(entityInvoice.storeId);
+        if (!store) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND");
+
+        const entity_invoice_expires_at: Date =  new Date(entityInvoice.periodEnd);
         const physical_bills_quantity: number = PLAN_LIMITS[plan].limits.max_physical_bills;
-
         const codes: Set<string> = generateValid4DigitsPhysicalCodes(physical_bills_quantity);
-        const physical_bills: Set<PhysicalBill> = PhysicalBill.buildManyPhysicallBills(codes, invoice.storeId);
 
-        await this.storeRepository.activateSubscription(
-            invoice.storeId,
-            invoice.id,
-            plan,
-            expiresAt,
+        const activatedStore: Store = store.activatePlan(plan, entity_invoice_expires_at);
+        const paidInvoice: SubscriptionInvoice = entityInvoice.markAsPaid();
+        const physical_bills: Set<PhysicalBill> = PhysicalBill.buildManyPhysicallBills(codes, entityInvoice.storeId);
+
+        await this.storeRepository.saveActivationTransaction(
+            activatedStore,
+            paidInvoice,
             physical_bills
         )
 
-        await cacheProvider.invalidate(`store-subscription-status:${invoice.storeId}`);
+        const cache_key: string = CacheKeys.Store.SUBSCRIPTION_STATUS(activatedStore.id);
 
-        console.log(`[Webhook] SUCESSO! Loja ${invoice.storeId} ativada e cache limpo.`);
+        await cacheProvider.invalidate(cache_key);
+        
     }
 }

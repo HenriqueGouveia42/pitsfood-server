@@ -1,9 +1,9 @@
 import { Prisma } from '../../../../../generated/prisma/client.js';
 import { Sale } from '../../../entities/sale.js';
-import type { ISaleRepository } from '../../sale.repository.interface.js';
+import type { ISaleRepository } from '../../interfaces/sale.repository.interface.js';
 import { prisma } from "../../../../../shared/infra/prisma.js";
 import { Decimal } from "decimal.js"
-import type { SalesReportDTO } from "../../sale.repository.interface.js"
+import type { SalesReportDTO } from '../../interfaces/sale.repository.interface.js';
 
 import type { Sale as PrismaSaleModel, SaleProduct as PrismaSaleProduct, SalePayment as PrismaSalePayment } from "../../../../../generated/prisma/client.js";
 import { SaleStatus, PaymentMethod, type SaleProp } from "../../../entities/sale.js";
@@ -12,6 +12,7 @@ type PrismaSaleWithRelations = PrismaSaleModel & {
     items?: PrismaSaleProduct[];
     payments?: PrismaSalePayment[];
 };
+
 
 export class PrismaSaleRepository implements ISaleRepository {
 
@@ -243,18 +244,17 @@ export class PrismaSaleRepository implements ISaleRepository {
 
         const productsRaw = await prisma.$queryRaw<any[]>`
             SELECT
-                p.name as product_name,
+                sp.product_name_snapshot as product_name,
                 sp.product_id,
                 SUM(sp.quantity)::int as quantity_sold,
-                SUM(sp.quantity * sp.unit_price_sold) as total_sold
+                SUM(sp.quantity * sp.unit_price_snapshot) as total_sold 
             
             FROM "sale_products" sp
             JOIN "sales" s ON sp.sale_id = s.sale_id
-            JOIN "products" p ON sp.product_id = p.product_id
             WHERE s.status = 'CONCLUIDA'
             AND s.created_at >= ${startDate}
             AND s.created_at <= ${endDate}
-            GROUP BY sp.product_id, p.name
+            GROUP BY sp.product_id, sp.product_name_snapshot
             ORDER BY total_sold DESC
         `;
 

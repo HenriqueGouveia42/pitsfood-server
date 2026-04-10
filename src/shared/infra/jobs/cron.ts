@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { processOverdueSubscriptionsUseCase } from "../../../modules/store/useCases/ProcessOverdueSubscriptions/index.js";
 
 export function startCronJobs() {
+    
     console.log("[CRON] Serviço de agendamentos inicializado.");
 
     // carrasco das Assinaturas
@@ -21,5 +22,4 @@ export function startCronJobs() {
         timezone: "America/Sao_Paulo"
     });
 
-    // Aqui você vai adicionar o próximo CRON (o que gera a fatura no dia 20) futuramente
 }

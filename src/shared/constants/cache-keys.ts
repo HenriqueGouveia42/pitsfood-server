@@ -10,5 +10,9 @@ export const CacheKeys = {
     },
     Product: {
         LIST: (storeId: string) => `store-products:${storeId}`
+    },
+    Sale: {
+        SUMMARY_BY_PERIOD: (store_id: string, start_day_month_year: string, end_day_month_year: string) => 
+            `summary-sales-${store_id}-${start_day_month_year}-${end_day_month_year}`
     }
 } as const;

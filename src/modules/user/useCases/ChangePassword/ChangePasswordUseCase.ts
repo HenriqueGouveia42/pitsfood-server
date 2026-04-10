@@ -29,23 +29,18 @@ export class ChangePasswordUseCase {
 
         const user: User | null = await this.userRepository.findSavedUserById(userId);
 
-        if(!user){
-            throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND")
-        }
-
-        if(current_password === new_password){
-            throw new AppError("A nova senha deve ser diferente da atual", 400, "PASSWORDS_MUST_BE_DIFFERENT")
-        }
-
+        if(!user) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND")
+        
+        if(current_password === new_password) throw new AppError("A nova senha deve ser diferente da atual", 400, "PASSWORDS_MUST_BE_DIFFERENT")
+        
         const passwordMatch = await compare(current_password, user.passwordHash);
 
-        if (!passwordMatch){
-            throw new AppError("Senha atual incorreta", 401, "INVALID_CREDENTIALS") //401 é melhor aqui
-        }
-
+        if (!passwordMatch) throw new AppError("Senha atual incorreta", 401, "INVALID_CREDENTIALS") //401 é melhor aqui
+        
         const hashedPassword = await hash(new_password, 8);
         
-        let updatedUser = user.setNewPassword(hashedPassword);
+        let updatedUser: User = user.setNewPassword(hashedPassword);
+
         updatedUser = updatedUser.setMustChangePasswordToFalse();
 
         //persiste no banco
@@ -56,13 +51,14 @@ export class ChangePasswordUseCase {
         // ==========================================================
         
         //gera nova versão (Invalida imediatamente o token antigo que está no cookie), que vai ser barrado pelo 'authMiddleware'
-        const newVersion = Date.now();
+        const tokenNewVersion = Date.now();
 
         //persiste no redis
         const cacheKey: string = CacheKeys.User.TOKEN_VERSION(user.id);
+
         await this.cacheProvider.save(
             cacheKey, 
-            newVersion.toString(), 
+            tokenNewVersion.toString(), 
             86400 //1 dia
         );
 
@@ -72,7 +68,7 @@ export class ChangePasswordUseCase {
             updatedUser.role,
             updatedUser.storeId ? updatedUser.storeId : null,
             false, //'must_change_password' agora é explicitamente false
-            newVersion, //versão sincronizada com o redis
+            tokenNewVersion, //versão sincronizada com o redis
             false
         );
 

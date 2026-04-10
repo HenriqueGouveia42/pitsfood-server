@@ -1,6 +1,7 @@
 import { Store } from "../../entities/store.js"
 import { SubscriptionPlan, SubscriptionStatus } from "../../entities/store.js";
 import { PhysicalBill } from "../../../bill/entities/physicalBIllCard.js";
+import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
 
 export type SubscriptionPlanAndStatus = {
     plan: SubscriptionPlan,
@@ -15,17 +16,15 @@ export interface IStoreRepository{
     storeWithThisNameExists(name: string): Promise<boolean>;
 
 
-    activateSubscription(
-        store_id: string, 
-        invoice_id: string, 
-        plan: SubscriptionPlan, 
-        expires_at: Date,
+    saveActivationTransaction(
+        activatedStore: Store, 
+        paidInvoice: SubscriptionInvoice, 
         physicalBIllCards: Set<PhysicalBill>
     ): Promise<void>;
 
     getSubscriptionPlanAndStatus(store_id: string): Promise<SubscriptionPlanAndStatus>;
 
     findActiveAndExpiredStores(currentDate: Date): Promise<Store[]>;
-    markStoresAsPastDue(storeIds: string[]): Promise<void>;
+    updateManyStores(stores: Store[]): Promise<void>;
     findActiveStores(): Promise<Store[]>;
 }

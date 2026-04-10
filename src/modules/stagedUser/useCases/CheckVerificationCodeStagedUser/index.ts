@@ -1,6 +1,6 @@
 import { CheckVerificationCodeStageUserController } from  "./CheckVerificationCodeStageUserController.js"
 import { CheckVerificationCodeStageUserUseCase } from "./CheckVerificationCodeStageUserUseCase.js";
-import { PrismaStagedUserRepository } from "../../repositories/implementations/staged_user.repository.prisma.js";
+import { PrismaStagedUserRepository } from "../../repositories/implementations/prisma/staged_user.repository.prisma.js";
 
 const prismaStagedUserRep: PrismaStagedUserRepository = new PrismaStagedUserRepository();
 const checkVerificationCodeStageUserUseCase: CheckVerificationCodeStageUserUseCase = new CheckVerificationCodeStageUserUseCase(prismaStagedUserRep);

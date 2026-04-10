@@ -1,7 +1,7 @@
 import { hash } from "bcryptjs";
 import { StagedUser } from "../../entities/stagedUser.js";
 import type { IStagedUserSendEmail } from "../../providers/staged.user.send.email.interface.js"
-import type { IStagedUserRepository } from "../../repositories/staged_user.repository.interface.js";
+import type { IStagedUserRepository } from "../../repositories/interfaces/staged_user.repository.interface.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 import { randomInt } from 'node:crypto';

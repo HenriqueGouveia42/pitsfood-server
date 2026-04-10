@@ -59,6 +59,7 @@ enum InvoiceStatus {
   PAID      //pago com sucesso
   FAILED    //expirou ou erro
   REFUNDED  //estornado
+  CANCELED
 }
 
 model SubscriptionInvoice {
@@ -78,7 +79,7 @@ model SubscriptionInvoice {
   //ciclo de vida
   created_at      DateTime @default(now())
   paid_at         DateTime?
-  due_date        DateTime? //data de vencimento do PIX
+  period_end        DateTime // Data que define o fim da cobertura/acesso desta fatura.
 
   // Relações
   store_id String
@@ -87,6 +88,7 @@ model SubscriptionInvoice {
   plan_tag  SubscriptionPlan // Qual plano ele tentou comprar (BASIC, PREMIUM...)
 
   @@index([store_id])
+  @@index([gateway_invoice_id])
   @@map("subscription_invoices")
 }
 
@@ -97,6 +99,7 @@ model Store{
   active  Boolean @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now())
+  billing_day Int?
 
   plan SubscriptionPlan @default(NONE)
 

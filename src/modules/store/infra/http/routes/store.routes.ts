@@ -93,6 +93,14 @@ storeRoutes.get("/plans",
     }
 )
 
+storeRoutes.post("/renew-subscription",
+    authorizeRoles([UserRole.GESTOR]),
+    //missing zod schema
+    (request, response) => {
+
+    }
+)
+
 storeRoutes.use(ensureSubscriptionActiveMiddleware);
 
 storeRoutes.get("/get-store-data",

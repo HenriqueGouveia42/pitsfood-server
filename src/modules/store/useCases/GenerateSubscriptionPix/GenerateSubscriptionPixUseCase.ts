@@ -17,8 +17,7 @@ interface IRequest {
 interface IResponse {
     payment_url: string;
     amount: number;
-    days_charged: number;
-    invoice_id: string
+    invoice_id: string;
 }
 
 export class GenerateSubscriptionPixUseCase {
@@ -26,50 +25,46 @@ export class GenerateSubscriptionPixUseCase {
         private storeRepository: IStoreRepository,
         private userRepository: IUserRepository,
         private paymentProvider: IPaymentProvider,
-        private invoiceRepository: ISubscriptionInvoiceRepository
+        private invoiceRepository: ISubscriptionInvoiceRepository,
+        private calculator: SubscriptionCalculator
     ) {}
 
     async execute({ store_id, user_id, plan }: IRequest): Promise<IResponse> {
         
-        //1- validação básica
-        if (plan === SubscriptionPlan.NONE) {
-            throw new AppError("Plano inválido.", 400, "MUST_CHOOSE_PLAN");
-        }
+        
+        if (plan === SubscriptionPlan.NONE) { throw new AppError("Plano inválido.", 400, "MUST_CHOOSE_PLAN"); }
+        if (!Object.values(SubscriptionPlan).includes(plan as SubscriptionPlan)) { throw new AppError("Plano inválido.", 400, "INVALID_PLAN_TYPE"); }
 
-        //2 - busca e Validação da Loja/Dono
         const store: Store | null = await this.storeRepository.findSavedStoreById(store_id);
         if (!store) throw new AppError("Loja não encontrada.", 404, "STORE_NOT_FOUND");
-        
+
         const owner: User | null = await this.userRepository.findSavedUserById(user_id);
         if (!owner) throw new AppError("Dono não encontrado.", 404, "USER_NOT_FOUND");
 
-        //3  - TRAVA DE SEGURANÇA 1: Assinatura Ativa
-        // Se já paga, não gera nova cobrança
+        // 3 - TRAVA DE SEGURANÇA 1: Assinatura Ativa
         if (store.subscription_status === SubscriptionStatus.ACTIVE) {
             throw new AppError(
                 "Sua loja já possui uma assinatura ativa. Aguarde o vencimento para renovar.", 
-                409, // Conflict
+                409,
                 "SUBSCRIPTION_ALREADY_ACTIVE"
             );
         }
 
-        //4 - TRAVA DE SEGURANÇA 2: Fatura Pendente (Idempotência)
-        //se já existe um PIX gerado e não pago, não criamos lixo no Gateway.
-        const pendingInvoice = await this.invoiceRepository.findPendingByStoreId(store_id);
+        // 4 - TRAVA DE SEGURANÇA 2: Fatura Pendente (Idempotência)
+        const pendingInvoice: SubscriptionInvoice | null = await this.invoiceRepository.findPendingByStoreId(store_id);
         
         if (pendingInvoice) {
-            //se ele tentou comprar o MESMO plano antes, devolvemos o mesmo PIX
+
+            if (!pendingInvoice.paymentUrl) throw new AppError("Erro grave de integração. Fatura existe no sistema mas sem payment url do gateway", 500, "INVOICE_WITHOUT_PAYMENT_URL");
+
             if (pendingInvoice.planTag === plan) {
                 return {
-                    payment_url: pendingInvoice.paymentUrl || "",
+                    payment_url: pendingInvoice.paymentUrl,
                     amount: pendingInvoice.amount,
-                    days_charged: 0,
                     invoice_id: pendingInvoice.id
                 };
             }
 
-            //se ele tentou comprar OUTRO plano (ex: queria Basic, agora quer Premium)
-            //BLOQUEIO: "Resolva a pendência anterior primeiro"
             throw new AppError(
                 "Você já possui uma fatura pendente para outro plano. Aguarde ela expirar ou entre em contato com o suporte.",
                 409,
@@ -77,10 +72,11 @@ export class GenerateSubscriptionPixUseCase {
             );
         }
 
-        //5 - Fluxo de Criação (Só chega aqui se não tiver pendências)
-        const { amount_in_cents, days_charged } = SubscriptionCalculator.calculateProRata(plan);
+        // 5 - Cálculo da Fatura (Mês Cheio) usando a data atual como base
+        const now = new Date();
+        const { amount_in_cents, target_date } = this.calculator.calculateInvoice(plan, now);
 
-        //6 - garante que enviamos apenas números no taxId (CPF/CNPJ)
+        // 6 - Prepara dados do cliente para o Gateway
         const rawTaxId: string = owner.cpf_cnpj;
         const cleanTaxId = rawTaxId.replace(/\D/g, "");
 
@@ -91,18 +87,26 @@ export class GenerateSubscriptionPixUseCase {
             cellphone: owner.phone ? owner.phone : "(00) 00000-0000"
         });
 
+        // 7 - Vencimento do PIX (QR Code) - 24 horas
+        // O cliente tem 24h para pagar ESTE código Pix.
+        const pixDueDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+        // 8 - Cria o Pagamento no Gateway
         const paymentData = await this.paymentProvider.createPixPayment({
             customerId: gatewayCustomerId,
             amount_in_cents: amount_in_cents,
-            description: `Assinatura ${plan} - Proporcional (${days_charged} dias)`,
-            dueDate: new Date()
+            description: `Assinatura ${plan} (1 Mês)`, //Descrição clara
+            dueDate: pixDueDate 
         });
 
-        const invoice = SubscriptionInvoice.buildInvoice(
+        // 9 - Salva a fatura no nosso banco.
+        // Atenção: O dueDate da Fatura é o target_date do plano (ex: 1 mês à frente),
+        // pois é essa data que o Webhook usará para ativar a loja.
+        const invoice: SubscriptionInvoice = SubscriptionInvoice.buildInvoice(
             amount_in_cents,
             store.id,
             plan,
-            new Date().toISOString(),
+            target_date.toISOString(),
             {
                 gateway_invoice_id: paymentData.payment_id,
                 payment_url: paymentData.payment_url,
@@ -115,7 +119,6 @@ export class GenerateSubscriptionPixUseCase {
         return {
             payment_url: paymentData.payment_url,
             amount: amount_in_cents,
-            days_charged,
             invoice_id: invoice.id
         };
     }

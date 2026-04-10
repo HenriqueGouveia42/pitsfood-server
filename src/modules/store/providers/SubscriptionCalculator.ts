@@ -1,57 +1,62 @@
-import { Decimal } from "decimal.js";
 import { SubscriptionPlan } from "../entities/store.js";
 import { PLAN_LIMITS } from "../../../config/plans.config.js";
 import { AppError } from "../../../shared/errors/AppError.js";
 
 export class SubscriptionCalculator {
     
-    //dia fixo de vencimento: 28
-    private static readonly FIXED_DUE_DAY = 28;
-
-    //usamos 30 dias como base comercial para cálculo de diária
-    //Convertido para Decimal para garantir precisão na divisão
-    private static readonly COMMERCIAL_MONTH_DAYS = new Decimal(30);
-
-    public static calculateProRata(plan: SubscriptionPlan): { amount_in_cents: number, days_charged: number } {
-
-        const now = new Date();
-        const currentDay: number = now.getDate();
+    /**
+     * Retorna o valor cheio do plano e a data alvo para expiração/renovação (1 mês à frente).
+     * Utilizado tanto na primeira assinatura quanto na geração de faturas de renovação.
+     */
+    public calculateInvoice(plan: SubscriptionPlan, baseDate: Date): { amount_in_cents: number, target_date: Date } {
         
-        //o preço do plano do mes é proporcional aos dias que serão utilizados nesse mes especifico
         const planConfig = PLAN_LIMITS[plan];
         
-        if (!planConfig.price_in_cents) throw new AppError("Erro. Plano sem preco.", 409, "PLAN_WITHOUT_PRICE");
-        //objeto da classe Decimal para evitar float math do JS
-        const fullPriceInCents: Decimal = new Decimal(planConfig.price_in_cents);
-        
-        //preço por dia com precisão decimal
-        const pricePerDayInCents: Decimal = fullPriceInCents.dividedBy(this.COMMERCIAL_MONTH_DAYS);
-
-        let daysToCharge = 0;
-
-        if (currentDay < this.FIXED_DUE_DAY) {
-
-            daysToCharge = this.FIXED_DUE_DAY - currentDay;
-        } else {
-            
-            //se passou do dia 28, cobramos o proporcional até o dia 28 do PRÓXIMO mês.
-            
-            //getDate() retorna number, operações com datas aqui são seguras pois são inteiros
-            const daysInCurrentMonth: number = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const remainingDaysInThisMonth: number = daysInCurrentMonth - currentDay;
-            daysToCharge = remainingDaysInThisMonth + this.FIXED_DUE_DAY;
+        if (!planConfig.price_in_cents) {
+            throw new AppError("Erro de integridade: Plano sem preço configurado.", 409, "PLAN_WITHOUT_PRICE");
         }
 
-        const daysToChargeDecimal: Decimal = new Decimal(daysToCharge);
-        const proRataAmountDecimal: Decimal = daysToChargeDecimal.times(pricePerDayInCents);
+        // calcula exatamente 1 mês à frente a partir da data base informada.
+        // o tempo é cravado às 23:59:59 para garantir o final do dia.
 
-        //evita centavos quebrados
-        //ceil() do Decimal.js é mais seguro que Math.ceil() para casos de borda
-        const proRataAmount: number = proRataAmountDecimal.ceil().toNumber(); //arredonda para cima, em centavos, isso tira a impresao .ceil()
+        //isso é necessario para proteger contra bugs dos meses que nao tem dias 29, 30 ou 31, por exemplo:
+        // supunhetamos um usuario assinando dia 31 de janeiro de 2026
+        // o contrutor do new Date abaixo ia receber isso:
 
+        /*
+        
+            const targetDate: Date = new Date(
+                2026,
+                0 + 1,
+                31
+            )
+
+            como o dia 31 de FEVEREIRO nao existe, targetDate tranborda da 03 de marco, ou seja,
+            
+            o cliente pagou 31 de janeiro de vai poder usar até 03 de marco, ganhando 01 mes DE GRAÇA!!
+
+            por essa razao precisamos garantir que targetDay nunca seja maior que 28 antes de passar para o contrutor
+            new Date()
+        
+        */
+
+        let targetDay: number = baseDate.getDate();
+        if(targetDay > 28){
+            targetDay = 28
+        }
+
+        //o proprio construtor de date ja resolve os casos de borda como dezembro de um ano para janeiro do proximo ano
+        const targetDate: Date = new Date(
+            baseDate.getFullYear(), 
+            baseDate.getMonth() + 1, 
+            targetDay, //mesmo dia do mes
+            23, 59, 59
+        );
+
+        // Retorna o valor limpo, sem necessidade de decimais ou divisões.
         return {
-            amount_in_cents: proRataAmount,
-            days_charged: daysToCharge
+            amount_in_cents: planConfig.price_in_cents,
+            target_date: targetDate
         };
     }
 }

@@ -1,16 +1,17 @@
 import type { IUserRepository } from "../../repositories/user.repository.interface.js";
+import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
+import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+
 import { User } from "../../entities/user.js";
 import bcrypt from "bcryptjs";
 import { UserRole } from "../../entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
-import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 import type { Store } from "../../../store/entities/store.js";
 import { validateCPF } from "../../../../shared/validators/valid.cpf.js";
 import { validCNPJ } from "../../../../shared/validators/valid.cnpj.js";
 
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
 import { SubscriptionPlan } from "../../../store/entities/store.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 interface RegisterEmployeeUseCaseRequest{

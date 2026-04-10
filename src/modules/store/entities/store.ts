@@ -40,9 +40,11 @@ export type StoreProps = {
     readonly owner_id: string,
     readonly created_at: string;
     readonly updated_at: string;
-    readonly plan: SubscriptionPlan
-    readonly subscription_status: SubscriptionStatus
-    readonly store_icon_url: string | null
+    readonly plan: SubscriptionPlan;
+    readonly subscription_status: SubscriptionStatus;
+    readonly store_icon_url: string | null;
+    readonly subscription_expires_at: string | null;
+    readonly billing_day: number | null;
 }
 
 export class Store{
@@ -117,7 +119,9 @@ export class Store{
             updated_at: now,
             plan: SubscriptionPlan.NONE,
             subscription_status: SubscriptionStatus.NONE,
-            store_icon_url: store_icon_url ? store_icon_url : null
+            store_icon_url: store_icon_url ? store_icon_url : null,
+            subscription_expires_at: null,
+            billing_day: null
         })
 
         if (
@@ -156,6 +160,54 @@ export class Store{
         });
     }
 
+    public activatePlan(plan: SubscriptionPlan, expires_at: Date): Store {
+
+        if (plan === SubscriptionPlan.NONE) throw new AppError("Não é possivel ativar uma loja com o plano 'None'", 400, "INVALID_ACTIVATION_PLAN");
+
+        
+        // LÓGICA DO ROLLING BILLING COM RESET DE CICLO => SE O CLIENTE ESTIVER COM FATURA ATRASADA OU CANCELADA
+        // O DIA DE COBRANCA DELE É ATUALIZADO PARA O DIA DE HOJE!
+
+        //CASOS EM QUE ATUALIZA O DIA DO FATURAMENTO (ANIVERSARIO)
+        //  PRIMEIRA VEZ ASSINANDO
+        //  VOLTANDO DE UM BLOQUEIO POR ATRASADO
+        //  VOLTANDO DE UM BLOQUEIO POR CANCELAMENTO
+        let currentBillingDay: number | null = this.props.billing_day;
+        const previousStatus: SubscriptionStatus = this.props.subscription_status;
+
+        //primeira vez assinando
+        if (
+            !currentBillingDay ||
+            previousStatus === SubscriptionStatus.PAST_DUE ||
+            previousStatus === SubscriptionStatus.CANCELED
+        ){
+
+            const today: number = new Date().getDate();
+
+            //protecao contra o bug de feveireiro
+            currentBillingDay = today > 28 ? 28 : today; 
+        }
+
+        return new Store({
+            ...this.props,
+            plan: plan,
+            subscription_status: SubscriptionStatus.ACTIVE,
+            subscription_expires_at: expires_at.toISOString(),
+            billing_day: currentBillingDay,
+            updated_at: new Date().toISOString()
+        })
+
+
+    }
+
+    public markAsPastDue(): Store {
+        return new Store({
+            ...this.props,
+            subscription_status: SubscriptionStatus.PAST_DUE,
+            updated_at: new Date().toISOString()
+        });
+    }
+
     get id() {return this.props.store_id}
     get name() {return this.props.name}
     get cnpj() {return this.props.cnpj}
@@ -166,5 +218,7 @@ export class Store{
     get plan() {return this.props.plan}
     get subscription_status() {return this.props.subscription_status}
     get store_icon_url() {return this.props.store_icon_url}
+    get subscription_expires_at() {return this.props.subscription_expires_at}
+    get billing_day() {return this.props.billing_day}
 
 }

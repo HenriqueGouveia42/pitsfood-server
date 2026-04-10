@@ -1,7 +1,7 @@
 import { RegisterStagedUserController } from "./RegisterStagedUserController.js";
 import { RegisterStagedUserUseCase } from "./RegisterStagedUserUseCase.js";
 
-import { PrismaStagedUserRepository } from "../../repositories/implementations/staged_user.repository.prisma.js";
+import { PrismaStagedUserRepository } from "../../repositories/implementations/prisma/staged_user.repository.prisma.js";
 import { PrismaUserRepository } from "../../../user/repositories/implementations/prisma/user.repository.prisma.js";
 import { StagedUserNodeMailerSendEmail } from "../../providers/implementations/staged.user.send.email.nodemailer.js"
 

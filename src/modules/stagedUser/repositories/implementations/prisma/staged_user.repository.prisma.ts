@@ -1,10 +1,11 @@
-import type { IStagedUserRepository } from "../staged_user.repository.interface.js"
-import { StagedUser } from "../../entities/stagedUser.js"
-import type { StagedUserProps } from "../../entities/stagedUser.js"
-import { User, UserRole } from "../../../user/entities/user.js"
-import type { UserProps } from "../../../user/entities/user.js"
+import type { IStagedUserRepository } from "../../interfaces/staged_user.repository.interface.js"
+import { StagedUser } from "../../../entities/stagedUser.js"
 
-import { prisma } from "../../../../shared/infra/prisma.js"
+import type { StagedUserProps } from "../../../entities/stagedUser.js"
+import { User, UserRole } from "../../../../user/entities/user.js"
+import type { UserProps } from "../../../../user/entities/user.js"
+
+import { prisma } from "../../../../../shared/infra/prisma.js"
 
 export class PrismaStagedUserRepository implements IStagedUserRepository{
 
