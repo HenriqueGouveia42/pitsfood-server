@@ -158,15 +158,14 @@ model StagedUser {
   email         String   @unique
   username      String
   password_hash String
-
+  verification_code String   //codigo de 6 digitos
+  last_verification_code_sent_at DateTime // Quando foi enviado o ultimo codigo de verificação
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  expires_at DateTime
+  code_expires_at DateTime
   cpf_cnpj  String
   phone     String?
-
-  //controle de validacao
-  verification_code String   //codigo de 6 digitos
-  expires_at        DateTime //expira em 10 minutos
-  
-  created_at DateTime @default(now())
 
   @@map("staged_users")
 }
@@ -344,7 +343,9 @@ model Sale {
   //relacionamentos
   user_id        String     //quem fechou a venda
   user        User          @relation("UserClosedSale", fields: [store_id, user_id], references: [store_id, user_id]) //o usuario que fechou a venda TEM que ser da mesma loja
-  
+  seller_name String
+  seller_role String
+
   items       SaleProduct[]
   payments    SalePayment[]
 

@@ -14,26 +14,13 @@ export type ProductBreakdownDTO = {
     total_sold: Decimal
 }
 
-export interface SalesReportDTO {
-    period: {
-        start: Date;
-        end: Date;
-    };
-    metrics: {
-        total_revenue: Decimal;
-        sales_count: number;
-        average_ticket: number;
-    };
-    payment_breakdown: {
-        method: string;
-        total: Decimal;
-        percentage?: string; // Opcional: já mandar a % pronta
-    }[];
-    product_breakdown: {
-        product_name: string;
-        quantity_sold: number;
-        total_sold: Decimal;
-    }[];
+export type SalesReportDTO = {
+    period: { start: Date; end: Date };
+    metrics: { total_revenue: Decimal; sales_count: number; average_ticket: number };
+    payment_breakdown: { method: string; total: Decimal }[];
+    product_breakdown: { product_name: string; quantity_sold: number; total_sold: Decimal }[];
+    
+    hourly_breakdown: { hour: number; total_sold: Decimal; sales_count: number }[];
 }
 
 export interface ISaleRepository {
@@ -43,5 +30,6 @@ export interface ISaleRepository {
     deleteSavedSaleById(sale_id: string): Promise<void>;
     createSaleAndCloseBills(sale: Sale, billCodesToClose: string[]): Promise<void>;
     findByPeriod(startDate: Date, endDate: Date): Promise<Sale[]>;
-    getSalesSummaryByPeriod(startDate: Date, endDate: Date): Promise<SalesReportDTO>;
+    getSalesSummaryByPeriod(startDate: Date, endDate: Date, store_id: string): Promise<SalesReportDTO>;
+    findPaginatedSales(store_id: string, skip: number, limit: number): Promise<Sale[]>
 }

@@ -1,5 +1,5 @@
 import { validCNPJ } from "../../../shared/validators/valid.cnpj.js";
-import { AppError } from "../../../shared/errors/AppError.js";
+import { DomainError } from "../../../shared/errors/DomainError.js";
 
 /**
  * enum SubscriptionPlan {
@@ -58,10 +58,10 @@ export class Store{
     private static validateNameLength(name: string): void {
         const trimmedName = name.trim();
         if (trimmedName.length < 3) {
-            throw new AppError("O nome da loja deve ter no mínimo 3 caracteres.", 400, "INVALID_NAME_LENGTH");
+            throw new DomainError("O nome da loja deve ter no mínimo 3 caracteres.", "INVALID_NAME_LENGTH");
         }
         if (trimmedName.length > 100) {
-            throw new AppError("O nome da loja deve ter no máximo 100 caracteres.", 400, "INVALID_NAME_LENGTH");
+            throw new DomainError("O nome da loja deve ter no máximo 100 caracteres.", "INVALID_NAME_LENGTH");
         }
     }
 
@@ -82,12 +82,12 @@ export class Store{
             const parsedUrl = new URL(url);
             
             //forçar HTTPS para segurança
-            if (parsedUrl.protocol !== "https:") throw new AppError("A URL da imagem deve ser segura (HTTPS).", 400, "INVALID_ICON_PROTOCOL");
+            if (parsedUrl.protocol !== "https:") throw new DomainError("A URL da imagem deve ser segura (HTTPS).", "INVALID_ICON_PROTOCOL");
         
         } catch (error) {
 
-            if (error instanceof AppError) throw error;
-            throw new AppError("A URL do ícone fornecida é inválida.", 400, "INVALID_ICON_URL");
+            if (error instanceof DomainError) throw error;
+            throw new DomainError("A URL do ícone fornecida é inválida.", "INVALID_ICON_URL");
         }
     }
 
@@ -101,9 +101,8 @@ export class Store{
             
             const isCNPJValid: boolean = validCNPJ(cnpj);
 
-            if (!isCNPJValid){
-                throw new AppError("CNPJ invalido", 422, "INVALID_CNPJ")
-            }
+            if (!isCNPJValid) throw new DomainError("CNPJ invalido", "INVALID_CNPJ")
+            
         }
         
 
@@ -128,14 +127,14 @@ export class Store{
             (store.plan !== SubscriptionPlan.NONE) &&
             (store.subscription_status == SubscriptionStatus.NONE)
         ){
-            throw new AppError("Se uma loja já contratou um plano, deve existir um status para esse plano contratado")
+            throw new DomainError("Se uma loja já contratou um plano, deve existir um status para esse plano contratado", "INVALID_SUBSCRIPTION_STATE")
         }
 
         if (
             (store.plan === SubscriptionPlan.NONE) &&
             (store.subscription_status !== SubscriptionStatus.NONE)
         ){
-            throw new AppError("Se uma loja ainda nao contratou nenhum plano, nao pode ter nenhum status de plano")
+            throw new DomainError("Se uma loja ainda nao contratou nenhum plano, nao pode ter nenhum status de plano", "INVALID_SUBSCRIPTION_STATE")
         }
 
         return store
@@ -162,7 +161,7 @@ export class Store{
 
     public activatePlan(plan: SubscriptionPlan, expires_at: Date): Store {
 
-        if (plan === SubscriptionPlan.NONE) throw new AppError("Não é possivel ativar uma loja com o plano 'None'", 400, "INVALID_ACTIVATION_PLAN");
+        if (plan === SubscriptionPlan.NONE) throw new DomainError("Não é possivel ativar uma loja com o plano 'None'", "INVALID_ACTIVATION_PLAN");
 
         
         // LÓGICA DO ROLLING BILLING COM RESET DE CICLO => SE O CLIENTE ESTIVER COM FATURA ATRASADA OU CANCELADA

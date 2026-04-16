@@ -59,12 +59,12 @@ export class StagedUserNodeMailerSendEmail implements IStagedUserSendEmail{
 
         const message = await this.client.sendMail({
             to: email,
-            from: "Pitstop <noreply@pitstop.com.br>",
-            subject: "Seu código de verificação - Pitstop",
+            from: "Manga Food <noreply@pitstop.com.br>",
+            subject: "Seu código de verificação de sua nova conta Manga Food",
             text: `Seu codigo de verificacao: ${verificationCode}`,
             html: `
                 <div style="font-family: Arial, sans-serif; color: #333;">
-                    <h2>Bem-vindo ao Pitstop!</h2>
+                    <h2>Bem-vindo à Manga Food!</h2>
                     <p>Use o código abaixo para validar seu cadastro:</p>
                     <div style="background: #f4f4f4; padding: 15px; text-align: center; border-radius: 8px; width: fit-content;">
                         <strong style="font-size: 24px; letter-spacing: 3px;">${verificationCode}</strong>

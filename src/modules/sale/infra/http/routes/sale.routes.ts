@@ -1,39 +1,46 @@
-import { Router } from "express"
-
-import { authMiddleware} from "../../../../../shared/infra/http/middlewares/authMiddleware.js"
-import { ensureStoreSelectedMiddleware } from "../../../../../shared/infra/http/middlewares/ensureStoreSelectedMiddleware.js";
-import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
-
-
 import { UserRole } from "../../../../user/entities/user.js";
+import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
+
+// Controllers
 import { makeSaleController } from "../../../useCases/makeSaleUseCase.ts/index.js";
 import { getSalesSummaryByPeriodController } from "../../../useCases/getSalesSummaryByPeriodUseCase/index.js";
+import { getPaginatedSalesController } from "../../../useCases/GetPaginatedSalesUseCase/index.js";
 
-import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js"
-
+// Schemas
 import { makeSaleSchema } from "../zodSchemas/MakeSaleSchema.js";
 import { getSalesSummarySchema } from "../zodSchemas/GetSalesSummaryByPeriodSchema.js";
 
-const saleRoutes = Router();
+const saleRouteBuilder = new SecureRouteBuilder();
 
-saleRoutes.use(authMiddleware);
-saleRoutes.use(ensureStoreSelectedMiddleware);
+// ==========================================
+// NÍVEL 3: REQUER ASSINATURA ATIVA
+// ==========================================
 
-saleRoutes.post("/make-sale",
-    //validateSchema(makeSaleSchema),
-    authorizeRoles([UserRole.GESTOR, UserRole.CAIXA]),
-    (request, response) => {
-        return makeSaleController.handle(request, response)
-    }
-)
+saleRouteBuilder.build({
+    method: 'get',
+    path: '/summary',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    schema: getSalesSummarySchema,
+    handler: (request, response) => getSalesSummaryByPeriodController.handle(request, response)
+});
 
-saleRoutes.get("/summary",
-    validateSchema(getSalesSummarySchema),
-    authorizeRoles([UserRole.GESTOR]),
-    (request, response) => {
-        return getSalesSummaryByPeriodController.handle(request, response);
-    }
-)
+saleRouteBuilder.build({
+    method: 'post',
+    path: '/make-sale',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION', 
+    roles: [UserRole.GESTOR, UserRole.CAIXA],
+    schema: makeSaleSchema, // Schema reativado pelo builder
+    handler: (request, response) => makeSaleController.handle(request, response)
+});
 
+saleRouteBuilder.build({
+    method: 'get',
+    path: '/sales-history',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.CAIXA],
+    //MISSING SCHEMA
+    handler: (request, response) => getPaginatedSalesController.handle(request, response)
+})
 
-export { saleRoutes }
+export const saleRoutes = saleRouteBuilder.getRouter();

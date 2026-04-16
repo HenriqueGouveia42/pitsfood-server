@@ -7,6 +7,7 @@ import type { SalesReportDTO } from '../../interfaces/sale.repository.interface.
 
 import type { Sale as PrismaSaleModel, SaleProduct as PrismaSaleProduct, SalePayment as PrismaSalePayment } from "../../../../../generated/prisma/client.js";
 import { SaleStatus, PaymentMethod, type SaleProp } from "../../../entities/sale.js";
+import type { UserRole } from '../../../../user/entities/user.js';
 
 type PrismaSaleWithRelations = PrismaSaleModel & {
     items?: PrismaSaleProduct[];
@@ -26,6 +27,9 @@ export class PrismaSaleRepository implements ISaleRepository {
             sale_id: sale.id,
             total_price: sale.total.toNumber(),
             status: sale.status,
+
+            seller_name: sale.sellerName,
+            seller_role: sale.sellerRole,
 
             created_at: new Date(sale.createdAt),
             updated_at: new Date(sale.updatedAt),
@@ -80,6 +84,9 @@ export class PrismaSaleRepository implements ISaleRepository {
             
             store_id: prismaSale.store_id,
             user_id: prismaSale.user_id,
+
+            seller_name: prismaSale.seller_name,
+            seller_role: prismaSale.seller_role as UserRole,
             
             items: prismaSale.items ? prismaSale.items.map(item => ({
                 sale_product_id: item.sale_product_id,
@@ -211,57 +218,90 @@ export class PrismaSaleRepository implements ISaleRepository {
         return sales.map(sale => PrismaSaleRepository.prismaToEntitySaleDataMapper(sale));
     }
 
-    async getSalesSummaryByPeriod(startDate: Date, endDate: Date): Promise<SalesReportDTO>{
+    async getSalesSummaryByPeriod(startDate: Date, endDate: Date, store_id: string): Promise<SalesReportDTO>{
 
-        const generalMetrics = await prisma.sale.aggregate({
-            _sum: {total_price: true},
-            _count: { sale_id: true },
-            where: {
-                status: 'CONCLUIDA',
-                created_at: { gte: startDate, lte: endDate }
-            }
-        });
-
-        const totalRevenue = new Decimal(generalMetrics._sum.total_price || 0);
-        const salesCount = generalMetrics._count.sale_id;
-        const averageTicket = salesCount > 0 ? totalRevenue.div(salesCount).toNumber() : 0;
-
-        const paymentsGrouped = await prisma.salePayment.groupBy({
-            by: ['method'],
-            _sum: { amount: true },
-            where: {
-                sale: {
+        // Dispara as 4 consultas simultaneamente (Performance máxima)
+        const [generalMetrics, paymentsGrouped, productsRaw, hourlyRaw] = await Promise.all([
+            
+            // 1. Métricas Gerais
+            prisma.sale.aggregate({
+                _sum: {total_price: true},
+                _count: { sale_id: true },
+                where: {
+                    store_id: store_id,
                     status: 'CONCLUIDA',
                     created_at: { gte: startDate, lte: endDate }
                 }
-            }
-        });
+            }),
+
+            // 2. Agrupamento por Pagamento
+            prisma.salePayment.groupBy({
+                by: ['method'],
+                _sum: { amount: true },
+                where: {
+                    sale: {
+                        store_id: store_id,
+                        status: 'CONCLUIDA',
+                        created_at: { gte: startDate, lte: endDate }
+                    }
+                }
+            }),
+
+            // 3. Agrupamento por Produtos (Raw)
+            prisma.$queryRaw<any[]>`
+                SELECT
+                    sp.product_name_snapshot as product_name,
+                    sp.product_id,
+                    SUM(sp.quantity)::int as quantity_sold,
+                    SUM(sp.quantity * sp.unit_price_snapshot) as total_sold 
+                FROM "sale_products" sp
+                JOIN "sales" s ON sp.sale_id = s.sale_id
+                WHERE s.store_id = ${store_id}
+                AND s.status = 'CONCLUIDA'
+                AND s.created_at >= ${startDate}
+                AND s.created_at <= ${endDate}
+                GROUP BY sp.product_id, sp.product_name_snapshot
+                ORDER BY total_sold DESC
+            `,
+
+            // 4. NOVO: Agrupamento por Hora do Dia (Raw)
+            // Extrai a hora (0 a 23) do created_at e soma as vendas daquela hora
+            prisma.$queryRaw<any[]>`
+                SELECT
+                    EXTRACT(HOUR FROM created_at)::int as sale_hour,
+                    COUNT(sale_id)::int as sales_count,
+                    SUM(total_price) as total_sold
+                FROM "sales"
+                WHERE store_id = ${store_id}
+                AND status = 'CONCLUIDA'
+                AND created_at >= ${startDate}
+                AND created_at <= ${endDate}
+                GROUP BY sale_hour
+                ORDER BY sale_hour ASC
+            `
+        ]);
+
+        // Processamento dos resultados
+        const totalRevenue = new Decimal(generalMetrics._sum.total_price || 0);
+        const salesCount = generalMetrics._count.sale_id;
+        const averageTicket = salesCount > 0 ? totalRevenue.div(salesCount).toNumber() : 0;
 
         const paymentBreakdown = paymentsGrouped.map(p => ({
             method: p.method as PaymentMethod,
             total: new Decimal(p._sum.amount || 0)
         }));
 
-        const productsRaw = await prisma.$queryRaw<any[]>`
-            SELECT
-                sp.product_name_snapshot as product_name,
-                sp.product_id,
-                SUM(sp.quantity)::int as quantity_sold,
-                SUM(sp.quantity * sp.unit_price_snapshot) as total_sold 
-            
-            FROM "sale_products" sp
-            JOIN "sales" s ON sp.sale_id = s.sale_id
-            WHERE s.status = 'CONCLUIDA'
-            AND s.created_at >= ${startDate}
-            AND s.created_at <= ${endDate}
-            GROUP BY sp.product_id, sp.product_name_snapshot
-            ORDER BY total_sold DESC
-        `;
-
         const productBreakdown = productsRaw.map((p: any) => ({
             product_name: p.product_name,
             quantity_sold: Number(p.quantity_sold),
             total_sold: new Decimal(p.total_sold || 0)
+        }));
+
+        // Formatação do novo breakdown por hora
+        const hourlyBreakdown = hourlyRaw.map((h: any) => ({
+            hour: Number(h.sale_hour),
+            sales_count: Number(h.sales_count),
+            total_sold: new Decimal(h.total_sold || 0)
         }));
 
         return {
@@ -272,9 +312,29 @@ export class PrismaSaleRepository implements ISaleRepository {
                 average_ticket: Number(averageTicket.toFixed(2))
             },
             payment_breakdown: paymentBreakdown,
-            product_breakdown: productBreakdown
+            product_breakdown: productBreakdown,
+            hourly_breakdown: hourlyBreakdown // Novo campo retornado
         };
+    }
 
+    async findPaginatedSales(store_id: string, skip: number, limit: number): Promise<Sale[]>{
+        
+        // Busca apenas as vendas. Zero COUNTs.
+        const prismaSales = await prisma.sale.findMany({
+            where: { store_id: store_id },
+            skip: skip,
+            // TRUQUE DO N+1: Pedimos uma a mais do que o limite desejado
+            take: limit + 1, 
+            orderBy: {
+                created_at: 'desc' 
+            },
+            include: {
+                items: true,
+                payments: true
+            }
+        });
+
+        return prismaSales.map(sale => PrismaSaleRepository.prismaToEntitySaleDataMapper(sale));
     }
     
 }

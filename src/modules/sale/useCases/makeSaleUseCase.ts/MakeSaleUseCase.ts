@@ -1,13 +1,15 @@
-import type { IProductRepository } from "../../../product/repositories/product.repository.interface.js";
-import type { ISaleRepository } from "../../repositories/sale.repository.interface.js";
+import type { IProductRepository } from "../../../product/repositories/interfaces/product.repository.interface.js";
+import type { ISaleRepository } from "../../repositories/interfaces/sale.repository.interface.js";
 import { Decimal } from "decimal.js"
 import { PaymentMethod, type SalePaymentProp, type SaleProductProp } from "../../entities/sale.js";
 import { Sale } from "../../entities/sale.js";
-import type { IBillRepository } from "../../../bill/repositories/bill.repository.interface.js";
+import type { IBillRepository } from "../../../bill/repositories/interfaces/bill.repository.interface.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import crypto from "crypto"
 import type { Bill } from "../../../bill/entities/bill.js";
 import type { Product } from "../../../product/entities/product.js";
+import { User } from "../../../user/entities/user.js";
+import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
 
 type PaymentDTO = {
     amount: number | string | Decimal,
@@ -28,6 +30,7 @@ export class MakeSaleUseCase{
         private saleRepository: ISaleRepository,
         private productRepository: IProductRepository,
         private billRepository: IBillRepository,
+        private userRepository: IUserRepository
     ) {}
 
     public async execute( {
@@ -37,6 +40,9 @@ export class MakeSaleUseCase{
             products_gtin_codes = [],
             payments = []
         }: IRequest ): Promise<Sale> {
+
+        const user_closing_sale: User | null = await this.userRepository.findSavedUserById(user_id);
+        if (!user_closing_sale) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
         
         if (bill_physical_codes.length === 0 && products_gtin_codes.length === 0) throw new AppError("A venda precisa ter pelo menos uma comanda ou um produto avulso.", 400, "EMPTY_SALE");
 
@@ -156,7 +162,9 @@ export class MakeSaleUseCase{
             store_id,
             user_id,
             items: saleProducts,
-            payments: salePayments
+            payments: salePayments,
+            seller_name: user_closing_sale.username,
+            seller_role: user_closing_sale.role
         });
 
         await this.saleRepository.createSaleAndCloseBills(sale, bill_physical_codes);

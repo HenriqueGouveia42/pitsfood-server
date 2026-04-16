@@ -1,4 +1,4 @@
-import type { IStagedUserRepository } from "../../repositories/staged_user.repository.interface.js";
+import type { IStagedUserRepository } from "../../repositories/interfaces/staged_user.repository.interface.js";
 import  type { IUserRepository } from "../../../user/repositories/user.repository.interface.js"
 import { StagedUser } from "../../entities/stagedUser.js";
 import { User } from "../../../user/entities/user.js";

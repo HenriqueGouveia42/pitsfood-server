@@ -14,10 +14,6 @@ export class GetSalesSummaryByPeriodController {
 
         const store_id: string = req.user.store_id;
 
-        if (!startDate || !endDate) {
-            throw new AppError("'startDate' e 'endDate' sao obrigatorios", 400, "INVALID_PARAMS");
-        }
-
         const start = new Date(startDate as string);
         const end = new Date(endDate as string);
 
@@ -26,6 +22,8 @@ export class GetSalesSummaryByPeriodController {
             endDate: end,
             store_id: store_id
         });
+
+        console.log(summary);
 
         return res.status(200).json(summary);
 

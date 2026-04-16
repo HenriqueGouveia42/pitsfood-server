@@ -2,7 +2,7 @@ import { compare } from "bcryptjs";
 import { User } from "../../entities/user.js"
 import type { IUserRepository } from "../../repositories/user.repository.interface.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
-import type { ITokenProvider } from "../../providers/token.provider.interface.js";
+import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
 import { cacheProvider } from "../../../../shared/providers/CacheProvider/index.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
@@ -46,9 +46,9 @@ export class LoginUseCase {
         ////////////////////////////////////////
         //WHITELSIT -> CACHE NO REDIS - INICIO
 
-        const tokenVersion = Date.now();
+        const tokenVersion: number = Date.now();
 
-        const cacheKey = CacheKeys.User.TOKEN_VERSION(user.id);
+        const cacheKey: string = CacheKeys.User.TOKEN_VERSION(user.id);
 
         await cacheProvider.save(
             cacheKey,
@@ -59,7 +59,7 @@ export class LoginUseCase {
         ////////////////////////////////////////
         //WHITELSIT -> CACHE NO REDIS - FIM
 
-        const token = this.tokenProvider.generateToken(
+        const token: string = this.tokenProvider.generateToken(
             user.id,
             user.role,
             user.paying_user ? null : user.storeId, //agora quando logar, se for dono da loja, recebe "null" pois ele ainda nao se vinculou a loja

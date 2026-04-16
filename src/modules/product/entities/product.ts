@@ -1,5 +1,5 @@
 import { Decimal } from 'decimal.js';
-import { AppError } from '../../../shared/errors/AppError.js';
+import { DomainError } from '../../../shared/errors/DomainError.js';
 
 export type ProductProps = {
     readonly product_id: string;
@@ -25,7 +25,7 @@ export class Product {
 
         // Se NÃO controla estoque, a quantidade DEVE ser estritamente zero.
         if (!track_stock && stock_quantity !== 0) {
-            throw new AppError("Um produto que não controla estoque deve ter quantidade igual a zero.", 400, "INVALID_STOCK");
+            throw new DomainError("Um produto que não controla estoque deve ter quantidade igual a zero.", "INVALID_STOCK");
         }
 
         // Se controla estoque (track_stock === true), a quantidade pode ser POSITIVA, ZERO ou NEGATIVA.
@@ -70,7 +70,7 @@ export class Product {
 
         //validação de Caracteres
         if (!/^\d+$/.test(gtin)) {
-            throw new Error("O código GTIN deve conter apenas números");
+            throw new DomainError("O código GTIN deve conter apenas números", "INVALID_GTIN");
         }
 
         //validação de Tamanho (Família GS1)
@@ -78,36 +78,36 @@ export class Product {
         const validLengths = [8, 12, 13, 14];
 
         if (!validLengths.includes(gtin.length)) {
-            throw new Error(`GTIN inválido. Tamanho recebido: ${gtin.length}. Esperado: 8, 12, 13 ou 14.`);
+            throw new DomainError(`GTIN inválido. Tamanho recebido: ${gtin.length}. Esperado: 8, 12, 13 ou 14.`, "INVALID_GTIN");
         }
 
         const expectedDigit = Product.calculateGtinChecksum(gtin.slice(0, -1));
         const actualDigit = gtin.slice(-1);
 
         if (expectedDigit !== actualDigit) {
-            throw new Error(`GTIN inválido. Dígito Verificador incorreto. Esperado: ${expectedDigit}, Recebido: ${actualDigit}`);
+            throw new DomainError(`GTIN inválido. Dígito Verificador incorreto. Esperado: ${expectedDigit}, Recebido: ${actualDigit}`, "INVALID_GTIN");
         }
 
         if (gtin.length === 13) {
             const startsWith22 = gtin.startsWith('22');
 
             if (startsWith22 && !is_internal) {
-                throw new Error("Erro! Produto externo não pode começar com '22' (prefixo reservado a produtos internos).");
+                throw new DomainError("Erro! Produto externo não pode começar com '22' (prefixo reservado a produtos internos).", "INVALID_GTIN");
             }
     
             if (!startsWith22 && is_internal) {
-                throw new Error("Erro! Produto interno deve começar com o prefixo '22'.");
+                throw new DomainError("Erro! Produto interno deve começar com o prefixo '22'.", "INVALID_GTIN");
             }
         }
 
     }
 
     private static validateName(name: string) {
-        if (name.length > 100) throw new Error("Nome muito longo");
+        if (name.length > 100) throw new DomainError("Nome muito longo", "INVALID_PRODUCT_NAME");
     }
 
     private static validatePrice(price: Decimal) {
-        if (price.isNegative() || price.gt(1000000)) throw new Error("Preço fora da faixa permitida");
+        if (price.isNegative() || price.gt(1000000)) throw new DomainError("Preço fora da faixa permitida", "INVALID_PRODUCT_PRICE");
     }
 
     //produtos internos vao ter gtin13 code sempre comecando com 202
@@ -131,7 +131,7 @@ export class Product {
             finalStockQuantity = 0;
         }
         
-        if (requires_preparation && track_stock) throw new AppError("Um produto que precisa ser preparado nao pode ter estoque", 422, "INVALID_PRODUCT")
+        if (requires_preparation && track_stock) throw new DomainError("Um produto que precisa ser preparado nao pode ter estoque", "INVALID_PRODUCT");
 
         const finalName: string = name.toUpperCase();
 
@@ -140,7 +140,7 @@ export class Product {
         const sanitizedInputGtin = gtin_code ? Product.normalizeGtin(gtin_code) : null;
 
         //REGRA 1: Produto externo OBRIGATORIAMENTE precisa de GTIN
-        if (!is_internal && !sanitizedInputGtin) throw new Error("Um produto externo deve possuir um GTIN-13 informado.");
+        if (!is_internal && !sanitizedInputGtin) throw new DomainError("Um produto externo deve possuir um GTIN-13 informado.", "MISSING_GTIN");
         
         //REGRA 2: Se for interno e NÃO tiver GTIN, gera um.
         if (is_internal && !sanitizedInputGtin) {

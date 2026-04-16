@@ -1,5 +1,6 @@
 import { Decimal } from "decimal.js";
-import { AppError } from "../../../shared/errors/AppError.js";
+import { DomainError } from "../../../shared/errors/DomainError.js";
+import type { User, UserRole } from "../../user/entities/user.js";
 
 export enum SaleStatus {
     CONCLUIDA = "CONCLUIDA",
@@ -45,9 +46,14 @@ export type SaleProp = { //representa uma venda fechada
 
     readonly store_id: string;
     readonly user_id: string;
+
+    readonly seller_name: string;
+    readonly seller_role: UserRole;
    
     readonly items: SaleProductProp[];
     readonly payments: SalePaymentProp[];
+
+    
 }
 
 //interface para o input do buildSale (Pattern: Parameter Object)
@@ -56,7 +62,9 @@ interface BuildSaleParams {
     user_id: string;
     items: SaleProductProp[];
     payments: SalePaymentProp[];
-    sale_id?: string;
+    sale_id: string;
+    seller_name: string,
+    seller_role: UserRole
 }
 
 export class Sale {
@@ -66,7 +74,7 @@ export class Sale {
     private static validateTotals(totalAmountFromItems: Decimal, totalPaid: Decimal, payments: SalePaymentProp[]) {
         // 1. Verifica se o valor pago é suficiente para cobrir a venda
         if (totalPaid.lessThan(totalAmountFromItems)) {
-            throw new AppError(`Pagamento menor do que o valor da conta. Total Venda: ${totalAmountFromItems}, Total Pago: ${totalPaid}`, 422, "INSUFICIENT_PAYMENT");
+            throw new DomainError(`Pagamento menor do que o valor da conta. Total Venda: ${totalAmountFromItems}, Total Pago: ${totalPaid}`, "INSUFICIENT_PAYMENT");
         }
 
         // 2. Calcula se há troco
@@ -80,9 +88,8 @@ export class Sale {
 
             // 4. Regra de Negócio: Troco nunca pode ser maior que o valor dado em dinheiro físico
             if (troco.greaterThan(totalEmEspecie)) {
-                throw new AppError(
+                throw new DomainError(
                     "O valor do troco não pode ser maior que o valor pago em espécie. Pagamentos em PIX ou Cartão não geram troco.", 
-                    422, 
                     "INVALID_CHANGE_FOR_PAYMENT_METHOD"
                 );
             }
@@ -91,7 +98,7 @@ export class Sale {
 
     public static buildSale(params: BuildSaleParams): Sale {
         
-        if (params.items.length === 0) throw new AppError("Não é possível criar uma venda sem itens.", 402, "NO_ITENS");
+        if (params.items.length === 0) throw new DomainError("Não é possível criar uma venda sem itens.", "NO_ITENS");
         
         const calculatedTotalPrice: Decimal = params.items.reduce((acc, item) => {
             return acc.plus(item.unit_price_snapshot.times(item.quantity));
@@ -107,10 +114,8 @@ export class Sale {
 
         const now: string = new Date().toISOString();
 
-        const saleId: string = params.sale_id ?? crypto.randomUUID();
-
         return new Sale({
-            sale_id: saleId,
+            sale_id: params.sale_id,
             total_price: calculatedTotalPrice,
             status: SaleStatus.CONCLUIDA,
             created_at: now,
@@ -118,7 +123,9 @@ export class Sale {
             store_id: params.store_id,
             user_id: params.user_id,
             items: params.items,
-            payments: params.payments
+            payments: params.payments,
+            seller_name: params.seller_name,
+            seller_role: params.seller_role
         });
     }
 
@@ -136,6 +143,8 @@ export class Sale {
 
     get store_id() { return this.props.store_id; }
     get userId() { return this.props.user_id; }
+    get sellerName() {return this.props.seller_name; }
+    get sellerRole() {return this.props.seller_role; }
 
     get items() { return this.props.items; }
     get payments() { return this.props.payments; }
@@ -146,7 +155,7 @@ export class Sale {
 
     public withCancelledStatus(): Sale {
         if (this.props.status !== SaleStatus.CONCLUIDA) {
-            throw new AppError("Apenas vendas concluídas podem ser canceladas.", 409, "SALE_STATUS_CONFLICT")
+            throw new DomainError("Apenas vendas concluídas podem ser canceladas.", "SALE_STATUS_CONFLICT")
         }
         
         return new Sale({

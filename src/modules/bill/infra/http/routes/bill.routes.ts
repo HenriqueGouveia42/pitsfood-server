@@ -1,69 +1,66 @@
-import { response, Router } from "express";
+import { UserRole } from "../../../../user/entities/user.js";
+import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
 
-import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js";
-
-import { authMiddleware } from "../../../../../shared/infra/http/middlewares/authMiddleware.js";
-import { ensureStoreSelectedMiddleware } from "../../../../../shared/infra/http/middlewares/ensureStoreSelectedMiddleware.js";
-import { ensureSubscriptionActiveMiddleware } from "../../../../../shared/infra/http/middlewares/ensureSubscriptionActiveMiddleware.js";
-
-import { User, UserRole } from "../../../../user/entities/user.js";
-
+// Controllers
 import { batchAddItemsController } from "../../../useCases/batchAddProducts/index.js";
 import { getOpenBillByGtinCodeController } from "../../../useCases/getOpenBillByGtinCode/index.js"
 import { findAllOpenBillsController } from "../../../useCases/findAllOpenBills/index.js"
 import { billCodeExistsController } from "../../../useCases/checkIfBillCodeExists/index.js";
 import { getPhysicalBIllCodesController } from "../../../useCases/GetPhysicalBilllCodes/index.js";
 
-import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
+// Schemas
 import { batchAddItemsSchema } from "../zodSchemas/batchAddItemsSchema.js";
 import { billCodeExistsSchema } from "../zodSchemas/BillCodeExistsSchema.js";
 import { GetOpenBillByGtinCodeSchema } from "../zodSchemas/GetOpenBillByGtinCodeSchema.js"
 
-//import {  }
+const billRouteBuilder = new SecureRouteBuilder();
 
+// ==========================================
+// NÍVEL 3: REQUER ASSINATURA ATIVA (Uso do PDV/Comandas)
+// ==========================================
 
-const billRoutes = Router();
+billRouteBuilder.build({
+    method: 'get',
+    path: '/physical-bills-codes',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    // schema: physicalBillsCodesSchema, // missing zod schema
+    handler: (request, response) => getPhysicalBIllCodesController.handle(request, response)
+});
 
-billRoutes.use(authMiddleware);
-billRoutes.use(ensureStoreSelectedMiddleware);
-billRoutes.use(ensureSubscriptionActiveMiddleware);
+billRouteBuilder.build({
+    method: 'post',
+    path: '/batch-add',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.CAIXA, UserRole.VENDEDOR, UserRole.GESTOR],
+    schema: batchAddItemsSchema, // schema reativado através do builder
+    handler: (request, response) => batchAddItemsController.handle(request, response)
+});
 
-billRoutes.get("/physical-bills-codes",
-    //missing zod schema
-    authorizeRoles([UserRole.GESTOR]),
-    (request, response) => {
-        return getPhysicalBIllCodesController.handle(request, response)
-    }
-)
+billRouteBuilder.build({
+    method: 'get',
+    path: '/bill-code-exists/:bill_code_gtin',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.CAIXA, UserRole.VENDEDOR],
+    schema: billCodeExistsSchema,
+    handler: (request, response) => billCodeExistsController.handle(request, response)
+});
 
-billRoutes.post("/batch-add",
-    //validateSchema(batchAddItemsSchema),
-    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR, UserRole.GESTOR]),
-    (request, response) => {
-    return batchAddItemsController.handle(request, response);
-})
+billRouteBuilder.build({
+    method: 'get',
+    path: '/get-open-bill-by-gtin-code/:bill_code_gtin',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.CAIXA, UserRole.VENDEDOR],
+    schema: GetOpenBillByGtinCodeSchema,
+    handler: (request, response) => getOpenBillByGtinCodeController.handle(request, response)
+});
 
-billRoutes.get("/bill-code-exists/:bill_code_gtin",
-    validateSchema(billCodeExistsSchema),
-    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR]),
-    (request, response) => {
-        return billCodeExistsController.handle(request, response);
-    }
-)
+billRouteBuilder.build({
+    method: 'get',
+    path: '/get-all-open-bills',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.CAIXA, UserRole.VENDEDOR, UserRole.GESTOR],
+    handler: (request, response) => findAllOpenBillsController.handle(request, response)
+});
 
-billRoutes.get("/get-open-bill-by-gtin-code/:bill_code_gtin",
-    validateSchema(GetOpenBillByGtinCodeSchema),
-    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR]),
-    (request, response) =>{
-    return getOpenBillByGtinCodeController.handle(request, response);
-})
-
-billRoutes.get("/get-all-open-bills",
-    authorizeRoles([UserRole.CAIXA, UserRole.VENDEDOR,  UserRole.GESTOR]),
-    (request, response) => {
-        return findAllOpenBillsController.handle(request, response);
-    }
-)
-
-
-export { billRoutes }
+export const billRoutes = billRouteBuilder.getRouter();

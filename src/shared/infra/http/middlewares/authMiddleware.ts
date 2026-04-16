@@ -40,9 +40,9 @@ export async function authMiddleware( //agora é um funcao assincrona, pois faz 
         // VALIDAÇÃO VIA REDIS (WHITELIST) - INICIO
         // -------------------------------------------------------------
 
-        const cacheKey = CacheKeys.User.TOKEN_VERSION(sub);
+        const cacheKey: string = CacheKeys.User.TOKEN_VERSION(sub);
 
-        const currentCacheVersion = await cacheProvider.get<number>(cacheKey);
+        const currentCacheVersion: number | null = await cacheProvider.get<number>(cacheKey);
 
         if (currentCacheVersion === null || Number(currentCacheVersion) !== token_version){
 

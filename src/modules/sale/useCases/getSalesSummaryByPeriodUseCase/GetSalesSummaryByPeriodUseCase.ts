@@ -40,15 +40,27 @@ export class GetSalesSummaryByPeriodUseCase {
             end_day_month_year
         )
 
-        const cachedData = await this.cacheProvider.get<SalesReportDTO>(cache_key);
+        let cache_time_in_seconds: number;
+
+        if (
+            start_day === end_day &&
+            start_month === end_month &&
+            start_year === end_year
+        ){
+            cache_time_in_seconds = 5 * 60
+        } else{
+            cache_time_in_seconds = 15 * 60
+        }
+    
+        const cachedData: SalesReportDTO | null = await this.cacheProvider.get<SalesReportDTO>(cache_key);
 
         if (cachedData) return cachedData;
 
         //cache miss
 
-        const report: SalesReportDTO = await this.saleRepository.getSalesSummaryByPeriod(startDate, endDate);
+        const report: SalesReportDTO = await this.saleRepository.getSalesSummaryByPeriod(startDate, endDate, store_id);
 
-        await this.cacheProvider.save(cache_key, report, 3600 * 24); //1 dia 
+        await this.cacheProvider.save(cache_key, report, cache_time_in_seconds); //1 dia 
 
         return report;
 
