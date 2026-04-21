@@ -48,11 +48,12 @@ export class PrismaStoreRepository implements IStoreRepository {
             subscription_status: prismaStore.subscription_status as EntitySubscriptionStatus,
             store_icon_url: prismaStore.store_icon_url,
             subscription_expires_at: prismaStore.subscription_expires_at ? prismaStore.subscription_expires_at.toISOString() : null,
-            billing_day: prismaStore.billing_day ? prismaStore.billing_day : null
+            billing_day: prismaStore.billing_day ? prismaStore.billing_day : null,
+            affiliate_id: prismaStore.affiliate_id ? prismaStore.affiliate_id : null
         })
     }
 
-    private static entityToPrismaDataMapper(store: Store) {
+    private static entityToPrismaDataMapper(store: Store): PrismaStoreModel {
 
         const props: StoreProps = store.getProps;
 
@@ -68,7 +69,8 @@ export class PrismaStoreRepository implements IStoreRepository {
                 subscription_status: props.subscription_status,
                 store_icon_url: props.store_icon_url,
                 subscription_expires_at: props.subscription_expires_at ? new Date(props.subscription_expires_at) : null,
-                billing_day: props.billing_day ? props.billing_day : null
+                billing_day: props.billing_day ? props.billing_day : null,
+                affiliate_id: props.affiliate_id ? props.affiliate_id : null
             }
         }
 

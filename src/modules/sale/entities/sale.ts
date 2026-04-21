@@ -52,8 +52,6 @@ export type SaleProp = { //representa uma venda fechada
    
     readonly items: SaleProductProp[];
     readonly payments: SalePaymentProp[];
-
-    
 }
 
 //interface para o input do buildSale (Pattern: Parameter Object)
@@ -64,7 +62,8 @@ interface BuildSaleParams {
     payments: SalePaymentProp[];
     sale_id: string;
     seller_name: string,
-    seller_role: UserRole
+    seller_role: UserRole,
+    now_string: string
 }
 
 export class Sale {
@@ -112,14 +111,13 @@ export class Sale {
         //valida consistencia (agora passando os pagamentos para validar o troco)
         Sale.validateTotals(calculatedTotalPrice, calculatedTotalPaid, params.payments);
 
-        const now: string = new Date().toISOString();
 
         return new Sale({
             sale_id: params.sale_id,
             total_price: calculatedTotalPrice,
             status: SaleStatus.CONCLUIDA,
-            created_at: now,
-            updated_at: now,
+            created_at: params.now_string,
+            updated_at: params.now_string,
             store_id: params.store_id,
             user_id: params.user_id,
             items: params.items,
@@ -153,7 +151,7 @@ export class Sale {
         return this.props.payments.reduce((acc, pay) => acc.plus(pay.amount), new Decimal(0));
     }
 
-    public withCancelledStatus(): Sale {
+    public withCancelledStatus(now_string: string): Sale {
         if (this.props.status !== SaleStatus.CONCLUIDA) {
             throw new DomainError("Apenas vendas concluídas podem ser canceladas.", "SALE_STATUS_CONFLICT")
         }
@@ -161,7 +159,7 @@ export class Sale {
         return new Sale({
             ...this.props,
             status: SaleStatus.CANCELADA,
-            updated_at: new Date().toISOString()
+            updated_at: now_string
         });
     }
 }

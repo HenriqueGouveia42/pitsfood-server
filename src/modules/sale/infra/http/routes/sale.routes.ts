@@ -38,7 +38,7 @@ saleRouteBuilder.build({
     method: 'get',
     path: '/sales-history',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
-    roles: [UserRole.CAIXA],
+    roles: [UserRole.CAIXA, UserRole.GESTOR],
     //MISSING SCHEMA
     handler: (request, response) => getPaginatedSalesController.handle(request, response)
 })

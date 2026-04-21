@@ -157,6 +157,8 @@ export class MakeSaleUseCase{
             sale_id: sale_id
         }));
 
+        const now_string: string = new Date().toISOString();
+
         const sale: Sale = Sale.buildSale({
             sale_id,
             store_id,
@@ -164,7 +166,8 @@ export class MakeSaleUseCase{
             items: saleProducts,
             payments: salePayments,
             seller_name: user_closing_sale.username,
-            seller_role: user_closing_sale.role
+            seller_role: user_closing_sale.role,
+            now_string: now_string
         });
 
         await this.saleRepository.createSaleAndCloseBills(sale, bill_physical_codes);

@@ -1,4 +1,4 @@
-import { AppError } from "../../../shared/errors/AppError.js";
+import { DomainError } from "../../../shared/errors/DomainError.js";
 import { SubscriptionPlan } from "./store.js"; // Importando o Enum do arquivo store.ts
 
 export enum InvoiceStatus {
@@ -29,6 +29,21 @@ export type SubscriptionInvoiceProps = {
     readonly plan_tag: SubscriptionPlan; //qual plano está sendo cobrado
 }
 
+export type BuildSubscriptionInvoiceProps = {
+    readonly now_date: string,
+    readonly invoice_id: string,
+    readonly amount_in_cents: number,
+    readonly store_id: string,
+    readonly plan_tag: SubscriptionPlan,
+    readonly period_end: string,
+    readonly gateway_data?: {
+        gateway_invoice_id: string,
+        pix_code: string,
+        payment_url: string
+    }
+
+}
+
 export class SubscriptionInvoice {
 
     private constructor(private readonly props: SubscriptionInvoiceProps) {}
@@ -38,57 +53,39 @@ export class SubscriptionInvoice {
     }
 
     private static validateAmount(amount: number): void {
-        if (!Number.isInteger(amount)) {
-            throw new AppError("O valor da fatura deve ser um número inteiro (centavos).", 400, "INVALID_AMOUNT_TYPE");
-        }
-        if (amount <= 0) {
-            throw new AppError("O valor da fatura deve ser maior que zero.", 400, "INVALID_AMOUNT_VALUE");
-        }
+
+        if (!Number.isInteger(amount)) throw new DomainError("O valor da fatura deve ser um número inteiro (centavos).", "INVALID_AMOUNT_TYPE");
+        
+        if (amount <= 0) throw new DomainError("O valor da fatura deve ser maior que zero.", "INVALID_AMOUNT_VALUE")
+        
     }
 
-    /**
-     * Factory method para criar uma NOVA fatura.
-     * Geralmente chamada antes ou logo após solicitar ao Gateway.
-     */
-    public static buildInvoice(
-        amount_in_cents: number,
-        store_id: string,
-        plan_tag: SubscriptionPlan,
-        period_end: string,
-        gateway_data?: {
-            gateway_invoice_id: string,
-            pix_code: string,
-            payment_url: string
-        }
-    ): SubscriptionInvoice {
+    
+    public static buildInvoice(build_props: BuildSubscriptionInvoiceProps): SubscriptionInvoice {
 
         // 1. Validações
-        SubscriptionInvoice.validateAmount(amount_in_cents);
+        SubscriptionInvoice.validateAmount(build_props.amount_in_cents);
 
-        if (plan_tag === SubscriptionPlan.NONE) {
-            throw new AppError("Não é possível gerar uma fatura para o plano 'NONE'.", 422, "INVALID_PLAN_INVOICE");
-        }
-
-        const now = new Date().toISOString();
-
+        if (build_props.plan_tag === SubscriptionPlan.NONE) throw new DomainError("Não é possível gerar uma fatura para o plano 'NONE'", "INVALID_PLAN_INVOICE");
+        
         // 2. Criação
         const invoice = new SubscriptionInvoice({
-            invoice_id: crypto.randomUUID(),
-            amount_in_cents,
+            invoice_id: build_props.invoice_id,
+            amount_in_cents: build_props.amount_in_cents,
             currency: "BRL", // Travado em BRL por enquanto
             status: InvoiceStatus.PENDING,
             
             // Se já tivermos a resposta do gateway, preenchemos. Se não, null.
-            gateway_invoice_id: gateway_data?.gateway_invoice_id ?? null,
-            pix_code: gateway_data?.pix_code ?? null,
-            payment_url: gateway_data?.payment_url ?? null,
+            gateway_invoice_id: build_props.gateway_data?.gateway_invoice_id ?? null,
+            pix_code: build_props.gateway_data?.pix_code ?? null,
+            payment_url: build_props.gateway_data?.payment_url ?? null,
 
-            created_at: now,
+            created_at: build_props.now_date,
             paid_at: null,
-            period_end: period_end,
+            period_end: build_props.period_end,
 
-            store_id,
-            plan_tag
+            store_id: build_props.store_id,
+            plan_tag: build_props.plan_tag
         });
 
         return invoice;
@@ -98,7 +95,7 @@ export class SubscriptionInvoice {
         return new SubscriptionInvoice(props);
     }
 
-    public markAsPaid(): SubscriptionInvoice {
+    public markAsPaid(now_date: string): SubscriptionInvoice {
         if (this.props.status === InvoiceStatus.PAID) {
             //se já está paga, não faz nada ou lança erro (opcional, aqui apenas retorna a mesma)
             return this;
@@ -107,7 +104,7 @@ export class SubscriptionInvoice {
         return new SubscriptionInvoice({
             ...this.props,
             status: InvoiceStatus.PAID,
-            paid_at: new Date().toISOString()
+            paid_at: now_date
         });
     }
 
@@ -123,9 +120,8 @@ export class SubscriptionInvoice {
 
     public markAsCanceled(): SubscriptionInvoice {
         
-        if (this.props.status !== InvoiceStatus.PENDING) {
-            throw new AppError("Apenas faturas pendentes podem ser canceladas.", 400, "INVALID_STATUS_TRANSITION");
-        }
+        if (this.props.status !== InvoiceStatus.PENDING) throw new DomainError("Apenas faturas pendentes podem ser canceladas.", "INVALID_STATUS_TRANSITION" );
+        
 
         return new SubscriptionInvoice({
             ...this.props,

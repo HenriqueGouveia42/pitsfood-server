@@ -59,8 +59,9 @@ export class HandleAbacateWebhookUseCase { //recebeu o webhook do abacate pay
         const physical_bills_quantity: number = PLAN_LIMITS[plan].limits.max_physical_bills;
         const codes: Set<string> = generateValid4DigitsPhysicalCodes(physical_bills_quantity);
 
+        const now_date: string = new Date().toISOString();
         const activatedStore: Store = store.activatePlan(plan, entity_invoice_expires_at);
-        const paidInvoice: SubscriptionInvoice = entityInvoice.markAsPaid();
+        const paidInvoice: SubscriptionInvoice = entityInvoice.markAsPaid(now_date);
         const physical_bills: Set<PhysicalBill> = PhysicalBill.buildManyPhysicallBills(codes, entityInvoice.storeId);
 
         await this.storeRepository.saveActivationTransaction(

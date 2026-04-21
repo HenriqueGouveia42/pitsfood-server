@@ -4,6 +4,7 @@ import { StagedUser } from "../../entities/stagedUser.js";
 import { User } from "../../../user/entities/user.js";
 import { UserRole, type UserProps } from "../../../user/entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
+import type { BuildUserProps } from "../../../user/entities/user.js";
 
 interface CheckVerificationCodeStagedUserRequestUseCase{
     email: string,
@@ -41,7 +42,22 @@ export class CheckVerificationCodeStageUserUseCase{
             phone: stagedUser.phone ? stagedUser.phone : null
         }
 
-        const user: User = User.restore(userProps);
+        const buildUserProps: BuildUserProps = {
+            user_id: stagedUser.id,
+            nowDate: now,
+            username: stagedUser.username,
+            password_hash: stagedUser.password_hash,
+            role: UserRole.GESTOR,
+            email: stagedUser.email,
+            store_id: null, //o gestor que cria a conta paga pode ter varias lojas, por isso é null aqui
+            must_change_password: false,
+            is_paying_user: true,
+            cpf_cnpj: stagedUser.cpf_cnpj,
+            phone: stagedUser.phone ? stagedUser.phone : null
+
+        }
+
+        const user: User = User.buildUser(buildUserProps);
 
         await this.stagedUserRepo.deleteStagedUserAndCreateUser(stagedUser, user);
 

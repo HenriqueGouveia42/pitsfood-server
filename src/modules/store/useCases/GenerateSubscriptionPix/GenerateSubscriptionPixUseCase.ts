@@ -7,6 +7,7 @@ import { Store, SubscriptionPlan, SubscriptionStatus } from "../../entities/stor
 import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
 import type { ISubscriptionInvoiceRepository } from "../../repositories/interfaces/subscriptionInvoice.repository.interface.js";
 import type { User } from "../../../user/entities/user.js";
+import type { BuildSubscriptionInvoiceProps } from "../../entities/subscriptionInvoice.js";
 
 interface IRequest {
     store_id: string;
@@ -102,17 +103,26 @@ export class GenerateSubscriptionPixUseCase {
         // 9 - Salva a fatura no nosso banco.
         // Atenção: O dueDate da Fatura é o target_date do plano (ex: 1 mês à frente),
         // pois é essa data que o Webhook usará para ativar a loja.
-        const invoice: SubscriptionInvoice = SubscriptionInvoice.buildInvoice(
+
+        const invoice_id: string = crypto.randomUUID();
+
+        const build_invoice_props: BuildSubscriptionInvoiceProps = {
+            now_date: now.toISOString(),
+            invoice_id,
             amount_in_cents,
-            store.id,
-            plan,
-            target_date.toISOString(),
-            {
+            store_id: store.id,
+            plan_tag: plan,
+            period_end: target_date.toISOString(),
+            gateway_data:{
                 gateway_invoice_id: paymentData.payment_id,
-                payment_url: paymentData.payment_url,
-                pix_code: "" 
+                pix_code: "",
+                payment_url: paymentData.payment_url 
+            
             }
-        );
+
+        }
+
+        const invoice: SubscriptionInvoice = SubscriptionInvoice.buildInvoice(build_invoice_props);
 
         await this.invoiceRepository.save(invoice);
 

@@ -17,6 +17,21 @@ export type ProductProps = {
     readonly requires_preparation: boolean
 }
 
+export type BuildProductProps = {
+    readonly name: string, 
+    readonly unit_price_in_reais: Decimal, 
+    readonly gtin_code: string | null, 
+    readonly is_internal: boolean,
+    readonly active: boolean,
+    readonly store_id: string,
+    readonly track_stock: boolean,
+    readonly stock_quantity: number,
+    readonly requires_preparation: boolean,
+    readonly now_date: string
+    readonly product_id: string
+}
+
+
 export class Product {
     //constructor e propriedade props são estritamente readonly
     private constructor(private readonly props: ProductProps) {}
@@ -111,39 +126,29 @@ export class Product {
     }
 
     //produtos internos vao ter gtin13 code sempre comecando com 202
-    public static buildProduct(
-        name: string, 
-        unit_price_in_reais: Decimal, 
-        gtin_code: string | null, 
-        is_internal: boolean = true,
-        active: boolean = true,
-        store_id: string,
-        track_stock: boolean,
-        stock_quantity: number,
-        requires_preparation: boolean
-    ): Product {
+    public static buildProduct(build_props: BuildProductProps): Product {
 
         let finalStockQuantity = 0;
 
-        if (track_stock){
-            finalStockQuantity = stock_quantity ? stock_quantity : 0;
+        if (build_props.track_stock){
+            finalStockQuantity = build_props.stock_quantity ? build_props.stock_quantity : 0;
         } else {
             finalStockQuantity = 0;
         }
         
-        if (requires_preparation && track_stock) throw new DomainError("Um produto que precisa ser preparado nao pode ter estoque", "INVALID_PRODUCT");
+        if (build_props.requires_preparation && build_props.track_stock) throw new DomainError("Um produto que precisa ser preparado nao pode ter estoque", "INVALID_PRODUCT");
 
-        const finalName: string = name.toUpperCase();
+        const finalName: string = build_props.name.toUpperCase();
 
         let finalGtin: string;
 
-        const sanitizedInputGtin = gtin_code ? Product.normalizeGtin(gtin_code) : null;
+        const sanitizedInputGtin = build_props.gtin_code ? Product.normalizeGtin(build_props.gtin_code) : null;
 
         //REGRA 1: Produto externo OBRIGATORIAMENTE precisa de GTIN
-        if (!is_internal && !sanitizedInputGtin) throw new DomainError("Um produto externo deve possuir um GTIN-13 informado.", "MISSING_GTIN");
+        if (!build_props.is_internal && !sanitizedInputGtin) throw new DomainError("Um produto externo deve possuir um GTIN-13 informado.", "MISSING_GTIN");
         
         //REGRA 2: Se for interno e NÃO tiver GTIN, gera um.
-        if (is_internal && !sanitizedInputGtin) {
+        if (build_props.is_internal && !sanitizedInputGtin) {
             finalGtin = Product.generateGtin13CodeForInternalProduct();
         }
 
@@ -155,27 +160,25 @@ export class Product {
         }
        
        
-        Product.validateGtin(finalGtin, is_internal);
-        Product.validateName(name);
-        Product.validatePrice(unit_price_in_reais);
-        Product.validateStock(track_stock, stock_quantity);
+        Product.validateGtin(finalGtin,build_props.is_internal);
+        Product.validateName(build_props.name);
+        Product.validatePrice(build_props.unit_price_in_reais);
+        Product.validateStock(build_props.track_stock, build_props.stock_quantity);
 
-
-        const now = new Date().toISOString();
 
         return new Product({
-            product_id: crypto.randomUUID(),
+            product_id: build_props.product_id,
             name: finalName,
-            unit_price_in_reais,
+            unit_price_in_reais: build_props.unit_price_in_reais,
             gtin_code: finalGtin,
-            is_internal,
-            created_at: now,
-            updated_at: now,
-            active,
-            store_id,
-            track_stock,
+            is_internal: build_props.is_internal,
+            created_at: build_props.now_date,
+            updated_at: build_props.now_date,
+            active: build_props.active,
+            store_id: build_props.store_id,
+            track_stock: build_props.track_stock,
             stock_quantity: finalStockQuantity,
-            requires_preparation: requires_preparation
+            requires_preparation: build_props.requires_preparation
         });
     }
 
@@ -203,17 +206,19 @@ export class Product {
     get requires_preparation() {return this.props.requires_preparation}
 
     //setter que retorna novo objeto, mantendo a imutabilidade de um objeto criado
-    public withUpdatedData(newName:string, newUnitPrice: Decimal, newActive: boolean): Product{
+    public withUpdatedData(newName:string, newUnitPrice: Decimal, newActive: boolean, date_string: string): Product{
 
-        Product.validateName(newName);
+        const finalName: string = newName.toUpperCase();
+
+        Product.validateName(finalName);
         Product.validatePrice(newUnitPrice);
 
         return new Product({
             ...this.props,
-            name: newName,
+            name: finalName,
             unit_price_in_reais: newUnitPrice,
             active: newActive,
-            updated_at: new Date().toISOString()
+            updated_at: date_string
         })
     }
 }

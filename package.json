@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "tsx watch src/git_untracked_tests/main.ts"
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",
@@ -42,9 +42,10 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
-    "nodemailer": "^7.0.12",
+    "nodemailer": "^8.0.5",
     "pg": "^8.16.3",
     "redis": "^5.10.0",
+    "vitest": "^4.1.4",
     "zod": "^4.3.5"
   }
 }

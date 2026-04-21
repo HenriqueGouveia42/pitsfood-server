@@ -3,6 +3,8 @@ import type { IStoreRepository } from "../../../store/repositories/interfaces/st
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 
 import { User } from "../../entities/user.js";
+import type { BuildUserProps } from "../../entities/user.js";
+
 import bcrypt from "bcryptjs";
 import { UserRole } from "../../entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
@@ -13,6 +15,7 @@ import { validCNPJ } from "../../../../shared/validators/valid.cnpj.js";
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
 import { SubscriptionPlan } from "../../../store/entities/store.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
+import { uuid } from "zod";
 
 interface RegisterEmployeeUseCaseRequest{
     name: string,
@@ -50,14 +53,12 @@ export class RegisterEmployeeUseCase{
         if (!manager_user.paying_user) throw new AppError("Usuario gestor precisa ser um gestor pago, ou seja, aquele que criou a loja!");
 
         const store: Store | null = await this.storeRepository.findSavedStoreById(manager_user.storeId);
-        console.log(store);
         if (store === null) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND")
         if (store.ownerId != manager_user.id) throw new AppError("O usuario não é o dono da loja", 403, "MUST_BE_THE_OWNER");
 
         //PRECISAMOS SABER SE A LOJA JÁ ATINGIU A QUANTIDADE MAXIMA DE USUARIOS COM ESSE CARGO PARA O SEU PLANO
 
         const store_plan: SubscriptionPlan = store.plan as SubscriptionPlan;
-        console.log(store_plan);
         const user_role: UserRole = role as UserRole;
         const max_quantity_users_this_role_for_this_store: number | null | undefined = PLAN_LIMITS[store_plan].limits.max_users[user_role];
         console.log(max_quantity_users_this_role_for_this_store);
@@ -78,7 +79,7 @@ export class RegisterEmployeeUseCase{
         }
             
 
-        const hashed_password = await bcrypt.hash(plain_text_password, 8);
+        const hashed_password: string = await bcrypt.hash(plain_text_password, 8);
 
         const isCPFValid: boolean = validateCPF(cpf_cnpj);
         const isCNPJValid: boolean = validCNPJ(cpf_cnpj);
@@ -88,17 +89,24 @@ export class RegisterEmployeeUseCase{
         const cpf_cnpj_user: User | null = await this.userRepository.findUserByCPFCNPJ(cpf_cnpj);
         if (cpf_cnpj_user) throw new AppError("Usario com esse CPF/CNPJ ja existe no sistema", 403, "CPF_CNPJ_USER_ALREADY_EXISTS");
 
-        const user: User = User.buildUser(
-            name,
-            hashed_password,
-            role as UserRole,
-            email,
-            store.id,
-            true, //'must_change_password' deve ser true pois um funcionario recem criado PRECISA que mudar sua senha inicialmente criada pelo gestor
-            false, //'is_paying_user' aqui precisa ser false, pois esse é um usuario criado pelo usuario gestor inicial
-            cpf_cnpj,
-            phone ? phone : null
-        );
+        const new_employee_user_id: string = crypto.randomUUID()
+
+        const now_date: string = new Date().toISOString();
+        
+        const build_props: BuildUserProps = {
+            user_id: new_employee_user_id,
+            nowDate: now_date,
+            username: name,
+            password_hash: hashed_password,
+            role: user_role,
+            email: email,
+            store_id: store.id,
+            must_change_password: true,
+            is_paying_user: false,
+            cpf_cnpj: cpf_cnpj,
+            phone: phone ? phone : null
+        }
+        const user: User = User.buildUser(build_props);
 
         //limpa o cache
         const cacheKey: string = CacheKeys.User.USERS_DATA(store.id);

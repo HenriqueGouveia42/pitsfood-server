@@ -1,14 +1,6 @@
 import { validCNPJ } from "../../../shared/validators/valid.cnpj.js";
 import { DomainError } from "../../../shared/errors/DomainError.js";
 
-/**
- * enum SubscriptionPlan {
-  NONE //loja que acabou de ser criada
-  BASIC
-  EXTENDED
-  PREMIUM
-}
-*/
 export enum SubscriptionPlan {
     NONE = "NONE",
     BASIC = "BASIC",
@@ -16,14 +8,6 @@ export enum SubscriptionPlan {
     PREMIUM = "PREMIUM",
     PERSONALIZED = "PERSONALIZED"
 }
-
-/*
-enum SubscriptionStatus {
-  NONE//loja que acabou de ser criada
-  ACTIVE
-  PAST_DUE
-  CANCELED
-*/
 
 export enum SubscriptionStatus {
     NONE = "NONE",
@@ -37,7 +21,8 @@ export type StoreProps = {
     readonly name: string;
     readonly cnpj: string | null;
     readonly active: boolean;
-    readonly owner_id: string,
+    readonly owner_id: string;
+    readonly affiliate_id: string | null;
     readonly created_at: string;
     readonly updated_at: string;
     readonly plan: SubscriptionPlan;
@@ -47,12 +32,43 @@ export type StoreProps = {
     readonly billing_day: number | null;
 }
 
-export class Store{
+export type BuildStoreProps = {
+    readonly store_id: string,
+    readonly now_date: string,
+    readonly name: string,
+    readonly active: boolean,
+    readonly cnpj: string | null,
+    readonly owner_id: string,
+    readonly store_icon_url: string | null,
+    readonly affiliate_id: string | null
+}
 
-    private constructor(private props: StoreProps){}
+export class Store {
 
-    public get getProps(): StoreProps{
-        return this.props
+    // Adicionamos a validação de invariantes de estado diretamente no construtor.
+    // Assim, o buildStore, o restore e qualquer setter passarão por essa peneira.
+    private constructor(private readonly props: StoreProps) {
+        this.validateSubscriptionState();
+    }
+
+    public get getProps(): StoreProps {
+        return this.props;
+    }
+
+    private validateSubscriptionState(): void {
+        if (
+            this.props.plan !== SubscriptionPlan.NONE &&
+            this.props.subscription_status === SubscriptionStatus.NONE
+        ) {
+            throw new DomainError("Se uma loja já contratou um plano, deve existir um status para esse plano contratado", "INVALID_SUBSCRIPTION_STATE");
+        }
+
+        if (
+            this.props.plan === SubscriptionPlan.NONE &&
+            this.props.subscription_status !== SubscriptionStatus.NONE
+        ) {
+            throw new DomainError("Se uma loja ainda nao contratou nenhum plano, nao pode ter nenhum status de plano", "INVALID_SUBSCRIPTION_STATE");
+        }
     }
 
     private static validateNameLength(name: string): void {
@@ -70,6 +86,7 @@ export class Store{
             .trim()
             .toLowerCase()
             .split(' ')
+            .filter(word => word.length > 0) // CORREÇÃO: Remove espaços duplos acidentais antes de fazer o map
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
     }
@@ -78,78 +95,68 @@ export class Store{
         if (!url) return;
 
         try {
-
             const parsedUrl = new URL(url);
             
-            //forçar HTTPS para segurança
-            if (parsedUrl.protocol !== "https:") throw new DomainError("A URL da imagem deve ser segura (HTTPS).", "INVALID_ICON_PROTOCOL");
-        
+            // forçar HTTPS para segurança
+            if (parsedUrl.protocol !== "https:") {
+                throw new DomainError("A URL da imagem deve ser segura (HTTPS).", "INVALID_ICON_PROTOCOL");
+            }
         } catch (error) {
-
             if (error instanceof DomainError) throw error;
             throw new DomainError("A URL do ícone fornecida é inválida.", "INVALID_ICON_URL");
         }
     }
 
-    public static buildStore(name: string, active: boolean, cnpj: string | null, owner_id: string, store_icon_url: string | null): Store{
-
-        Store.validateNameLength(name);
-        const formattedName = Store.formatNameTitleCase(name);
-        Store.validateIconUrl(store_icon_url);
-
-        if(cnpj !== null){
-            
+    private static validateCnpj(cnpj: string | null): void {
+        if (cnpj !== null) {
             const isCNPJValid: boolean = validCNPJ(cnpj);
-
-            if (!isCNPJValid) throw new DomainError("CNPJ invalido", "INVALID_CNPJ")
-            
+            if (!isCNPJValid) throw new DomainError("CNPJ invalido", "INVALID_CNPJ");
         }
-        
-
-        const now = new Date().toISOString();
-        
-        const store: Store = new Store({
-            store_id: crypto.randomUUID().toString(),
-            name: formattedName, // Passamos o nome formatado aqui
-            cnpj,
-            owner_id,
-            active,
-            created_at: now,
-            updated_at: now,
-            plan: SubscriptionPlan.NONE,
-            subscription_status: SubscriptionStatus.NONE,
-            store_icon_url: store_icon_url ? store_icon_url : null,
-            subscription_expires_at: null,
-            billing_day: null
-        })
-
-        if (
-            (store.plan !== SubscriptionPlan.NONE) &&
-            (store.subscription_status == SubscriptionStatus.NONE)
-        ){
-            throw new DomainError("Se uma loja já contratou um plano, deve existir um status para esse plano contratado", "INVALID_SUBSCRIPTION_STATE")
-        }
-
-        if (
-            (store.plan === SubscriptionPlan.NONE) &&
-            (store.subscription_status !== SubscriptionStatus.NONE)
-        ){
-            throw new DomainError("Se uma loja ainda nao contratou nenhum plano, nao pode ter nenhum status de plano", "INVALID_SUBSCRIPTION_STATE")
-        }
-
-        return store
     }
 
-    public static restore(props: StoreProps): Store{
+
+    public static buildStore(build_props: BuildStoreProps): Store {
+        
+        Store.validateNameLength(build_props.name);
+        const formattedName = Store.formatNameTitleCase(build_props.name);
+        
+        Store.validateIconUrl(build_props.store_icon_url);
+        Store.validateCnpj(build_props.cnpj);
+
+        return new Store({
+            store_id: build_props.store_id,
+            name: formattedName,
+            cnpj: build_props.cnpj,
+            owner_id: build_props.owner_id,
+            active: build_props.active,
+            created_at: build_props.now_date,
+            updated_at: build_props.now_date,
+            plan: SubscriptionPlan.NONE,
+            subscription_status: SubscriptionStatus.NONE,
+            store_icon_url: build_props.store_icon_url ? build_props.store_icon_url : null,
+            subscription_expires_at: null,
+            billing_day: null,
+            affiliate_id: build_props.affiliate_id ? build_props.affiliate_id : null
+        });
+    }
+
+    public static restore(props: StoreProps): Store {
         return new Store(props);
     }
 
+
     public rename(newName: string): Store {
-        return new Store({ ...this.props, name: newName })
+        Store.validateNameLength(newName);
+        const formattedName = Store.formatNameTitleCase(newName);
+
+        return new Store({ 
+            ...this.props, 
+            name: formattedName,
+            updated_at: new Date().toISOString()
+        });
     }
 
     public updateIcon(newIconUrl: string | null): Store {
-
         Store.validateIconUrl(newIconUrl);
 
         return new Store({
@@ -160,30 +167,21 @@ export class Store{
     }
 
     public activatePlan(plan: SubscriptionPlan, expires_at: Date): Store {
+        if (plan === SubscriptionPlan.NONE) {
+            throw new DomainError("Não é possivel ativar uma loja com o plano 'None'", "INVALID_ACTIVATION_PLAN");
+        }
 
-        if (plan === SubscriptionPlan.NONE) throw new DomainError("Não é possivel ativar uma loja com o plano 'None'", "INVALID_ACTIVATION_PLAN");
-
-        
-        // LÓGICA DO ROLLING BILLING COM RESET DE CICLO => SE O CLIENTE ESTIVER COM FATURA ATRASADA OU CANCELADA
-        // O DIA DE COBRANCA DELE É ATUALIZADO PARA O DIA DE HOJE!
-
-        //CASOS EM QUE ATUALIZA O DIA DO FATURAMENTO (ANIVERSARIO)
-        //  PRIMEIRA VEZ ASSINANDO
-        //  VOLTANDO DE UM BLOQUEIO POR ATRASADO
-        //  VOLTANDO DE UM BLOQUEIO POR CANCELAMENTO
         let currentBillingDay: number | null = this.props.billing_day;
         const previousStatus: SubscriptionStatus = this.props.subscription_status;
 
-        //primeira vez assinando
+        // Casos em que atualiza o dia do faturamento (reset de ciclo)
         if (
             !currentBillingDay ||
             previousStatus === SubscriptionStatus.PAST_DUE ||
             previousStatus === SubscriptionStatus.CANCELED
-        ){
-
+        ) {
             const today: number = new Date().getDate();
-
-            //protecao contra o bug de feveireiro
+            // Proteção contra o bug de fevereiro
             currentBillingDay = today > 28 ? 28 : today; 
         }
 
@@ -194,9 +192,7 @@ export class Store{
             subscription_expires_at: expires_at.toISOString(),
             billing_day: currentBillingDay,
             updated_at: new Date().toISOString()
-        })
-
-
+        });
     }
 
     public markAsPastDue(): Store {
@@ -207,17 +203,18 @@ export class Store{
         });
     }
 
-    get id() {return this.props.store_id}
-    get name() {return this.props.name}
-    get cnpj() {return this.props.cnpj}
-    get active() {return this.props.active}
-    get createdAt() {return this.props.created_at}
-    get updatedAt() {return this.props.updated_at}
-    get ownerId() {return this.props.owner_id}
-    get plan() {return this.props.plan}
-    get subscription_status() {return this.props.subscription_status}
-    get store_icon_url() {return this.props.store_icon_url}
-    get subscription_expires_at() {return this.props.subscription_expires_at}
-    get billing_day() {return this.props.billing_day}
 
+    get id() { return this.props.store_id; }
+    get name() { return this.props.name; }
+    get cnpj() { return this.props.cnpj; }
+    get active() { return this.props.active; }
+    get createdAt() { return this.props.created_at; }
+    get updatedAt() { return this.props.updated_at; }
+    get ownerId() { return this.props.owner_id; }
+    get plan() { return this.props.plan; }
+    get subscription_status() { return this.props.subscription_status; }
+    get store_icon_url() { return this.props.store_icon_url; }
+    get subscription_expires_at() { return this.props.subscription_expires_at; }
+    get billing_day() { return this.props.billing_day; }
+    get affiliate_id() { return this.props.affiliate_id; }
 }

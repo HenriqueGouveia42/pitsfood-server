@@ -1,5 +1,5 @@
 import { Decimal } from 'decimal.js';
-import type { IProductRepository } from '../../repositories/product.repository.interface.js';
+import type { IProductRepository } from '../../repositories/interfaces/product.repository.interface.js';
 import type { IUserRepository } from '../../../user/repositories/user.repository.interface.js';
 import { User } from '../../../user/entities/user.js';
 import { AppError } from '../../../../shared/errors/AppError.js';
@@ -64,11 +64,12 @@ export class UpdateProductUseCase{
             
         const finalActive: boolean = (active !== undefined) ? active : product_to_be_updated.active;
         
-
+        const now_string: string = new Date().toISOString();
         const updated_product: Product = product_to_be_updated.withUpdatedData(
             finalName,
             finalUnitPrice,
-            finalActive
+            finalActive,
+            now_string
         );
 
         

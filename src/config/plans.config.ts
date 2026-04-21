@@ -1,7 +1,7 @@
 import { SubscriptionPlan } from "../modules/store/entities/store.js";
 import { UserRole } from "../modules/user/entities/user.js";
 
-interface PlanConfig {
+export interface PlanConfig {
     id: string;
     title: string;
     description: string;

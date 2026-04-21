@@ -9,14 +9,15 @@ export class CreateStoreController{
 
     public async handle(req: Request, res: Response): Promise<Response>{
 
-        const { name, cnpj } = req.body;
+        const { name, cnpj, affiliate_id } = req.body;
 
         const owner_id = req.user.id;
 
         await this.createStoreUseCase.execute({
             name,
             cnpj,
-            owner_id
+            owner_id,
+            affiliate_id
         })
 
         return res.status(201).json({message: "Loja criada com sucesso"})
