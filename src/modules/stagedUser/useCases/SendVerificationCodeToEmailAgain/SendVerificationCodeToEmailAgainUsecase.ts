@@ -2,7 +2,7 @@ import type { IStagedUserRepository } from "../../repositories/interfaces/staged
 import { StagedUser } from "../../entities/stagedUser.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IStagedUserSendEmail } from "../../providers/staged.user.send.email.interface.js";
-import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 import { randomInt } from 'node:crypto';
 
 interface SendVerificationCodeToEmailAgainUseCaseDTO{

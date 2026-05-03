@@ -1,5 +1,5 @@
 import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
-import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 import type { IProductRepository } from "../../repositories/product.repository.interface.js";
 import { User, UserRole } from "../../../user/entities/user.js";
 import { Store } from "../../../store/entities/store.js";

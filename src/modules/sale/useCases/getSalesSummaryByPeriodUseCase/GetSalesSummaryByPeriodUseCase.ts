@@ -24,15 +24,17 @@ export class GetSalesSummaryByPeriodUseCase {
             throw new AppError("A data inicial não pode ser maior que a data final", 400, "INVALID_DATES")
         }
 
-        const start_day: string = startDate.getDate().toString();
-        const start_month: string = startDate.getMonth().toString();
-        const start_year: string = startDate.getFullYear().toString();
-        const start_day_month_year: string = `${start_day}_${start_month}_${start_year}`
+        const start_day: string = startDate.getUTCDate().toString();
+        const start_month: string = startDate.getUTCMonth().toString();
+        const start_year: string = startDate.getUTCFullYear().toString();
+        const start_day_month_year: string = `${start_day}_${start_month}_${start_year}`;
+        
+        const cacheEndDate = new Date(endDate.getTime() - 1);
 
-        const end_day: string = endDate.getDate().toString();
-        const end_month: string = endDate.getMonth().toString();
-        const end_year: string = endDate.getFullYear().toString();
-        const end_day_month_year: string = `${end_day}_${end_month}_${end_year}`
+        const end_day: string = cacheEndDate.getUTCDate().toString();
+        const end_month: string = cacheEndDate.getUTCMonth().toString();
+        const end_year: string = cacheEndDate.getUTCFullYear().toString();
+        const end_day_month_year: string = `${end_day}_${end_month}_${end_year}`;
 
         const cache_key: string = CacheKeys.Sale.SUMMARY_BY_PERIOD(
             store_id,
@@ -40,12 +42,13 @@ export class GetSalesSummaryByPeriodUseCase {
             end_day_month_year
         )
 
+        const diffInMs = endDate.getTime() - startDate.getTime();
+        const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
+
         let cache_time_in_seconds: number;
 
         if (
-            start_day === end_day &&
-            start_month === end_month &&
-            start_year === end_year
+           diffInMs <= ONE_DAY_IN_MS
         ){
             cache_time_in_seconds = 5 * 60
         } else{
@@ -54,13 +57,18 @@ export class GetSalesSummaryByPeriodUseCase {
     
         const cachedData: SalesReportDTO | null = await this.cacheProvider.get<SalesReportDTO>(cache_key);
 
-        if (cachedData) return cachedData;
+        if (cachedData){
+            console.log(start_day, end_day, cache_time_in_seconds)
+            return cachedData;
+
+        } 
 
         //cache miss
 
         const report: SalesReportDTO = await this.saleRepository.getSalesSummaryByPeriod(startDate, endDate, store_id);
 
-        await this.cacheProvider.save(cache_key, report, cache_time_in_seconds); //1 dia 
+        console.log(start_day, end_day, cache_time_in_seconds)
+        await this.cacheProvider.save(cache_key, report, cache_time_in_seconds);
 
         return report;
 

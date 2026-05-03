@@ -1,4 +1,4 @@
-import type { IUserRepository } from "../../repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js";
 import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 

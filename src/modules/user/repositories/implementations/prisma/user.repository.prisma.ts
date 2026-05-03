@@ -1,7 +1,7 @@
 import type { UserProps, UserRole } from "../../../entities/user.js";
 import { User } from "../../../entities/user.js";
 import type { User as PrismaUser } from "../../../../../generated/prisma/client.js";
-import type { IUserRepository } from "../../user.repository.interface.js";
+import type { IUserRepository } from "../../interfaces/user.repository.interface.js";
 
 import { prisma } from "../../../../../shared/infra/prisma.js"
 import { AppError } from "../../../../../shared/errors/AppError.js";
@@ -9,7 +9,7 @@ import type { Store } from "../../../../store/entities/store.js";
 
 export class PrismaUserRepository implements IUserRepository {
 
-    private static prismaToEntityDataMapper(prismaUser: any): User {
+    private static prismaToEntityDataMapper(prismaUser: PrismaUser): User {
 
         const userProps: UserProps = {
             user_id: prismaUser.user_id,
@@ -30,7 +30,7 @@ export class PrismaUserRepository implements IUserRepository {
         return User.restore(userProps);
     }
 
-    private static entityToPrismaDataMapper(user: User): any {
+    private static entityToPrismaDataMapper(user: User): PrismaUser {
         return{
             user_id: user.id,
             store_id: user.storeId,

@@ -2,7 +2,7 @@ import type { IProductRepository } from "../../repositories/interfaces/product.r
 import { Product } from "../../entities/product.js";
 import { Decimal } from "decimal.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
-import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 import type { User } from "../../../user/entities/user.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";

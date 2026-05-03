@@ -43,7 +43,7 @@ export class GetPaginatedSalesUsecase{
             finalSales = salesResult.slice(0, safeLimit);
         }
 
-        return {
+        const response: GetPaginatedSalesUsecaseOutputDTO = {
             sales: finalSales,
             meta: {
                 current_page: safePage,
@@ -51,6 +51,8 @@ export class GetPaginatedSalesUsecase{
                 has_next_page: hasNextPage
             }
         }
+
+        return response
 
     }
 }

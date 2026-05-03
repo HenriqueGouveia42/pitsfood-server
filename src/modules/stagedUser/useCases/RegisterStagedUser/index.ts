@@ -3,13 +3,22 @@ import { RegisterStagedUserUseCase } from "./RegisterStagedUserUseCase.js";
 
 import { PrismaStagedUserRepository } from "../../repositories/implementations/prisma/staged_user.repository.prisma.js";
 import { PrismaUserRepository } from "../../../user/repositories/implementations/prisma/user.repository.prisma.js";
-import { StagedUserNodeMailerSendEmail } from "../../providers/implementations/staged.user.send.email.nodemailer.js"
+import { NodemailerMailProvider } from "../../../../shared/providers/EmailProvider/implementations/NodemailerMailProvider.js";
+import { DnsEmailValidationProvider } from "../../../../shared/providers/EmailValidationProvider/implementations/DnsEmailValidationProvider.js";
 
-const stagedUserNodeMailerSendEmail: StagedUserNodeMailerSendEmail = new StagedUserNodeMailerSendEmail();
+const nodeMailerMailProvider: NodemailerMailProvider = new NodemailerMailProvider();
 const prismaUserRepository: PrismaUserRepository = new PrismaUserRepository();
 const prismaStagedUserRepository: PrismaStagedUserRepository = new PrismaStagedUserRepository();
+const dnsEmailValidator: DnsEmailValidationProvider = new DnsEmailValidationProvider();
 
-const registerStagedUserUseCase: RegisterStagedUserUseCase = new RegisterStagedUserUseCase(prismaStagedUserRepository, prismaUserRepository, stagedUserNodeMailerSendEmail );
+
+const registerStagedUserUseCase: RegisterStagedUserUseCase = new RegisterStagedUserUseCase(
+    prismaStagedUserRepository,
+    prismaUserRepository,
+    nodeMailerMailProvider,
+    dnsEmailValidator
+);
+
 const registerStagedUserController: RegisterStagedUserController = new RegisterStagedUserController(registerStagedUserUseCase);
 
 export { registerStagedUserController }

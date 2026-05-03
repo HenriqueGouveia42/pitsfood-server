@@ -1,15 +1,17 @@
 import { hash } from "bcryptjs";
 import { StagedUser } from "../../entities/stagedUser.js";
-import type { IStagedUserSendEmail } from "../../providers/staged.user.send.email.interface.js"
 import type { IStagedUserRepository } from "../../repositories/interfaces/staged_user.repository.interface.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
-import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 import { randomInt, randomUUID } from 'node:crypto';
-import dns from 'node:dns/promises';
 import type { User } from "../../../user/entities/user.js";
-import type { MxRecord } from "node:dns";
 
-export interface SendVerificationCodeToEmailUseCaseRequest{
+// NOVO IMPORT: Injetando a interface genérica do provedor de e-mail
+import type { IMailProvider } from "../../../../shared/providers/EmailProvider/interface/IMailProvider.js";
+
+import type { IEmailValidationProvider } from "../../../../shared/providers/EmailValidationProvider/interface/IEmailValidationProvider.js";
+
+export interface SendVerificationCodeToEmailUseCaseRequest {
     email: string,
     username: string,
     password: string,
@@ -17,28 +19,25 @@ export interface SendVerificationCodeToEmailUseCaseRequest{
     phone: string | null
 }
 
-export class RegisterStagedUserUseCase{
+export class RegisterStagedUserUseCase {
 
     constructor(
         private stagedUserRepository: IStagedUserRepository,
         private userRepository: IUserRepository,
-        private stagedUserSendEmail: IStagedUserSendEmail,
-    ){}
+        private mailProvider: IMailProvider,
+        private validationEmailProvider: IEmailValidationProvider
+    ) {}
 
-    async execute( { email, username, password, cpf_cnpj, phone }: SendVerificationCodeToEmailUseCaseRequest ){
+    async execute({ email, username, password, cpf_cnpj, phone }: SendVerificationCodeToEmailUseCaseRequest) {
 
         const stagedUserAlreadyExists: StagedUser | null = await this.stagedUserRepository.findStagedUserByEmail(email);
 
-        // StagedUser existe no banco
-        if (stagedUserAlreadyExists){
-
+        if (stagedUserAlreadyExists) {
             const isExpired: boolean = new Date() > new Date(stagedUserAlreadyExists.expiresAt);
 
-            // Por alguma razão o cron job que deleta os StagedUsers expirados não funcionou, então deletamos aqui!
-            if(isExpired){
+            if (isExpired) {
                 await this.stagedUserRepository.deleteStagedUserById(stagedUserAlreadyExists.id);
             } else {
-                // Bloqueamos se ele estiver dentro das 24h de validade do cadastro
                 throw new AppError(`Confirme o código de acesso enviado para ${email}`, 400, "STAGED_USER_ALREADY_EXISTS");
             }
         }
@@ -47,33 +46,22 @@ export class RegisterStagedUserUseCase{
         if (userAlreadyExists) throw new AppError("Usuario já cadastrado", 400, "USER_ALREADY_EXISTS");
 
         const domain: string | undefined = email.split('@')[1];
-        
         if (!domain) throw new AppError("Formato de e-mail inválido.", 400, "INVALID_EMAIL_FORMAT");
         
-        try {
-            // Verifica se o domínio possui servidores de e-mail configurados para receber mensagens
-            const mxRecords: MxRecord[] = await dns.resolveMx(domain);
 
-            if (!mxRecords || mxRecords.length === 0) throw new AppError("O domínio deste e-mail não está configurado para receber mensagens.", 400, "INVALID_EMAIL_DOMAIN");
-            
-        } catch (error) {
-            // Cai aqui se o domínio não existir (ex: @gamil.com, @outlok.com)
-            throw new AppError("Domínio de e-mail inexistente ou incorreto.", 400, "INVALID_EMAIL_DOMAIN");
-        }
-
-        const verification_code: string = randomInt(100000, 1000000).toString();
+        const is_email_valid: boolean = await this.validationEmailProvider.hasValidDomain(domain);
+        if (!is_email_valid) throw new AppError("E-mail inválido", 404, "INVALID_EMAIL");
 
         const CPF_CNPJ_user_already_exists: User | null = await this.userRepository.findUserByCPFCNPJ(cpf_cnpj);
         if (CPF_CNPJ_user_already_exists) throw new AppError("Já existe um usuário com este CPF/CPNJ cadastrado no sistema", 422, "CPF_CNPJ_ALREADY_EXISTS");
-        
-        const hashedPassword: string = await hash(password, 8);
 
+        const verification_code: string = randomInt(100000, 1000000).toString();
+        const hashedPassword: string = await hash(password, 8);
         const now: Date = new Date();
 
-        // Avancando 10 minutos (validade do codigo)
+        // Expira em 10 minutos
         const codeExpiresAtDate: Date = new Date(now.getTime() + (10 * 60 * 1000));
-
-        // Avancando 24 horas (validade do StagedUser)
+        // Expira em 24 horas
         const stagedUserExpiresAtDate: Date = new Date(now.getTime() + (24 * 60 * 60 * 1000));
 
         const stagedUser: StagedUser = StagedUser.buildStagedUser({
@@ -89,11 +77,26 @@ export class RegisterStagedUserUseCase{
             code_expires_at: codeExpiresAtDate.toISOString(),
             cpf_cnpj,
             phone
-        })
+        });
 
         await this.stagedUserRepository.saveStagedUser(stagedUser);
 
-        await this.stagedUserSendEmail.sendVerificationCodeToEmail(email, verification_code);
+        // NOVO: Construção do template HTML no Use Case e chamada do provider genérico
+        const emailTemplate = `
+            <div style="font-family: Arial, sans-serif; color: #333;">
+                <h2>Bem-vindo à Manga Food!</h2>
+                <p>Use o código abaixo para validar seu cadastro:</p>
+                <div style="background: #f4f4f4; padding: 15px; text-align: center; border-radius: 8px; width: fit-content;">
+                    <strong style="font-size: 24px; letter-spacing: 3px;">${verification_code}</strong>
+                </div>
+                <p><small>Este código expira em 10 minutos.</small></p>
+            </div>
+        `;
 
+        await this.mailProvider.sendMail({
+            to: email,
+            subject: "Seu código de verificação de sua nova conta Manga Food",
+            body: emailTemplate
+        });
     }
 }

@@ -1,7 +1,7 @@
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { User } from "../../entities/user.js";
-import type { IUserRepository } from "../../repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js";
 
 export interface GetUsersDataUseCaseResponse {
     name: string;

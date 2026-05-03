@@ -1,5 +1,5 @@
 import type { IStagedUserRepository } from "../../repositories/interfaces/staged_user.repository.interface.js";
-import  type { IUserRepository } from "../../../user/repositories/user.repository.interface.js"
+import  type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js"
 import { StagedUser } from "../../entities/stagedUser.js";
 import { User } from "../../../user/entities/user.js";
 import { UserRole, type UserProps } from "../../../user/entities/user.js";

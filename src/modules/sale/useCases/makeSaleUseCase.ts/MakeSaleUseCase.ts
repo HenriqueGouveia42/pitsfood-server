@@ -9,7 +9,7 @@ import crypto from "crypto"
 import type { Bill } from "../../../bill/entities/bill.js";
 import type { Product } from "../../../product/entities/product.js";
 import { User } from "../../../user/entities/user.js";
-import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 
 type PaymentDTO = {
     amount: number | string | Decimal,

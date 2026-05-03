@@ -1,4 +1,4 @@
-import type { IUserRepository } from "../user.repository.interface.js";
+import type { IUserRepository } from "../interfaces/user.repository.interface.js";
 import { User } from "../../entities/user.js";
 
 export class InMemoryUserRepository implements IUserRepository {

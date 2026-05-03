@@ -12,6 +12,8 @@ export class GetSalesSummaryByPeriodController {
         
         const { startDate, endDate } = req.query;
 
+        console.log(`controller: ${startDate} - ${endDate}`)
+
         const store_id: string = req.user.store_id;
 
         const start = new Date(startDate as string);
@@ -23,7 +25,7 @@ export class GetSalesSummaryByPeriodController {
             store_id: store_id
         });
 
-        console.log(summary);
+        //console.log(summary);
 
         return res.status(200).json(summary);
 

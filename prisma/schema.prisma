@@ -197,6 +197,7 @@ model User {
   //relacionamentos
   sales_closed  Sale[]        @relation("UserClosedSale")
   items_added   BillProduct[] @relation("UserAddedItem")
+  password_reset_tokens PasswordResetToken[]
 
   @@unique([store_id, username]) //um username deve ser unico APENAS dentro daquela loja
   @@unique([store_id, user_id]) //indice composto que sera utilizado por BillProduct e Sale
@@ -396,4 +397,18 @@ model SalePayment {
   sale Sale @relation(fields: [store_id, sale_id], references: [store_id, sale_id], onDelete: Cascade) //o pagamento só é vinculado a uma MESMA venda e uma MESMA loja
 
   @@map("sale_payments")
+}
+
+model PasswordResetToken {
+  id  String @id @default(uuid())
+
+  user_id String @unique //só deve haver um codigo por usuario ao mesmo tempo
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  token String
+  created_at DateTime @default(now())
+  expires_at DateTime
+  failed_attempts Int @default(0)
+  @@map("password_reset_tokens")
+  
 }

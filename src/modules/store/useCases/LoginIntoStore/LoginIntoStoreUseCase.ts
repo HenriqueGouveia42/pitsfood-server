@@ -1,5 +1,5 @@
 import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
-import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 import type { ITokenProvider } from "../../../user/providers/token.provider.interface.js";
 import type { ILoginResponse } from "../../../user/useCases/login/loginUseCase.js";
 

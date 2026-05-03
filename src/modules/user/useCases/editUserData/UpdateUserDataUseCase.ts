@@ -1,5 +1,5 @@
 import { hash } from "bcryptjs"; 
-import type { IUserRepository } from "../../repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import { User } from "../../entities/user.js";
 import { UserRole } from "../../entities/user.js"; 

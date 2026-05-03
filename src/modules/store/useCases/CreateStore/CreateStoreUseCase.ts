@@ -1,6 +1,6 @@
 import { Store, type BuildStoreProps } from "../../../store/entities/store.js";
 import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
-import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 import { User } from "../../../user/entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import { UserRole } from "../../../../generated/prisma/enums.js";

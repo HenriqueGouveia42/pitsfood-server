@@ -100,7 +100,7 @@ export class PrismaSaleRepository implements ISaleRepository {
                 store_id: item.store_id,
                 sale_id: item.sale_id,
                 product_id: item.product_id,
-                ...(item.origin_bill_id !== null ? { origin_bill_id: item.origin_bill_id } : {})
+                ...(item.origin_bill_id !== null ? { origin_bill_id: item.origin_bill_id } : {origin_bill_id: null})
             })) : [],
 
             payments: prismaSale.payments ? prismaSale.payments.map(pay => ({
@@ -334,7 +334,9 @@ export class PrismaSaleRepository implements ISaleRepository {
             }
         });
 
-        return prismaSales.map(sale => PrismaSaleRepository.prismaToEntitySaleDataMapper(sale));
+        const entitySales = prismaSales.map(sale => PrismaSaleRepository.prismaToEntitySaleDataMapper(sale));
+
+        return entitySales
     }
     
 }

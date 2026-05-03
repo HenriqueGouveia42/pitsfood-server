@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { AppError } from "../../../../shared/errors/AppError.js";
-import type { IUserRepository } from "../../repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js";
 import { User } from "../../entities/user.js";
 
 interface IIsLogedInResponse {

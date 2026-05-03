@@ -1,6 +1,6 @@
 import { compare } from "bcryptjs";
 import { User } from "../../entities/user.js"
-import type { IUserRepository } from "../../repositories/user.repository.interface.js"
+import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
 import { cacheProvider } from "../../../../shared/providers/CacheProvider/index.js";

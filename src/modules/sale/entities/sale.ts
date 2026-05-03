@@ -33,7 +33,7 @@ export type SaleProductProp = { //representa um produto numa venda fechada
     readonly store_id: string,
     readonly sale_id: string,
     readonly product_id: string,
-    readonly origin_bill_id?: string //opcional pois o item da venda pode ter sido feito direto no balcao, ou seja, sem comanda
+    readonly origin_bill_id: string | null //opcional pois o item da venda pode ter sido feito direto no balcao, ou seja, sem comanda
 }
 
 export type SaleProp = { //representa uma venda fechada

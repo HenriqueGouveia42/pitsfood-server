@@ -4,7 +4,7 @@ import type { IStoreRepository } from "../../repositories/interfaces/store.repos
 import { SubscriptionCalculator } from "../../providers/SubscriptionCalculator.js";
 import type { IPaymentProvider } from "../../../../shared/providers/PaymentProvider/models/IPaymentProvider.js";
 import { User } from "../../../user/entities/user.js";
-import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js";
+import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 import { UserRole } from "../../../user/entities/user.js";
 import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
 import type { ISubscriptionInvoiceRepository } from "../../repositories/interfaces/subscriptionInvoice.repository.interface.js";

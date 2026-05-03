@@ -1,9 +1,9 @@
-import { Bill } from "../../entities/bill.js"
+import { Bill, type BuildBillProps } from "../../entities/bill.js"
 import { Product } from "../../../product/entities/product.js"
-import type { IBillRepository } from "../../repositories/bill.repository.interface.js";
-import type { IProductRepository } from "../../../product/repositories/product.repository.interface.js"
-import type { IUserRepository } from "../../../user/repositories/user.repository.interface.js"
+import type { IBillRepository } from "../../repositories/interfaces/bill.repository.interface.js"
+import type { IProductRepository } from "../../../product/repositories/interfaces/product.repository.interface.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
+import { DomainError } from "../../../../shared/errors/DomainError.js";
 
 type product_gtin_quantity = {
     product_gtin: string,
@@ -36,9 +36,20 @@ export class BatchAddItemsUseCase {
 
         let bill: Bill;
 
+        const now_string: string = new Date().toISOString();
+
+
         if (billArray.length == 0){
 
-            bill = Bill.buildOpenedBill(bill_code_gtin, store_id);
+            const bill_id: string = crypto.randomUUID();
+            const build_props: BuildBillProps = {
+                bill_id,
+                bill_code_gtin,
+                store_id,
+                now_string
+            }
+
+            bill = Bill.buildOpenedBill(build_props);
 
         } else {
 
@@ -48,12 +59,29 @@ export class BatchAddItemsUseCase {
             bill = billArray[0];
         }
 
+        const gtinsToFetch: string[] = products_gtins_quantities.map(item => item.product_gtin);
+        const productsArray: Product[] = await this.productRepository.findManySavedProductsByGtinCodes(gtinsToFetch, store_id);
+        if (gtinsToFetch.length != productsArray.length) throw new AppError("Algum produto sumiu", 500, "STRANGE_BEHAVIOR")
+
+        // Criar um Dicionário (Map) em memória para busca rápida
+        // A chave será o GTIN e o valor será a entidade Product
+        const productsMap = new Map<string, Product>();
+        for (const p of productsArray) {
+            productsMap.set(p.gtin, p);
+        }
+
         for (const item of products_gtins_quantities){
 
-            const product: Product | null = await this.productRepository.findSavedProductByGtinCode(item.product_gtin, store_id);
-            if (!product) throw new AppError(`O produto com GTIN ${item.product_gtin} nao encontrado`);
+            const product: Product | undefined = productsMap.get(item.product_gtin);
 
-            bill = bill.addProduct(product, item.quantity, store_id, user_id);
+            if (!product) throw new DomainError(`O produto com GTIN ${item.product_gtin} não foi encontrado.`)
+
+            const random_ids: string[] = Array.from(
+                { length: item.quantity }, 
+                () => crypto.randomUUID()
+            );
+
+            bill = bill.addProduct(product, item.quantity, store_id, user_id, now_string, random_ids);
         }
 
         await this.billRepository.upsertBill(bill);

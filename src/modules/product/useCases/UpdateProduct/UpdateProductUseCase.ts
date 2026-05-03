@@ -1,6 +1,6 @@
 import { Decimal } from 'decimal.js';
 import type { IProductRepository } from '../../repositories/interfaces/product.repository.interface.js';
-import type { IUserRepository } from '../../../user/repositories/user.repository.interface.js';
+import type { IUserRepository } from '../../../user/repositories/interfaces/user.repository.interface.js';
 import { User } from '../../../user/entities/user.js';
 import { AppError } from '../../../../shared/errors/AppError.js';
 import type { Product } from '../../entities/product.js';

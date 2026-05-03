@@ -1,6 +1,7 @@
 import { Decimal } from 'decimal.js';
 import { Product } from '../../product/entities/product.js';
 import { AppError } from '../../../shared/errors/AppError.js';
+import { DomainError } from '../../../shared/errors/DomainError.js';
 
 //tipo de um item na comanda
 export type BillItemProps = {
@@ -35,6 +36,13 @@ export type BillProps = {
     readonly created_at: string;
     readonly updated_at: string;
     readonly items: BillItemProps[]; //relacionamento com bill_items
+}
+
+export type BuildBillProps = {
+    bill_id: string,
+    bill_code_gtin: string,
+    store_id: string,
+    now_string: string
 }
 
 export class Bill {
@@ -85,19 +93,19 @@ export class Bill {
         }
     }
 
-    public static buildOpenedBill(bill_code_gtin: string, store_id: string): Bill {
+    public static buildOpenedBill(build_props: BuildBillProps): Bill {
 
-        Bill.validateBillCode(bill_code_gtin);
+        Bill.validateBillCode(build_props.bill_code_gtin);
 
         const now = new Date().toISOString();
 
         return new Bill({
-            bill_id: crypto.randomUUID().toString(),
-            bill_code_gtin: bill_code_gtin,
+            bill_id: build_props.bill_id,
+            bill_code_gtin: build_props.bill_code_gtin,
             status: billStates.ABERTA,
-            store_id,
-            created_at: now,
-            updated_at: now,
+            store_id: build_props.store_id,
+            created_at: build_props.now_string,
+            updated_at: build_props.now_string,
             items: [] //inicia sem itens
         });
     }
@@ -115,24 +123,20 @@ export class Bill {
     get updatedAt() {return this.props.updated_at}
     get items() {return this.props.items}
 
-    public close(): Bill{ //fechar comanda - realizar venda
+    public close(now_string: string): Bill{ //fechar comanda - realizar venda
 
-        if(this.props.status === billStates.FECHADA){
-            throw new Error("Essa comanda já está fechada");
-        }
-
-        if(this.props.items.length === 0){
-            throw new Error("Não pode fechar uma comanda sem itens")
-        }
-
+        if(this.props.status === billStates.FECHADA) throw new DomainError("Essa comanda já está fechada", "BILL_ALREADY_CLOSED");
+        
+        if(this.props.items.length === 0) throw new DomainError("Não pode fechar uma comanda sem itens", "BILL_WITHOUT_ITEMS");
+        
         return new Bill({
             ...this.props,
             status: billStates.FECHADA,
-            updated_at: new Date().toISOString()
+            updated_at: now_string
         })
     }
 
-    public reopen(): Bill{ //reabrir comanda - venda realizada - adicionar mais itens
+    public reopen(now_string: string): Bill{ //reabrir comanda - venda realizada - adicionar mais itens
 
         if(this.props.status !== billStates.FECHADA){
             throw new Error("Apenas comandas fechadas podem ser reabertas");
@@ -140,39 +144,35 @@ export class Bill {
         return new Bill({
             ...this.props,
             status: billStates.ABERTA,
-            updated_at: new Date().toISOString()
+            updated_at: now_string
         })
     }
 
-    public addProduct(product: Product, quantity: number, store_id: string, user_id: string): Bill {
+    public addProduct(product: Product, quantity: number, store_id: string, user_id: string, now_string: string, random_ids: string[]): Bill {
 
-        if (quantity <= 0 || !Number.isInteger(quantity)) throw new AppError("A quantidade deve ser um número inteiro maior que zero.", 400, "INVALID_QUANTITY");
+    if (quantity <= 0 || !Number.isInteger(quantity)) throw new DomainError("A quantidade deve ser um número inteiro maior que zero.", "INVALID_QUANTITY");
+    if (!Array.isArray(random_ids)) throw new DomainError("Nao é um array de ids", "MISSING_ARRAY");
+    if (random_ids.length !== quantity) throw new DomainError("As quantidades de ids e quantidade de produtos devem ser iguais");
 
-        const now = new Date().toISOString();
-        
-        const newItems: BillItemProps[] = [];
+    // O TypeScript sabe que 'id' é estritamente 'string' aqui, pois estamos mapeando os elementos reais
+    const newItems: BillItemProps[] = random_ids.map(id => ({
+        bill_item_id: id,
+        product_name: product.name,
+        price_at_addition: product.price,
+        bill_id: this.props.bill_id,
+        store_id: store_id,
+        created_at: now_string,
+        updated_at: now_string,
+        product_id: product.id,
+        user_id: user_id,
+        product_gtin_code: product.gtin
+    }));
 
-        for (let i = 0; i < quantity; i++){
-            newItems.push({
-                bill_item_id: crypto.randomUUID(),
-                product_name: product.name,
-                price_at_addition: product.price,
-                bill_id: this.props.bill_id,
-                store_id: store_id,
-                created_at: now,
-                updated_at: now,
-                product_id: product.id,
-                user_id: user_id,
-                product_gtin_code: product.gtin
-            })
-        }
-
-        return new Bill({
-            ...this.props,
-            items: [...this.props.items, ...newItems],
-            updated_at: now
-        })
-        
-    }
+    return new Bill({
+        ...this.props,
+        items: [...this.props.items, ...newItems],
+        updated_at: now_string
+    });
+}
 
 }

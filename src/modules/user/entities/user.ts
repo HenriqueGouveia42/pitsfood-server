@@ -66,7 +66,6 @@ export class User {
     //fabric apara criação de novos usuários (cadastrar novo usuario)
     public static buildUser(
         props: BuildUserProps
-    
     ): User {
 
         const finalName: string = this.formatUsername(props.username);
@@ -79,7 +78,6 @@ export class User {
         const is_valid_cnpj: boolean = validCNPJ(props.cpf_cnpj);
 
         if ((!is_valid_cnpj)&&(!is_valid_cpf)) throw new DomainError("Precisa de um CPF ou CNPJ valido");
-
 
         const user:User = new User({
             user_id: props.user_id,

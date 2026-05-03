@@ -1,5 +1,5 @@
-import { User } from "../entities/user.js";
-import { Store } from "../../store/entities/store.js";
+import { User } from "../../entities/user.js";
+import { Store } from "../../../store/entities/store.js";
 
 export interface IUserRepository {
     saveUser(user: User): Promise<void>;
