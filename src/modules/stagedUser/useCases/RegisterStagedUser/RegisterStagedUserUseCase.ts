@@ -10,6 +10,7 @@ import type { User } from "../../../user/entities/user.js";
 import type { IMailProvider } from "../../../../shared/providers/EmailProvider/interface/IMailProvider.js";
 
 import type { IEmailValidationProvider } from "../../../../shared/providers/EmailValidationProvider/interface/IEmailValidationProvider.js";
+import type { IHashedStringProvider } from "../../../../shared/providers/HashedStringProvider/models/IHashedStringProvider.js";
 
 export interface SendVerificationCodeToEmailUseCaseRequest {
     email: string,
@@ -25,7 +26,8 @@ export class RegisterStagedUserUseCase {
         private stagedUserRepository: IStagedUserRepository,
         private userRepository: IUserRepository,
         private mailProvider: IMailProvider,
-        private validationEmailProvider: IEmailValidationProvider
+        private validationEmailProvider: IEmailValidationProvider,
+        private hashedStringProvider: IHashedStringProvider
     ) {}
 
     async execute({ email, username, password, cpf_cnpj, phone }: SendVerificationCodeToEmailUseCaseRequest) {
@@ -48,15 +50,14 @@ export class RegisterStagedUserUseCase {
         const domain: string | undefined = email.split('@')[1];
         if (!domain) throw new AppError("Formato de e-mail inválido.", 400, "INVALID_EMAIL_FORMAT");
         
-
-        const is_email_valid: boolean = await this.validationEmailProvider.hasValidDomain(domain);
+        const is_email_valid: boolean = await this.validationEmailProvider.hasValidDomain(email);
         if (!is_email_valid) throw new AppError("E-mail inválido", 404, "INVALID_EMAIL");
 
         const CPF_CNPJ_user_already_exists: User | null = await this.userRepository.findUserByCPFCNPJ(cpf_cnpj);
         if (CPF_CNPJ_user_already_exists) throw new AppError("Já existe um usuário com este CPF/CPNJ cadastrado no sistema", 422, "CPF_CNPJ_ALREADY_EXISTS");
 
         const verification_code: string = randomInt(100000, 1000000).toString();
-        const hashedPassword: string = await hash(password, 8);
+        const hashedPassword: string = await this.hashedStringProvider.hashString(password);
         const now: Date = new Date();
 
         // Expira em 10 minutos
@@ -81,7 +82,6 @@ export class RegisterStagedUserUseCase {
 
         await this.stagedUserRepository.saveStagedUser(stagedUser);
 
-        // NOVO: Construção do template HTML no Use Case e chamada do provider genérico
         const emailTemplate = `
             <div style="font-family: Arial, sans-serif; color: #333;">
                 <h2>Bem-vindo à Manga Food!</h2>

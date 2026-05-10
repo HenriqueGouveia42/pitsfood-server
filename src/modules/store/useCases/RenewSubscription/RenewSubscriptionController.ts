@@ -9,8 +9,9 @@ export class RenewSubscriptionController{
     public async handle(req: Request, res: Response): Promise<Response>{
         
         const store_id: string = req.user.store_id;
+        const user_id: string = req.user.id;
 
-        await this.renewSubscriptionUseCase.execute({store_id});
+        await this.renewSubscriptionUseCase.execute({store_id, user_id});
 
         return res.status(200).json({message: "Plano renovado com sucesso"})
     }

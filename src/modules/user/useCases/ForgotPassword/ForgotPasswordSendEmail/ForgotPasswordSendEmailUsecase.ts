@@ -46,69 +46,55 @@ export class ForgotPasswordSendEmailUsecase {
         return randomInt(100000, 1000000).toString();
     }
 
+    //1. Validação de email
+    //2. Validação de usuario
+    //3. Verifica se token de reset já existe
+    //4. Se existir e estiver abaixo do cool-down, lança erro
+    //5. Cria ou atualiza o token de reset
+    //6. Persiste o token de reset no banco de dados
+    //7. Envia o email com o token de reset
+
     public async execute(input: InputDTO): Promise<OutputDTO> {
 
         const now: Date = new Date();
 
-        // 1. Validação de email
+        //1. Validação de email
         const is_email_valid: boolean = await this.mailValidation.hasValidDomain(input.email);
         if (!is_email_valid) throw new AppError("O domínio deste e-mail é inválido.", 400, "INVALID_EMAIL_DOMAIN");
         
-        // 2. Validacao de usuario
+        //2. Validacao de usuario
         const user: User | null = await this.userRepository.findUserByEmail(input.email);
         if (!user) throw new AppError("E-mail inválido.", 404, "EMAIL_NOT_FOUND");
         
+        //3. Verifica se o token de reset já existe
         const existing_token: PasswordResetToken | null = await this.passwordResetRepository.findPasswordResetTokenByUserId(user.id);
         
+        //4. Se existir e estiver abaixo do cool-down, lança erro
         if (existing_token) {
 
-            //token vencido
-            if (now.getTime() > new Date(existing_token.expires_at).getTime()){
+            const diff_ms:number = now.getTime() - new Date(existing_token.created_at).getTime();
 
-                await this.passwordResetRepository.deletePasswordResetToken(existing_token.id);
-
-            //token válido
-            } else {
-
-                //token válido barrado no cool down
-                const diff_ms:number = now.getTime() - new Date(existing_token.created_at).getTime();
-
-                if ( diff_ms < ONE_MINUTE_COOL_DOWN_MS){
-                    throw new AppError(
-                    `Aguarde 
-                        ${(ONE_MINUTE_COOL_DOWN_MS - diff_ms)*1000}
-                    segundos para pedir outro código` )
-                }
-
-                //token válido já depois de ter passado no cool down
-                await this.passwordResetRepository.deletePasswordResetToken(existing_token.id);
-
-                // 4. Geração dos dados do novo token
-                const reset_token: string = ForgotPasswordSendEmailUsecase.generateResetToken();
-                const reset_token_id: string = randomUUID();
-
-                const resetPasswordCodeEntity: PasswordResetToken = PasswordResetToken.buildPasswordResetToken({
-                    id: reset_token_id,
-                    user_id: user.id,
-                    token: reset_token,
-                    now: now.toISOString()
-                });
-
-                // 5. Persistência
-                await this.passwordResetRepository.savePasswordResetToken(resetPasswordCodeEntity);
-
-
+            if ( diff_ms < ONE_MINUTE_COOL_DOWN_MS){
+                throw new AppError(
+                `Aguarde ${Math.ceil((ONE_MINUTE_COOL_DOWN_MS - diff_ms)/1000)} segundos para pedir outro código` )
             }
 
         }
 
-        
+        //5. Cria ou atualiza o token de reset
+        const reset_token: string = ForgotPasswordSendEmailUsecase.generateResetToken();
 
-        
+        const resetPasswordCodeEntity: PasswordResetToken = PasswordResetToken.buildPasswordResetToken({
+            id: existing_token ? existing_token.id : randomUUID(),
+            user_id: user.id,
+            token: reset_token,
+            now: now.toISOString()
+        });
 
-        
+        //6. Persiste o token de reset no banco de dados
+        await this.passwordResetRepository.savePasswordResetToken(resetPasswordCodeEntity);
 
-        // 6. Envio de e-mail
+        //7. Envia o email com o token de reset
         await this.mailProvider.sendMail({
             to: user.email,
             subject: EMAIL_SUBJECT,

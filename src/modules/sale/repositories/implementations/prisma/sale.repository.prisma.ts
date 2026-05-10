@@ -218,77 +218,82 @@ export class PrismaSaleRepository implements ISaleRepository {
         return sales.map(sale => PrismaSaleRepository.prismaToEntitySaleDataMapper(sale));
     }
 
-    async getSalesSummaryByPeriod(startDate: Date, endDate: Date, store_id: string): Promise<SalesReportDTO>{
+    async getSalesSummaryByPeriod(
+        startDate: Date, 
+        endDate: Date, 
+        store_id: string, 
+        timezone: string = 'America/Sao_Paulo'
+    ): Promise<SalesReportDTO> {
 
-        // Dispara as 4 consultas simultaneamente (Performance máxima)
-        const [generalMetrics, paymentsGrouped, productsRaw, hourlyRaw] = await Promise.all([
-            
-            // 1. Métricas Gerais
-            prisma.sale.aggregate({
-                _sum: {total_price: true},
-                _count: { sale_id: true },
-                where: {
-                    store_id: store_id,
-                    status: 'CONCLUIDA',
-                    created_at: { gte: startDate, lte: endDate }
-                }
-            }),
+        const start = new Date(startDate);
+        const end = new Date(endDate);
 
-            // 2. Agrupamento por Pagamento
-            prisma.salePayment.groupBy({
-                by: ['method'],
-                _sum: { amount: true },
-                where: {
-                    sale: {
-                        store_id: store_id,
-                        status: 'CONCLUIDA',
-                        created_at: { gte: startDate, lte: endDate }
-                    }
-                }
-            }),
+        // 1. Métricas Gerais
+        const generalMetrics = await prisma.sale.aggregate({
+            _sum: {total_price: true},
+            _count: { sale_id: true },
+            where: {
+                store_id: store_id,
+                status: 'CONCLUIDA',
+                created_at: { gte: start, lte: end } 
+            }
+        });
 
-            // 3. Agrupamento por Produtos (Raw)
-            prisma.$queryRaw<any[]>`
-                SELECT
-                    sp.product_name_snapshot as product_name,
-                    sp.product_id,
-                    SUM(sp.quantity)::int as quantity_sold,
-                    SUM(sp.quantity * sp.unit_price_snapshot) as total_sold 
-                FROM "sale_products" sp
-                JOIN "sales" s ON sp.sale_id = s.sale_id
-                WHERE s.store_id = ${store_id}
-                AND s.status = 'CONCLUIDA'
-                AND s.created_at >= ${startDate}
-                AND s.created_at <= ${endDate}
-                GROUP BY sp.product_id, sp.product_name_snapshot
-                ORDER BY total_sold DESC
-            `,
+        // 2. Agrupamento por Pagamento (Sequencial, poupando conexões)
+        // Removemos os ::timestamp manuais e deixamos o Prisma lidar com as Datas de forma nativa
+        const paymentsRaw = await prisma.$queryRaw<any[]>`
+            SELECT
+                spm.method,
+                SUM(spm.amount) as total_amount
+            FROM "sale_payments" spm
+            INNER JOIN "sales" s ON spm.sale_id = s.sale_id AND spm.store_id = s.store_id
+            WHERE s.store_id = ${store_id}
+            AND s.status = 'CONCLUIDA'
+            AND s.created_at >= ${start}
+            AND s.created_at <= ${end}
+            GROUP BY spm.method
+        `;
 
-            // 4. NOVO: Agrupamento por Hora do Dia (Raw)
-            // Extrai a hora (0 a 23) do created_at e soma as vendas daquela hora
-            prisma.$queryRaw<any[]>`
-                SELECT
-                    EXTRACT(HOUR FROM created_at)::int as sale_hour,
-                    COUNT(sale_id)::int as sales_count,
-                    SUM(total_price) as total_sold
-                FROM "sales"
-                WHERE store_id = ${store_id}
-                AND status = 'CONCLUIDA'
-                AND created_at >= ${startDate}
-                AND created_at <= ${endDate}
-                GROUP BY sale_hour
-                ORDER BY sale_hour ASC
-            `
-        ]);
+        // 3. Agrupamento por Produtos
+        const productsRaw = await prisma.$queryRaw<any[]>`
+            SELECT
+                sp.product_name_snapshot as product_name,
+                sp.product_id,
+                SUM(sp.quantity)::int as quantity_sold,
+                SUM(sp.quantity * sp.unit_price_snapshot) as total_sold 
+            FROM "sale_products" sp
+            INNER JOIN "sales" s ON sp.sale_id = s.sale_id AND sp.store_id = s.store_id
+            WHERE s.store_id = ${store_id}
+            AND s.status = 'CONCLUIDA'
+            AND s.created_at >= ${start}
+            AND s.created_at <= ${end}
+            GROUP BY sp.product_id, sp.product_name_snapshot
+            ORDER BY total_sold DESC
+        `;
 
-        // Processamento dos resultados
+        // 4. Agrupamento por Hora do Dia
+        // O timezone é convertido para string com ::text explicitamente para evitar falha no PG Parser
+        const hourlyRaw = await prisma.$queryRaw<any[]>`
+            SELECT
+                EXTRACT(HOUR FROM created_at AT TIME ZONE 'UTC' AT TIME ZONE ${timezone}::text)::int as sale_hour,
+                COUNT(sale_id)::int as sales_count,
+                SUM(total_price) as total_sold
+            FROM "sales"
+            WHERE store_id = ${store_id}
+            AND status = 'CONCLUIDA'
+            AND created_at >= ${start}
+            AND created_at <= ${end}
+            GROUP BY sale_hour
+            ORDER BY sale_hour ASC
+        `;
+
         const totalRevenue = new Decimal(generalMetrics._sum.total_price || 0);
         const salesCount = generalMetrics._count.sale_id;
         const averageTicket = salesCount > 0 ? totalRevenue.div(salesCount).toNumber() : 0;
 
-        const paymentBreakdown = paymentsGrouped.map(p => ({
+        const paymentBreakdown = paymentsRaw.map((p: any) => ({
             method: p.method as PaymentMethod,
-            total: new Decimal(p._sum.amount || 0)
+            total: new Decimal(p.total_amount || 0)
         }));
 
         const productBreakdown = productsRaw.map((p: any) => ({
@@ -297,7 +302,6 @@ export class PrismaSaleRepository implements ISaleRepository {
             total_sold: new Decimal(p.total_sold || 0)
         }));
 
-        // Formatação do novo breakdown por hora
         const hourlyBreakdown = hourlyRaw.map((h: any) => ({
             hour: Number(h.sale_hour),
             sales_count: Number(h.sales_count),
@@ -305,7 +309,7 @@ export class PrismaSaleRepository implements ISaleRepository {
         }));
 
         return {
-            period: { start: startDate, end: endDate },
+            period: { start: start, end: end },
             metrics: {
                 total_revenue: totalRevenue,
                 sales_count: salesCount,
@@ -313,7 +317,7 @@ export class PrismaSaleRepository implements ISaleRepository {
             },
             payment_breakdown: paymentBreakdown,
             product_breakdown: productBreakdown,
-            hourly_breakdown: hourlyBreakdown // Novo campo retornado
+            hourly_breakdown: hourlyBreakdown
         };
     }
 

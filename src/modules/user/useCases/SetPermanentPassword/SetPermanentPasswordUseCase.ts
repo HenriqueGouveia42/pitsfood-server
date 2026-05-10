@@ -3,29 +3,29 @@ import { User } from "../../entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import { compare, hash } from "bcryptjs";
 
-import type { ITokenProvider } from "../../providers/token.provider.interface.js";
+import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
-interface IChangePasswordRequest {
+interface IsetPermanentPasswordRequest {
     current_password: string,
     new_password: string,
     userId: string
 }
 
-interface IChangePasswordResponse {
+interface IsetPermanentPasswordResponse {
     token: string;
 }
 
-export class ChangePasswordUseCase {
+export class SetPermanentPasswordUseCase {
 
     constructor(
         private userRepository: IUserRepository,
-        private tokenProvider: ITokenProvider, //injeção para gerar token
-        private cacheProvider: ICacheProvider  //injeção para mexer no Redis
+        private tokenProvider: ITokenProvider,
+        private cacheProvider: ICacheProvider
     ){}
 
-    public async execute ({ current_password, new_password, userId }: IChangePasswordRequest): Promise<IChangePasswordResponse> {
+    public async execute ({ current_password, new_password, userId }: IsetPermanentPasswordRequest): Promise<IsetPermanentPasswordResponse> {
 
         const user: User | null = await this.userRepository.findSavedUserById(userId);
 
@@ -51,7 +51,7 @@ export class ChangePasswordUseCase {
         // ==========================================================
         
         //gera nova versão (Invalida imediatamente o token antigo que está no cookie), que vai ser barrado pelo 'authMiddleware'
-        const tokenNewVersion = Date.now();
+        const tokenNewVersion: number = Date.now();
 
         //persiste no redis
         const cacheKey: string = CacheKeys.User.TOKEN_VERSION(user.id);

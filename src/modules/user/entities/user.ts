@@ -2,6 +2,14 @@ import { DomainError } from "../../../shared/errors/DomainError.js";
 import { validCNPJ } from "../../../shared/validators/valid.cnpj.js";
 import { validateCPF } from "../../../shared/validators/valid.cpf.js";
 
+const MAX_QUANTITY_AUTHORIZED_DEVICES: number  = 10
+
+export type AuthorizedDeviceProps = {
+    readonly device_id: string;
+    readonly name: string;
+    readonly added_at: Date; 
+}
+
 export enum UserRole {
     GESTOR = "GESTOR",
     CAIXA = "CAIXA",
@@ -23,6 +31,7 @@ export type UserProps = {
 
     readonly cpf_cnpj: string,
     readonly phone: string | null
+    readonly authorized_devices: AuthorizedDeviceProps[];
 }
 
 export type BuildUserProps = {
@@ -92,7 +101,8 @@ export class User {
             must_change_password: props.must_change_password,
             paying_user: props.is_paying_user,
             cpf_cnpj: props.cpf_cnpj,
-            phone: props.phone
+            phone: props.phone,
+            authorized_devices: []
         })
 
         User.validatePayingUser(user);
@@ -118,6 +128,8 @@ export class User {
     get paying_user() {return this.props.paying_user; }
     get cpf_cnpj() {return this.props.cpf_cnpj; }
     get phone() {return this.props.phone; }
+    get authorized_devices() { return this.props.authorized_devices }
+
 
     //setters que retornam novos objetos, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newUsername:string, newHashedPassword: string, active: boolean): User {
@@ -164,4 +176,46 @@ export class User {
             must_change_password: true
         })
     }
+
+    public addAuthorizedDeviceId(device_id: string, name: string, now: Date): User{
+
+        if (this.authorized_devices.length > MAX_QUANTITY_AUTHORIZED_DEVICES){
+            throw new DomainError("Usuario atingiu a quantidade máxima de dispositivos autorizados", "ID_TOO_LONG");
+        }
+
+        if (device_id.length > 40){
+            throw new DomainError("Id muito longo", "INVALID_ID_LENGHT");
+        }
+
+        if (name.length > 40){
+            throw new DomainError("Nome muito longo", "NAME_TOO_LONG");
+        }
+
+        const newDevice: AuthorizedDeviceProps = {
+            device_id,
+            name,
+            added_at: now
+        }
+
+        return new User({
+            ...this.props,
+            authorized_devices: [...this.props.authorized_devices, newDevice]
+        })
+    }
+
+    public removeAuthorizedDeviceId(device_id: string): User {
+
+        const IdAuthorizedDeviceIndex: number = this.authorized_devices.findIndex(item => item.device_id === device_id);
+
+        if (IdAuthorizedDeviceIndex === -1){
+            throw new DomainError("Dispositivo não encontrado", "DEVICE_NOT_FOUND");
+        }
+
+        return new User({
+            ...this.props,
+            authorized_devices: this.props.authorized_devices.filter(item => item.device_id !== device_id)
+        })
+    }
+
+    
 }

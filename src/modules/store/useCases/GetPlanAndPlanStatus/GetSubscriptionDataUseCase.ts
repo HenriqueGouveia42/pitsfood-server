@@ -9,11 +9,11 @@ type useCaseRequestDTO = {
 
 export type useCaseResponseDTO = {
     plan: SubscriptionPlan,
-    plan_status: SubscriptionStatus
-
+    plan_status: SubscriptionStatus,
+    expires_at: Date | null
 }
 
-export class GetPlanAndPlanStatusUseCase{
+export class GetSubscriptionDataUseCase{
 
     constructor(
         private storeRepository: IStoreRepository
@@ -26,10 +26,12 @@ export class GetPlanAndPlanStatusUseCase{
 
         const plan: SubscriptionPlan = store.plan;
         const plan_status: SubscriptionStatus = store.subscription_status;
+        const expires_at: Date | null = store.subscription_expires_at ? new Date(store.subscription_expires_at) : null
 
         return{
             plan,
-            plan_status
+            plan_status,
+            expires_at
         }
     }
 }

@@ -10,7 +10,7 @@ export class ForgotPasswordSendEmailController{
 
     public async handle(req: Request, res: Response): Promise<Response>{
 
-        const email: string = req.body;
+        const { email } = req.body;
 
         const input: UseCaseInputDTO = {
             email
@@ -18,6 +18,6 @@ export class ForgotPasswordSendEmailController{
 
         await this.forgotPasswordSendEmailUsecase.execute(input);
 
-        return res.status(200).json({message: "Email enviado"});
+        return res.status(200).json({message: "Codigo para reset enviado para o Email!"});
     }
 }

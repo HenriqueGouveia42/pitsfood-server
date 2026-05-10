@@ -82,9 +82,4 @@ export class PrismaResetPassword implements IPasswordResetRepository {
         });
     }
 
-    async deleteOldPasswordResetTokenAndSaveTheNewOne(old_password_reset_token_id: string): Promise<void> {
-        
-        await prisma.$transaction
-    }
-
 }

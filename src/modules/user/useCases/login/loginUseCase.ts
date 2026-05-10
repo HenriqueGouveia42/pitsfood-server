@@ -5,6 +5,7 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
 import { cacheProvider } from "../../../../shared/providers/CacheProvider/index.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
+import type { IHashedStringProvider } from "../../../../shared/providers/HashedStringProvider/models/IHashedStringProvider.js";
 
 interface IRequest {
     email: string,
@@ -31,7 +32,8 @@ export class LoginUseCase {
 
     constructor(
         private userRepository: IUserRepository,
-        private tokenProvider: ITokenProvider
+        private tokenProvider: ITokenProvider,
+        private hasheStringProvider: IHashedStringProvider
     ) {}
 
     async execute({ email, password }:IRequest): Promise<ILoginResponse>{
@@ -40,7 +42,7 @@ export class LoginUseCase {
         if(!user) throw new AppError("Email ou senha incorretos", 404, "INVALID_CREDENTIALS");
         if (!user.active) throw new AppError("Usuário inativo. Contate o administrador do sistema", 403, "USER_DISABLED")
 
-        const passwordMatch = await compare(password, user.passwordHash);
+        const passwordMatch: boolean = await this.hasheStringProvider.compare(password, user.passwordHash);
         if (!passwordMatch)throw new AppError("Usuario ou senha incorretos", 404, "INVALID_CREDENTIALS") 
         
         ////////////////////////////////////////

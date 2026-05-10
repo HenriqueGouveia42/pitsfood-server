@@ -3,7 +3,7 @@ import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRoute
 
 // Controllers
 import { makeSaleController } from "../../../useCases/makeSaleUseCase.ts/index.js";
-import { getSalesSummaryByPeriodController } from "../../../useCases/getSalesSummaryByPeriodUseCase/index.js";
+import { fetchSalesSummaryByPeriodController } from "../../../useCases/FetchSalesSummaryByPeriodUseCase/index.js";
 import { getPaginatedSalesController } from "../../../useCases/GetPaginatedSalesUseCase/index.js";
 
 // Schemas
@@ -22,7 +22,7 @@ saleRouteBuilder.build({
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
     roles: [UserRole.GESTOR],
     schema: getSalesSummarySchema,
-    handler: (request, response) => getSalesSummaryByPeriodController.handle(request, response)
+    handler: (request, response) => fetchSalesSummaryByPeriodController.handle(request, response)
 });
 
 saleRouteBuilder.build({

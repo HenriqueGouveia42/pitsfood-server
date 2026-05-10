@@ -1,15 +1,20 @@
 import type { UserProps, UserRole } from "../../../entities/user.js";
 import { User } from "../../../entities/user.js";
+import { PasswordResetToken } from "../../../entities/passwordResetToken.js";
 import type { User as PrismaUser } from "../../../../../generated/prisma/client.js";
 import type { IUserRepository } from "../../interfaces/user.repository.interface.js";
 
 import { prisma } from "../../../../../shared/infra/prisma.js"
-import { AppError } from "../../../../../shared/errors/AppError.js";
-import type { Store } from "../../../../store/entities/store.js";
+import { Prisma } from "../../../../../generated/prisma/client.js";
+import type { UserUncheckedCreateInput } from "../../../../../generated/prisma/models.js";
+
+type PrismaUsersWithDevices = Prisma.UserGetPayload<{
+    include: { authorized_devices: true }
+}>
 
 export class PrismaUserRepository implements IUserRepository {
 
-    private static prismaToEntityDataMapper(prismaUser: PrismaUser): User {
+    private static prismaToEntityDataMapper(prismaUser: PrismaUsersWithDevices): User {
 
         const userProps: UserProps = {
             user_id: prismaUser.user_id,
@@ -24,13 +29,19 @@ export class PrismaUserRepository implements IUserRepository {
             must_change_password: prismaUser.must_change_password,
             paying_user: prismaUser.paying_user,
             cpf_cnpj: prismaUser.cpf_cnpj,
-            phone: prismaUser.phone
+            phone: prismaUser.phone,
+
+            authorized_devices: prismaUser.authorized_devices.map(device => ({
+                device_id: device.device_id,
+                name: device.name,
+                added_at: device.added_at
+            }))
         }
 
         return User.restore(userProps);
     }
 
-    private static entityToPrismaDataMapper(user: User): PrismaUser {
+    private static entityToPrismaDataMapper(user: User): Prisma.UserUncheckedCreateInput {
         return{
             user_id: user.id,
             store_id: user.storeId,
@@ -44,7 +55,15 @@ export class PrismaUserRepository implements IUserRepository {
             must_change_password: user.mustChangePassword,
             paying_user: user.paying_user,
             cpf_cnpj: user.cpf_cnpj,
-            phone: user.phone
+            phone: user.phone,
+
+            authorized_devices: {
+                create: user.authorized_devices.map(device => ({
+                    device_id: device.device_id,
+                    name: device.name,
+                    added_at: device.added_at
+                }))
+            }
         }
     }
 
@@ -62,6 +81,9 @@ export class PrismaUserRepository implements IUserRepository {
         const prismaUser = await prisma.user.findUnique({
             where:{
                 user_id,
+            },
+            include: {
+                authorized_devices: true
             }
         })
 
@@ -77,7 +99,7 @@ export class PrismaUserRepository implements IUserRepository {
 
         const prismaData = PrismaUserRepository.entityToPrismaDataMapper(user);
 
-        const { user_id, store_id, created_at, ...dataToUpdate } = prismaData;
+        const { user_id, store_id, created_at, authorized_devices, ...dataToUpdate } = prismaData;
 
         await prisma.user.update({
             where:{
@@ -92,7 +114,7 @@ export class PrismaUserRepository implements IUserRepository {
 
     async listAllSavedUsers(store_id: string, active: boolean | undefined): Promise<User[]> {
 
-        let prismaUsers: PrismaUser[];
+        let prismaUsers: PrismaUsersWithDevices[];
 
         if(active != undefined ){
 
@@ -100,6 +122,9 @@ export class PrismaUserRepository implements IUserRepository {
                 where:{
                     active,
                     store_id
+                },
+                include: {
+                    authorized_devices: true
                 }
             });
 
@@ -108,6 +133,9 @@ export class PrismaUserRepository implements IUserRepository {
             prismaUsers = await prisma.user.findMany({
                 where:{
                     store_id
+                },
+                include: {
+                    authorized_devices: true
                 }
             })
         }
@@ -127,6 +155,9 @@ export class PrismaUserRepository implements IUserRepository {
         const prismaUserData = await prisma.user.findFirst({
             where:{
                 email
+            },
+            include: {
+                authorized_devices: true
             }
         })
 
@@ -140,15 +171,44 @@ export class PrismaUserRepository implements IUserRepository {
 
     async findUserByCPFCNPJ(cpf_cnpj: string): Promise<User | null> {
         
-        const user: PrismaUser | null = await prisma.user.findFirst({
+        const user: PrismaUsersWithDevices | null = await prisma.user.findFirst({
             where:{
                 cpf_cnpj: cpf_cnpj
+            },
+            include: {
+                authorized_devices: true
             }
         })
 
         if (user) return PrismaUserRepository.prismaToEntityDataMapper(user);
 
-        return user
+        return null
+
+    }
+
+    async updateForgottenPasswordAndConsumeToken(updated_password_user: User, password_reset_token: PasswordResetToken){
+        
+        await prisma.$transaction(async (tx) =>{
+
+            const prismaUserData: UserUncheckedCreateInput = PrismaUserRepository.entityToPrismaDataMapper(updated_password_user);
+
+            const { user_id, store_id, created_at, authorized_devices, ...dataToUpdate } = prismaUserData;
+
+            await tx.user.update({
+                where:{
+                    user_id: updated_password_user.id
+                },
+                data:{
+                    ...dataToUpdate,
+                    updated_at: new Date()
+                }
+            })
+
+            await tx.passwordResetToken.delete({
+                where: {id: password_reset_token.id}
+            })
+
+        })
 
     }
 

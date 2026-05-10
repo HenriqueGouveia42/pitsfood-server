@@ -18,6 +18,8 @@ export type BuildPasswordResetTokenProps = {
 
 export const TEN_MINUTES_IN_MS: number = 10 * 60 * 1000;
 
+export const MAX_FAILED_ATTEMPTS: number = 3;
+
 export class PasswordResetToken{
     private constructor(private readonly props: PasswordResetTokenProps){}
 
@@ -52,7 +54,18 @@ export class PasswordResetToken{
 
     public static restore(props: PasswordResetTokenProps): PasswordResetToken{
         return new PasswordResetToken(props)
-    } 
+    }
+
+    public addFailedAttempt(): PasswordResetToken{
+        return new PasswordResetToken({
+            ...this.props,
+            failed_attempts: this.props.failed_attempts + 1
+        })
+    }
+
+    public isExhausted(): boolean {
+        return this.props.failed_attempts >= MAX_FAILED_ATTEMPTS;
+    }
 
     get id() { return this.props.id; }
     get user_id() { return this.props.user_id; }

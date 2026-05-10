@@ -5,6 +5,4 @@ export interface IPasswordResetRepository {
     findPasswordResetTokenById(password_reset_token_id: string): Promise<PasswordResetToken | null>
     findPasswordResetTokenByUserId(user_id: string): Promise<PasswordResetToken | null>;
     deletePasswordResetToken(password_reset_token_id: string): Promise<void>;
-
-    deleteOldPasswordResetTokenAndSaveTheNewOne(old_password_reset_token_id: string): Promise<void>
 }

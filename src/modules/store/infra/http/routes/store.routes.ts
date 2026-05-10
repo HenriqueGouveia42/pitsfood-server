@@ -9,7 +9,7 @@ import { loginIntoStoreController } from "../../../useCases/LoginIntoStore/index
 import { generateSubscriptionPixController } from "../../../useCases/GenerateSubscriptionPix/index.js";
 import { handleAbacateWebhookController } from "../../../useCases/HandleAbacateWebhook/index.js";
 import { checkPaymentStatusController } from "../../../useCases/CheckPaymentStatus/index.js";
-import { getPlanAndPlanStatusController } from "../../../useCases/GetPlanAndPlanStatus/index.js";
+import { getSubscriptionDataController } from "../../../useCases/GetPlanAndPlanStatus/index.js";
 import { getPlansController } from "../../../useCases/GetPlans/index.js";
 import { updateStoreIconController } from "../../../useCases/UpdateStoreIcon/index.js";
 import { updateStoreDataController } from "../../../useCases/UpdateStoreData/index.js";
@@ -20,6 +20,7 @@ import { createStoreSchema } from "../zodSchemas/CreateStoreSchema.js";
 // Uploads
 import multer from "multer";
 import { uploadConfig } from "../../../../../config/uploads.js"; 
+import { renewSubscriptionController } from "../../../useCases/RenewSubscription/index.js";
 
 const upload = multer(uploadConfig);
 const storeRouteBuilder = new SecureRouteBuilder();
@@ -33,6 +34,8 @@ storeRouteBuilder.build({
     roles: 'PUBLIC',
     handler: (request, response) => handleAbacateWebhookController.handle(request, response)
 });
+
+
 
 // NÍVEL 1: REQUER APENAS USUÁRIO LOGADO
 storeRouteBuilder.build({
@@ -80,10 +83,10 @@ storeRouteBuilder.build({
 
 storeRouteBuilder.build({
     method: 'get',
-    path: '/plan-and-plan-status',
+    path: '/subscription-data',
     security: 'REQUIRE_STORE',
     roles: [UserRole.GESTOR],
-    handler: (request, response) => getPlanAndPlanStatusController.handle(request, response)
+    handler: (request, response) => getSubscriptionDataController.handle(request, response)
 });
 
 storeRouteBuilder.build({
@@ -100,10 +103,7 @@ storeRouteBuilder.build({
     security: 'REQUIRE_STORE',
     roles: [UserRole.GESTOR],
     // schema: renewSubscriptionSchema, // Adicionar quando criar o schema
-    handler: (request, response) => { 
-        // Lógica a ser implementada
-        return response.status(501).json({ message: "Not implemented yet" });
-    }
+    handler: (request, response) => renewSubscriptionController.handle(request, response)
 });
 
 // NÍVEL 3: REQUER ASSINATURA ATIVA

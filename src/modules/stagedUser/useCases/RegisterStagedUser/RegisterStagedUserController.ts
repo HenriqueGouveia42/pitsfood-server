@@ -11,7 +11,7 @@ export class RegisterStagedUserController {
     public async handle(req: Request, res: Response): Promise<Response>{
 
         const { email, username, password, cpf_cnpj, phone } = req.body
-
+        
         await this.registerStagedUserUseCase.execute({
             email,
             username,

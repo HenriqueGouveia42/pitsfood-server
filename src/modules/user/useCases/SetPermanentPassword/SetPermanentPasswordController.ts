@@ -1,11 +1,11 @@
 import type { Request, Response } from "express"
-import { ChangePasswordUseCase } from "./ChangePasswordUseCase.js"
+import { SetPermanentPasswordUseCase } from "./SetPermanentPasswordUseCase.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
 
-export class ChangePasswordController {
+export class SetPermanentPasswordController {
 
     constructor(
-        private changePasswordUseCase: ChangePasswordUseCase
+        private setPermanentPasswordUseCase: SetPermanentPasswordUseCase
     ){}
 
     public handle = async (req: Request, res: Response): Promise<Response> => { // Arrow function para evitar bind
@@ -14,7 +14,7 @@ export class ChangePasswordController {
         const userId = req.user.id;
 
         //use case devolve o token pronto
-        const { token } = await this.changePasswordUseCase.execute({ 
+        const { token } = await this.setPermanentPasswordUseCase.execute({ 
             current_password, 
               new_password, 
             userId 

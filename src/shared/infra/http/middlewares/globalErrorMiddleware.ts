@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../../../errors/AppError.js";
 import { DomainError } from "../../../errors/DomainError.js";
+import { MulterError } from "multer";
 
 // Dicionário de tradução: Código do Domínio -> Status HTTP
 // Se o código não estiver aqui, o default será 400.
@@ -52,6 +53,29 @@ export function globalErrorMiddleware(
         return response.status(statusCode).json({
             message: err.message,
             code: err.code
+        });
+    }
+
+    if (err instanceof MulterError) {
+        // Intercepta especificamente o limite de tamanho
+        if (err.code === "LIMIT_FILE_SIZE") {
+            return response.status(413).json({ // 413 Payload Too Large
+                message: "O arquivo enviado é muito grande. O limite máximo é 2MB.",
+                code: "FILE_TOO_LARGE"
+            });
+        }
+        
+        // Trata outros erros genéricos do Multer (ex: muitos arquivos)
+        return response.status(400).json({
+            message: `Erro no upload: ${err.message}`,
+            code: "UPLOAD_ERROR"
+        });
+    }
+
+    if (err instanceof SyntaxError && "body" in err) {
+        return response.status(400).json({
+            message: "O corpo da requisição contém um JSON inválido.",
+            code: "INVALID_JSON_PAYLOAD"
         });
     }
 

@@ -198,10 +198,21 @@ model User {
   sales_closed  Sale[]        @relation("UserClosedSale")
   items_added   BillProduct[] @relation("UserAddedItem")
   password_reset_tokens PasswordResetToken[]
+  authorized_devices AuthorizedDevice[]
 
   @@unique([store_id, username]) //um username deve ser unico APENAS dentro daquela loja
   @@unique([store_id, user_id]) //indice composto que sera utilizado por BillProduct e Sale
   @@map("users")
+}
+
+model AuthorizedDevice {
+  authorization_id  String @id @default(uuid())
+  device_id String
+  name  String
+  added_at  DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [user_id])
+  user_id String
 }
 
 //representa um produto salvo no banco de dados
@@ -352,6 +363,7 @@ model Sale {
 
   @@unique([store_id, sale_id]) //indice composto necessario para que SaleProduct e SalePayment possam criar chaves estrangeiras que apontam pra ca
   @@map("sales")
+  @@index([store_id, status, created_at])
 }
 
 
@@ -378,6 +390,7 @@ model SaleProduct {
   origin_bill Bill? @relation(fields: [store_id, origin_bill_id], references: [store_id, bill_id]) //se veio de comanda, a comanda deve ser da mesma loja
 
   @@map("sale_products")
+  @@index([store_id, sale_id])
 }
 
 //representa um pagamento vinculado a uma venda fechada - 'sale'
@@ -397,6 +410,7 @@ model SalePayment {
   sale Sale @relation(fields: [store_id, sale_id], references: [store_id, sale_id], onDelete: Cascade) //o pagamento só é vinculado a uma MESMA venda e uma MESMA loja
 
   @@map("sale_payments")
+  @@index([store_id, sale_id])
 }
 
 model PasswordResetToken {

@@ -21,8 +21,6 @@ import { SubscriptionStatus as PrismaSubscriptionStatus } from "../../../../../g
 import { SubscriptionPlan  as EntityPlan} from "../../../entities/store.js";
 import { SubscriptionStatus as EntitySubscriptionStatus } from "../../../entities/store.js";
 
-import type { SubscriptionPlanAndStatus } from "./../../interfaces/store.repository.interface.js"
-
 import { SubscriptionStatus } from "../../../entities/store.js";
 
 import { PLAN_LIMITS } from "../../../../../config/plans.config.js";
@@ -235,26 +233,6 @@ export class PrismaStoreRepository implements IStoreRepository {
        
     }
 
-    async getSubscriptionPlanAndStatus(store_id: string): Promise<SubscriptionPlanAndStatus>{
-
-        const prismaStore: PrismaStoreModel = await prisma.store.findFirstOrThrow({
-            where:{
-                store_id: store_id
-            }
-        });
-
-        const entityStore: Store = PrismaStoreRepository.prismaToEntityDataMapper(prismaStore);
-
-        const entityPlan: EntityPlan = entityStore.plan;
-        const entityPlanStatus: EntitySubscriptionStatus = entityStore.subscription_status;
-
-        return{
-            plan: entityPlan,
-            plan_status: entityPlanStatus
-        }
-        
-    }
-
     async findActiveAndExpiredStores(currentDate: Date): Promise<Store[]> {
 
         const prismaStores: PrismaStoreModel[] = await prisma.store.findMany({
@@ -308,6 +286,30 @@ export class PrismaStoreRepository implements IStoreRepository {
         const entityStores: Store[] = prismaStores.map(s => PrismaStoreRepository.prismaToEntityDataMapper(s));
 
         return entityStores;
+    }
+
+    async findStoresExpiringOn(targetDate: Date): Promise<Store[]> {
+        
+        const startOfDay: Date = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay: Date = new Date(targetDate);
+        endOfDay.setHours(0, 0, 0, 0);
+
+        const prismaStores: PrismaStoreModel[] = await prisma.store.findMany({
+            where:{
+                active: true,
+                subscription_status: SubscriptionStatus.ACTIVE,
+                subscription_expires_at:{
+                    gte: startOfDay,
+                    lte: endOfDay
+                }
+            }
+        })
+
+        if (prismaStores.length === 0) return [];
+
+        return prismaStores.map(s => PrismaStoreRepository.prismaToEntityDataMapper(s));
     }
 
 }

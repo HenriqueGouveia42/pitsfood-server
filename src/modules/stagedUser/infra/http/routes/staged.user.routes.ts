@@ -1,29 +1,38 @@
-import { response, Router } from "express"
+import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
+
+// Controllers
 import { registerStagedUserController } from "../../../useCases/RegisterStagedUser/index.js";
-import { checkVerificationCodeStageUserController } from "../../../useCases/CheckVerificationCodeStagedUser/index.js"
+import { checkVerificationCodeStageUserController } from "../../../useCases/CheckVerificationCodeStagedUser/index.js";
 import { sendVerificationCodeToEmailAgainController } from "../../../useCases/SendVerificationCodeToEmailAgain/index.js";
 
-const stagedUserRoutes = Router();
+const stagedUserRouteBuilder = new SecureRouteBuilder();
 
-stagedUserRoutes.post("/create-staged-user",
-    (request, response) =>{
-        return registerStagedUserController.handle(request, response);
-    }
-)
+// ROTAS PÚBLICAS (Fase de pré-registro/verificação)
+stagedUserRouteBuilder.build({
+    method: 'post',
+    path: '/create-staged-user',
+    security: 'PUBLIC',
+    roles: 'PUBLIC',
+    // schema: registerStagedUserSchema, // Descomente e adicione quando tiver os schemas do zod prontos
+    handler: (request, response) => registerStagedUserController.handle(request, response)
+});
 
-stagedUserRoutes.post("/confirm-registration",
-    (request, response) => {
-        return checkVerificationCodeStageUserController.handle(request, response);
-    }
-)
+stagedUserRouteBuilder.build({
+    method: 'post',
+    path: '/confirm-registration',
+    security: 'PUBLIC',
+    roles: 'PUBLIC',
+    // schema: confirmRegistrationSchema,
+    handler: (request, response) => checkVerificationCodeStageUserController.handle(request, response)
+});
 
-stagedUserRoutes.post("/send-email-again",
-    (request, response) => {
-        return sendVerificationCodeToEmailAgainController.handle(request, response);
-    }
-)
-    
+stagedUserRouteBuilder.build({
+    method: 'post',
+    path: '/send-email-again',
+    security: 'PUBLIC',
+    roles: 'PUBLIC',
+    // schema: sendEmailAgainSchema,
+    handler: (request, response) => sendVerificationCodeToEmailAgainController.handle(request, response)
+});
 
-
-export { stagedUserRoutes }
-
+export const stagedUserRoutes = stagedUserRouteBuilder.getRouter();
