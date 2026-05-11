@@ -10,4 +10,8 @@ export interface ITokenProvider {
         is_paying_user: boolean
     
     ): string;
+
+    generatePreAuthToken(
+        userId: string
+    ): string
 }

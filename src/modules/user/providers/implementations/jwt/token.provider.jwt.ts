@@ -40,4 +40,24 @@ export class JwtTokenProvider implements ITokenProvider {
             }
         );
     }
+
+    generatePreAuthToken(userId: string): string {
+
+        const secret = process.env.JWT_SECRET;
+        
+        if(!secret){
+            throw new AppError("Erro interno: SECRET não configurado", 500, "SECRET_NOT_FOUND");
+        }
+
+        return sign(
+            {
+                userId: userId
+            },
+            secret,
+            {
+                subject: userId,
+                expiresIn: "10m"
+            }
+        )
+    }
 }

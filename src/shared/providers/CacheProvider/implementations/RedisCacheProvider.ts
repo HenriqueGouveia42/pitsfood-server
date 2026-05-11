@@ -35,4 +35,20 @@ export class RedisCacheProvider implements ICacheProvider {
     public async invalidate(key: string): Promise<void> {
         await redisClient.del(key);
     }
+
+    public async overwrite(key: string, value: any, expireInSeconds?: number): Promise<void> {
+        const stringValue = JSON.stringify(value);
+
+        // O parâmetro 'XX: true' obriga o Redis a atualizar APENAS se a chave já existir.
+        // Se a chave não existir, ele não fará nada (não criará um novo registro).
+        const options: any = { XX: true };
+
+        if (expireInSeconds) {
+            options.EX = expireInSeconds;
+        } else{
+            options.KEEPTTL = true
+        }
+
+        await redisClient.set(key, stringValue, options);
+    }
 }

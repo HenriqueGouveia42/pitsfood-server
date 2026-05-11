@@ -6,7 +6,8 @@ export const CacheKeys = {
     },
     User: {
         TOKEN_VERSION: (userId: string) => `user-token-version:${userId}`,
-        USERS_DATA: (storeId: string) => `users-data:${storeId}`
+        USERS_DATA: (storeId: string) => `users-data:${storeId}`,
+        TEMPORARY_AUTHORIZE_DEVICE_CODE: (userId: string, deviceId: string) => `temp-auth-device-code-user-id:${userId}-device-id:${deviceId}`
     },
     Product: {
         LIST: (storeId: string) => `store-products:${storeId}`

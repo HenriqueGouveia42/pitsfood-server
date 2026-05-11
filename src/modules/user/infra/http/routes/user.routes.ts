@@ -17,6 +17,7 @@ import { registerEmployeeSchema } from "../zodSchemas/RegisterEmployeeSchema.js"
 import { updateUserDataSchema } from "../zodSchemas/UpdateUserDataSchema.js";
 import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
 import { loginSchema } from "../zodSchemas/LoginSchema.js";
+import { confirmDeviceController } from "../../../useCases/ConfirmDevice/index.js";
 
 const userRouteBuilder = new SecureRouteBuilder();
 
@@ -30,6 +31,33 @@ userRouteBuilder.build({
     schema: loginSchema, // Adicionado o schema que estava comentado no código original
     handler: (request, response) => loginController.handle(request, response)
 });
+
+userRouteBuilder.build({
+    method: 'post',
+    path: '/forgot-password-send-email',
+    security: 'PUBLIC',
+    roles: 'PUBLIC',
+    handler: (request, response) => forgotPasswordSendEmailController.handle(request, response)
+})
+
+userRouteBuilder.build({
+    method: 'post',
+    path: '/forgot-password-verify-reset-token',
+    security: 'PUBLIC',
+    roles: 'PUBLIC',
+    handler: (request, response) => forgotPasswordVerifyResetPasswordTokenController.handle(request, response)
+})
+
+// NÍVEL 0: REQUER USUARI PRE-AUTENTICADO, OU SEJA, 
+// QUE ACERTOU LOGIN E SENHA, MAS DISPOSITIVO NAO ESTÁ AUTENTICADO
+
+userRouteBuilder.build({
+    method: 'post',
+    path: '/confirm-device',
+    security: 'REQUIRE_PRE_AUTH',
+    roles: 'PUBLIC',
+    handler: (request, response) => confirmDeviceController.handle(request, response)
+}),
 
 
 // NÍVEL 1: REQUER APENAS USUÁRIO LOGADO
@@ -48,22 +76,6 @@ userRouteBuilder.build({
     roles: 'PUBLIC',
     handler: (request, response) => logoutController.handle(request, response)
 });
-
-userRouteBuilder.build({
-    method: 'post',
-    path: '/forgot-password-send-email',
-    security: 'PUBLIC',
-    roles: 'PUBLIC',
-    handler: (request, response) => forgotPasswordSendEmailController.handle(request, response)
-})
-
-userRouteBuilder.build({
-    method: 'post',
-    path: '/forgot-password-verify-reset-token',
-    security: 'PUBLIC',
-    roles: 'PUBLIC',
-    handler: (request, response) => forgotPasswordVerifyResetPasswordTokenController.handle(request, response)
-})
 
 
 // NÍVEL 2: REQUER LOJA SELECIONADA NA SESSÃO

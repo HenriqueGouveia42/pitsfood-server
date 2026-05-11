@@ -8,8 +8,8 @@ export class S3StorageProvider implements IStorageProvider {
     constructor() {
         //capturar as variaveis do .env
         const endpoint = process.env.AWS_BUCKET_ENDPOINT;
-        const accessKeyId = process.env.ACCESS_KEY_ID;
-        const secretAccessKey = process.env.SECRET_ACCESS_KEY;
+        const accessKeyId = process.env.S3_ACCESS_KEY_ID;
+        const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
 
         //validar se elas existem - failfast
         if (!endpoint || !accessKeyId || !secretAccessKey) throw new Error("CRITICAL: Faltam variáveis de ambiente do R2/S3 (ENDPOINT, ACCESS_KEY_ID ou SECRET_ACCESS_KEY).");

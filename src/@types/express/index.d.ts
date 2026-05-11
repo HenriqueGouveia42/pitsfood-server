@@ -8,7 +8,7 @@ import { UserRole } from "../../modules/user/entities/user.js";
 declare global {
   namespace Express {
     export interface Request {
-      user: {
+      user?: {
         id: string;
         role: UserRole;
         store_id: string;
@@ -16,6 +16,7 @@ declare global {
         is_paying_user: true,
         token_version: number
       };
+      preAuthUserId?: string
     }
   }
 }

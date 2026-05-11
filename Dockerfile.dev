@@ -1,0 +1,21 @@
+# Usa uma versão leve do Node
+FROM node:24.14.0-alpine
+
+# Define a pasta de trabalho dentro do container
+WORKDIR /app
+
+# Copia apenas os arquivos de dependências primeiro (otimiza o cache do Docker)
+COPY package*.json ./
+
+# Instala as dependências (incluindo dependências de desenvolvimento) - utilizamos "npm ci" ao
+# inves de "npm install" para instalar exatamente as mesmas versoes das dependencias do arquivo
+# package-lock.json
+RUN npm ci
+
+# Se você usa Prisma, é importante copiar a pasta prisma e gerar o client
+# para garantir que os binários do Linux sejam baixados corretamente
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# O comando padrão será iniciar a API
+CMD ["npm", "run", "dev"]

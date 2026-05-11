@@ -212,5 +212,17 @@ export class PrismaUserRepository implements IUserRepository {
 
     }
 
+    async addAuthorizedDevice(user_id: string, device_id: string, device_name: string): Promise<void> {
+        
+        await prisma.authorizedDevice.create({
+            data:{
+                user_id: user_id,
+                device_id: device_id,
+                name: device_name
+            }
+        })
+
+    }
+
 
 }
