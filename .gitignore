@@ -4,5 +4,7 @@ git_untracked_tests/
 .env
 /src/generated/prisma
 CLAUDE.md
+dist
+dist/
 
 /prisma/src/generated/prisma
