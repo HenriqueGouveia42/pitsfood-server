@@ -11,8 +11,17 @@ const PORT = process.env.PORT ? process.env.PORT : 3000;
 
 const isProduction = process.env.NODE_ENV === "production";
 
+const allowedOrigins = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : [];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL,
+    origin: function (origin, callback) {
+      
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Não permitido pelo CORS"));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", 'x-device-id']
@@ -21,7 +30,7 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 
-/*export function launchGuardMiddleware(req, res, next) {
+export function launchGuardMiddleware(req, res, next) {
 
     if (process.env.PITSFOOD_LAUNCHED !== "true") {
         throw new AppError("O sistema Pitsfood ainda não foi lançado ou está temporariamente indisponível.", 403);
@@ -30,7 +39,7 @@ app.use(cookieParser())
     next();
 }
 
-app.use(launchGuardMiddleware);*/
+app.use(launchGuardMiddleware);
 
 app.use(router);
 
