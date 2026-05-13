@@ -72,7 +72,7 @@ userRouteBuilder.build({
 userRouteBuilder.build({
     method: 'post',
     path: '/logout',
-    security: 'REQUIRE_AUTH',
+    security: 'PUBLIC',
     roles: 'PUBLIC',
     handler: (request, response) => logoutController.handle(request, response)
 });

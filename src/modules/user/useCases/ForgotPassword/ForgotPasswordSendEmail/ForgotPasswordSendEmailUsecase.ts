@@ -8,6 +8,8 @@ import type { IUserRepository } from "../../../repositories/interfaces/user.repo
 import type { User } from "../../../entities/user.js";
 import { PasswordResetToken } from "../../../entities/passwordResetToken.js";
 
+import { SYSTEM_NAME } from "../../../../../config/system_data.js";
+
 export type InputDTO = {
     email: string;
 };
@@ -17,7 +19,7 @@ type OutputDTO = {
 };
 
 const MINUTES_TO_EXPIRE: number = 10;
-const EMAIL_SUBJECT: string = "Recuperação de Senha - Manga Food";
+const EMAIL_SUBJECT: string = `Recuperação de Senha - ${SYSTEM_NAME}`;
 const ONE_MINUTE_COOL_DOWN_MS: number = 60 * 1000
 export class ForgotPasswordSendEmailUsecase {
     constructor(
@@ -31,7 +33,7 @@ export class ForgotPasswordSendEmailUsecase {
         return `
             <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
                 <h2>Recuperação de Senha</h2>
-                <p>Você solicitou a redefinição de sua senha na Manga Food. Use o código abaixo para prosseguir com a troca:</p>
+                <p>Você solicitou a redefinição de sua senha na ${SYSTEM_NAME}. Use o código abaixo para prosseguir com a troca:</p>
                 <div style="background: #f4f4f4; padding: 15px; text-align: center; border-radius: 8px; width: fit-content; margin: 20px 0;">
                     <strong style="font-size: 24px; letter-spacing: 3px;">${reset_code}</strong>
                 </div>

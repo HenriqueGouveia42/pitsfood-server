@@ -3,6 +3,8 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { AppError } from "../../../../shared/errors/AppError.js";
 
+import { SYSTEM_NAME_DIMINUTIVE, SYSTEM_NAME } from "../../../../config/system_data.js";
+
 export class StagedUserNodeMailerSendEmail implements IStagedUserSendEmail{
 
     private client: Transporter | null = null;
@@ -59,12 +61,12 @@ export class StagedUserNodeMailerSendEmail implements IStagedUserSendEmail{
 
         const message = await this.client.sendMail({
             to: email,
-            from: "Manga Food <noreply@pitstop.com.br>",
-            subject: "Seu código de verificação de sua nova conta Manga Food",
+            from: `${SYSTEM_NAME} <noreply@${SYSTEM_NAME_DIMINUTIVE}.com>`,
+            subject: `Seu código de verificação de sua nova conta ${SYSTEM_NAME}`,
             text: `Seu codigo de verificacao: ${verificationCode}`,
             html: `
                 <div style="font-family: Arial, sans-serif; color: #333;">
-                    <h2>Bem-vindo à Manga Food!</h2>
+                    <h2>Bem-vindo à ${SYSTEM_NAME}!</h2>
                     <p>Use o código abaixo para validar seu cadastro:</p>
                     <div style="background: #f4f4f4; padding: 15px; text-align: center; border-radius: 8px; width: fit-content;">
                         <strong style="font-size: 24px; letter-spacing: 3px;">${verificationCode}</strong>

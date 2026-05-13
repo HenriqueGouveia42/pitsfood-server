@@ -12,6 +12,8 @@ import type { IMailProvider } from "../../../../shared/providers/EmailProvider/i
 import type { IEmailValidationProvider } from "../../../../shared/providers/EmailValidationProvider/interface/IEmailValidationProvider.js";
 import type { IHashedStringProvider } from "../../../../shared/providers/HashedStringProvider/models/IHashedStringProvider.js";
 
+import { SYSTEM_NAME } from "../../../../config/system_data.js";
+
 export interface SendVerificationCodeToEmailUseCaseRequest {
     email: string,
     username: string,
@@ -84,7 +86,7 @@ export class RegisterStagedUserUseCase {
 
         const emailTemplate = `
             <div style="font-family: Arial, sans-serif; color: #333;">
-                <h2>Bem-vindo à Manga Food!</h2>
+                <h2>Bem-vindo à ${SYSTEM_NAME}!</h2>
                 <p>Use o código abaixo para validar seu cadastro:</p>
                 <div style="background: #f4f4f4; padding: 15px; text-align: center; border-radius: 8px; width: fit-content;">
                     <strong style="font-size: 24px; letter-spacing: 3px;">${verification_code}</strong>
@@ -95,7 +97,7 @@ export class RegisterStagedUserUseCase {
 
         await this.mailProvider.sendMail({
             to: email,
-            subject: "Seu código de verificação de sua nova conta Manga Food",
+            subject: `Seu código de verificação de sua nova conta ${SYSTEM_NAME}`,
             body: emailTemplate
         });
     }

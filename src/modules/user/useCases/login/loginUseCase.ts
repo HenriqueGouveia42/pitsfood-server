@@ -8,6 +8,8 @@ import { randomInt } from 'node:crypto';
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import type { IMailProvider } from "../../../../shared/providers/EmailProvider/interface/IMailProvider.js";
 
+import { SYSTEM_NAME } from "../../../../config/system_data.js";
+
 export const TEN_MINUTES_IN_SECONDS: number = 60 * 10;
 
 interface IRequest {
@@ -133,7 +135,7 @@ export class LoginUseCase {
 
             const emailTemplateWithDeviceAuthorizationCode: string = `
                 <div style="font-family: Arial, sans-serif; color: #333;">
-                    <h2>Bem-vindo à Manga Food!</h2>
+                    <h2>Bem-vindo à ${SYSTEM_NAME}!</h2>
                     <p>Use o código abaixo para autorizar seu novo dispositivo:</p>
                     <div style="background: #f4f4f4; padding: 15px; text-align: center; border-radius: 8px; width: fit-content;">
                         <strong style="font-size: 24px; letter-spacing: 3px;">${authorize_device_code}</strong>
