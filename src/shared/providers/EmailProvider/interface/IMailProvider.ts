@@ -1,7 +1,7 @@
 export interface ISendMailDTO {
-    to: string;
+    to: string | string[]; // Atualizado para suportar múltiplos destinatários
     subject: string;
-    body: string; // aqui vai HTML formatado pelo Use Case
+    body: string; // HTML formatado pelo Use Case
 }
 
 export interface IMailProvider {
