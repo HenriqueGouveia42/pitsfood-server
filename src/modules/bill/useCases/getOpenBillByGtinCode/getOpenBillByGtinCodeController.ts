@@ -14,30 +14,19 @@ export class GetOpenBillByGtinCodeController{
 
     public async handle (req: Request, res: Response): Promise<Response>{
 
-        try{
-            const { bill_code_gtin } = req.params;
-
-            if (!bill_code_gtin){
-                throw new AppError("gtin_code da comanda ausente", 400, "GTIN_CODE_NOT_FOUND")
-            }
-
-            const openBillResponseDto: GetOpenBillResponseDTO = await this.getOpenBillByGtinCodeUseCase.execute(bill_code_gtin);
-
-            if(!openBillResponseDto){
-                throw new AppError(`Comanda com gtin_code: ${bill_code_gtin} nao encontrada!`, 404, "BILL_NOT_FOUND")
-            }
-
-            return res.status(200).json(openBillResponseDto);
-
-        }catch(error){
-
-            if (error instanceof AppError){
-                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
-            }
-            
-            return res.status(500).json({message: "Erro interno"});
+        
+        const { bill_code_gtin } = req.params;
+        if (!bill_code_gtin){
+            throw new AppError("gtin_code da comanda ausente", 400, "GTIN_CODE_NOT_FOUND")
         }
 
+        const openBillResponseDto: GetOpenBillResponseDTO = await this.getOpenBillByGtinCodeUseCase.execute(bill_code_gtin);
+
+        if(!openBillResponseDto){
+            throw new AppError(`Comanda com gtin_code: ${bill_code_gtin} nao encontrada!`, 404, "BILL_NOT_FOUND")
+        }
+
+        return res.status(200).json(openBillResponseDto);
     }
 
 }

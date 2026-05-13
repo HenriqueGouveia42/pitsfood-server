@@ -6,9 +6,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "tsx watch src/git_untracked_tests/test.ts",
-    "seedingBills": "tsx src/git_untracked_tests/seedingBills.ts",
-    "get_bills": "tsx src/git_untracked_tests/bills_gtins.ts"
+    "dev:worker": "tsx watch src/worker.ts",
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",
@@ -18,26 +17,39 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
     "@types/node": "^25.0.3",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^7.0.5",
     "@types/pg": "^8.16.0",
     "dotenv": "^17.2.3",
-    "prisma": "^6.0.1",
+    "prisma": "^6.19.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.988.0",
     "@prisma/adapter-pg": "^6.0.1",
-    "@prisma/client": "^6.0.1",
+    "@prisma/client": "^6.19.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/dotenv": "^6.1.1",
+    "axios": "^1.13.4",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.76.5",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "D": "^1.0.0",
     "decimal.js": "^10.6.0",
     "express": "^5.2.1",
+    "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.5",
     "pg": "^8.16.3",
+    "redis": "^5.10.0",
+    "resend": "^6.12.3",
+    "vitest": "^4.1.4",
     "zod": "^4.3.5"
   }
 }

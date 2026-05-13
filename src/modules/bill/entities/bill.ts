@@ -1,13 +1,19 @@
 import { Decimal } from 'decimal.js';
 import { Product } from '../../product/entities/product.js';
+import { AppError } from '../../../shared/errors/AppError.js';
+import { DomainError } from '../../../shared/errors/DomainError.js';
 
 //tipo de um item na comanda
 export type BillItemProps = {
     readonly bill_item_id:  string; //representa uma adição específica em uma comanda específica
-    readonly quantity: number; //quantidade
     readonly product_name: string,
     readonly price_at_addition: Decimal;
     readonly bill_id: string, //de qual comanda veio
+    readonly store_id: string
+
+    readonly created_at: string,
+    readonly updated_at: string,
+
     readonly product_id: string; //qual produto
     readonly user_id: string; //quem adicionou
     readonly product_gtin_code: string
@@ -26,9 +32,17 @@ export type BillProps = {
     readonly bill_id: string; //representa um uso específico da comanda física
     readonly bill_code_gtin: string; //representa uma comanda física. Comanda "1025", por exemplo, que será utilizada por diversos clientes
     readonly status: billStates;
+    readonly store_id: string;
     readonly created_at: string;
     readonly updated_at: string;
     readonly items: BillItemProps[]; //relacionamento com bill_items
+}
+
+export type BuildBillProps = {
+    bill_id: string,
+    bill_code_gtin: string,
+    store_id: string,
+    now_string: string
 }
 
 export class Bill {
@@ -79,34 +93,19 @@ export class Bill {
         }
     }
 
-    public static buildClosedBill(bill_code_gtin: string): Bill {
+    public static buildOpenedBill(build_props: BuildBillProps): Bill {
 
-        Bill.validateBillCode(bill_code_gtin);
-
-        const now = new Date().toISOString();
-
-        return new Bill({
-            bill_id: crypto.randomUUID().toString(),
-            bill_code_gtin: bill_code_gtin,
-            status: billStates.FECHADA, //ao buildar um objeto de comanda, essa comanda física está fechada, ou seja
-            created_at: now,
-            updated_at: now,
-            items: [] //inicia sem itens
-        });
-    }
-
-    public static buildOpenedBill(bill_code_gtin: string): Bill {
-
-        Bill.validateBillCode(bill_code_gtin);
+        Bill.validateBillCode(build_props.bill_code_gtin);
 
         const now = new Date().toISOString();
 
         return new Bill({
-            bill_id: crypto.randomUUID().toString(),
-            bill_code_gtin: bill_code_gtin,
-            status: billStates.ABERTA, //ao buildar um objeto de comanda, essa comanda física está fechada, ou seja
-            created_at: now,
-            updated_at: now,
+            bill_id: build_props.bill_id,
+            bill_code_gtin: build_props.bill_code_gtin,
+            status: billStates.ABERTA,
+            store_id: build_props.store_id,
+            created_at: build_props.now_string,
+            updated_at: build_props.now_string,
             items: [] //inicia sem itens
         });
     }
@@ -119,28 +118,25 @@ export class Bill {
     get bill_id() {return this.props.bill_id}
     get bill_code() {return this.props.bill_code_gtin}
     get status() {return this.props.status}
+    get store_id() {return this.props.store_id}
     get createdAt() {return this.props.created_at}
     get updatedAt() {return this.props.updated_at}
     get items() {return this.props.items}
 
-    public close(): Bill{ //fechar comanda - realizar venda
+    public close(now_string: string): Bill{ //fechar comanda - realizar venda
 
-        if(this.props.status === billStates.FECHADA){
-            throw new Error("Essa comanda já está fechada");
-        }
-
-        if(this.props.items.length === 0){
-            throw new Error("Não pode fechar uma comanda sem itens")
-        }
-
+        if(this.props.status === billStates.FECHADA) throw new DomainError("Essa comanda já está fechada", "BILL_ALREADY_CLOSED");
+        
+        if(this.props.items.length === 0) throw new DomainError("Não pode fechar uma comanda sem itens", "BILL_WITHOUT_ITEMS");
+        
         return new Bill({
             ...this.props,
             status: billStates.FECHADA,
-            updated_at: new Date().toISOString()
+            updated_at: now_string
         })
     }
 
-    public reopen(): Bill{ //reabrir comanda - venda realizada - adicionar mais itens
+    public reopen(now_string: string): Bill{ //reabrir comanda - venda realizada - adicionar mais itens
 
         if(this.props.status !== billStates.FECHADA){
             throw new Error("Apenas comandas fechadas podem ser reabertas");
@@ -148,161 +144,35 @@ export class Bill {
         return new Bill({
             ...this.props,
             status: billStates.ABERTA,
-            updated_at: new Date().toISOString()
+            updated_at: now_string
         })
     }
 
-    public addProduct(product: Product, quantity: number, user_id: string): Bill {
+    public addProduct(product: Product, quantity: number, store_id: string, user_id: string, now_string: string, random_ids: string[]): Bill {
 
-        //validacoes de quantidade e estatus da comanda
-        if (quantity <= 0) throw new Error("A quantidade deve ser maior que zero.");
-        if (this.props.status !== billStates.ABERTA) throw new Error("Não é possível adicionar itens a uma comanda que não está ABERTA.");
-        if (!product.active) {
-            throw new Error("Este produto está arquivado/inativo e não pode ser vendido.");
-        }
-        
-        //verifica se o item com mesmo preco ja existe na comanda
-        const existingItemIndex = this.props.items.findIndex(item => 
-            (item.product_id === product.id)
-            &&
-            (item.price_at_addition.equals(product.price))
-            &&
-            (item.user_id === user_id) //so agrupa se id, preco e usuario que lancou forem iguais
-        );
-        
-        const itemsToAdd = [...this.props.items];
+    if (quantity <= 0 || !Number.isInteger(quantity)) throw new DomainError("A quantidade deve ser um número inteiro maior que zero.", "INVALID_QUANTITY");
+    if (!Array.isArray(random_ids)) throw new DomainError("Nao é um array de ids", "MISSING_ARRAY");
+    if (random_ids.length !== quantity) throw new DomainError("As quantidades de ids e quantidade de produtos devem ser iguais");
 
-        if (existingItemIndex !== -1){ //item ja existe na comanda e preco nao mudou
-    
-           const currentItem = itemsToAdd[existingItemIndex];
+    // O TypeScript sabe que 'id' é estritamente 'string' aqui, pois estamos mapeando os elementos reais
+    const newItems: BillItemProps[] = random_ids.map(id => ({
+        bill_item_id: id,
+        product_name: product.name,
+        price_at_addition: product.price,
+        bill_id: this.props.bill_id,
+        store_id: store_id,
+        created_at: now_string,
+        updated_at: now_string,
+        product_id: product.id,
+        user_id: user_id,
+        product_gtin_code: product.gtin
+    }));
 
-            if (!currentItem) {
-                throw new Error("Erro interno... na entidade bills - adicionando item à comanda.");
-            }
-            
-            itemsToAdd[existingItemIndex] = {
-                ...currentItem,
-                quantity: currentItem.quantity + quantity
-            };
+    return new Bill({
+        ...this.props,
+        items: [...this.props.items, ...newItems],
+        updated_at: now_string
+    });
+}
 
-        } else { //item ainda nao existe na comanda ou ja existe mas com preco diferente
-
-            const newItem: BillItemProps = {
-                bill_item_id: crypto.randomUUID().toString(),
-                quantity: quantity,
-                price_at_addition: product.price,
-                bill_id: this.props.bill_id,
-                product_id: product.id,
-                user_id: user_id,
-                product_name: product.name,
-                product_gtin_code: product.gtin
-            }
-
-            itemsToAdd.push(newItem);
-        }
-
-       return new Bill({...this.props, items: itemsToAdd, updated_at: new Date().toISOString()});
-    }
-
-    public removeProduct(product_id: string, quantityToRemove: number): Bill {
-        
-        //validacoes basicas
-        if (this.props.status !== billStates.ABERTA) {
-            throw new Error("Não é possível remover itens de uma comanda fechada ou cancelada.");
-        }
-        if (quantityToRemove <= 0) {
-            throw new Error("A quantidade a remover deve ser maior que zero.");
-        }
-
-        // 2. Encontrar o item (Aqui simplifiquei para achar pelo produto, 
-        // mas idealmente num PDV você remove pelo ID da linha 'bill_item_id' para ser exato)
-        // Como sua lógica agrupa por Preço+User+Produto, vamos buscar itens compatíveis.
-        
-        // Cópia da lista para imutabilidade
-        let itemsCurrent = [...this.props.items];
-        let quantityRemainingToRemove = quantityToRemove;
-
-        // Estratégia: Remover dos itens mais recentes ou varrer a lista.
-        // Vamos varrer procurando o produto.
-        const indexesToUpdate: number[] = [];
-
-        // Filtra itens que são desse produto
-        const targetItems = itemsCurrent.filter(i => i.product_id === product_id);
-
-        if (targetItems.length === 0) {
-            throw new Error("Este produto não existe nesta comanda.");
-        }
-
-        // Soma total disponível desse produto na comanda
-        const totalQuantityAvailable = targetItems.reduce((acc, item) => acc + item.quantity, 0);
-
-        if (totalQuantityAvailable < quantityToRemove) {
-            throw new Error(`Tentativa de remover ${quantityToRemove} itens, mas só existem ${totalQuantityAvailable} na comanda.`);
-        }
-
-        // 3. Lógica de Remoção (FIFO ou LIFO - aqui removendo qualquer um que achar)
-        // Isso é complexo porque temos múltiplos 'users' adicionando. 
-        // REGRA DE NEGÓCIO: Geralmente removemos do último que adicionou ou exigimos o ID da linha.
-        // VOU SIMPLIFICAR: Vamos remover pelo bill_item_id se o front mandar, ou remover do primeiro que achar.
-        
-        // *Sugestão*: Mude a assinatura para receber o bill_item_id. É mais seguro.
-        // Mas para manter seu padrão atual de agrupar, vamos iterar e subtrair.
-
-        const newItems: BillItemProps[] = [];
-
-        for (const item of itemsCurrent) {
-            // Se não é o produto, mantém
-            if (item.product_id !== product_id) {
-                newItems.push(item);
-                continue;
-            }
-
-            // Se já removemos tudo que precisava, mantém o resto
-            if (quantityRemainingToRemove <= 0) {
-                newItems.push(item);
-                continue;
-            }
-
-            if (item.quantity > quantityRemainingToRemove) {
-                // O item tem mais do que precisamos remover. Apenas diminui.
-                newItems.push({
-                    ...item,
-                    quantity: item.quantity - quantityRemainingToRemove
-                });
-                quantityRemainingToRemove = 0;
-            } else {
-                // O item tem igual ou menos. Removemos o item inteiro (não damos push no newItems)
-                // e abatemos do que falta remover.
-                quantityRemainingToRemove -= item.quantity;
-            }
-        }
-
-        return new Bill({
-            ...this.props,
-            items: newItems,
-            updated_at: new Date().toISOString()
-        });
-    }
-
-    public cancellBill(): Bill {
-
-        if (this.props.status !== billStates.ABERTA) {
-            throw new Error("Apenas comandas abertas podem ser canceladas.");
-        }
-        return new Bill({
-            ...this.props,
-            status: billStates.CANCELADA,
-            updated_at: new Date().toISOString()
-        });
-    }
-
-    public totalBillAmount(): Decimal {   
-        return this.props.items.reduce((acc, item) => {
-            return acc.plus(item.price_at_addition.times(item.quantity));
-        }, new Decimal(0));
-    }
-
-    public toPrimitives(): BillProps{
-        return this.props
-    }
 }

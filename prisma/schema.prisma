@@ -7,11 +7,12 @@
 generator client {
   provider = "prisma-client"
   output = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("MULTI_TENANT_DATABASE_URL")
 }
 
 enum UserRole {
@@ -39,93 +40,331 @@ enum PaymentMethod {
   CARTAO_CREDITO
 }
 
+enum SubscriptionPlan {
+  NONE //loja que acabou de ser criada
+  BASIC
+  EXTENDED
+  PREMIUM
+  PERSONALIZED
+}
+
+enum SubscriptionStatus {
+  NONE//loja que acabou de ser criada
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum InvoiceStatus {
+  PENDING   //gerou o PIX mas nao pagou
+  PAID      //pago com sucesso
+  FAILED    //expirou ou erro
+  REFUNDED  //estornado
+  CANCELED
+}
+
+model SubscriptionInvoice {
+
+  invoice_id     String   @id @default(uuid())
+  
+  amount_in_cents Int
+  currency        String  @default("BRL")
+  
+  status          InvoiceStatus @default(PENDING)
+  
+  //dados do Gateway (Abacate Pay)
+  gateway_invoice_id  String?  // ID da cobrança lá no Abacate
+  pix_code            String?  @db.Text // O "copia e cola" do PIX para o front exibir
+  payment_url         String?  //link externo se houver
+
+  //ciclo de vida
+  created_at      DateTime @default(now())
+  paid_at         DateTime?
+  period_end        DateTime // Data que define o fim da cobertura/acesso desta fatura.
+
+  // Relações
+  store_id String
+  store   Store   @relation(fields: [store_id], references: [store_id])
+
+  plan_tag  SubscriptionPlan // Qual plano ele tentou comprar (BASIC, PREMIUM...)
+
+  @@index([store_id])
+  @@index([gateway_invoice_id])
+  @@map("subscription_invoices")
+}
+
+model Store{
+  store_id String @id @default(uuid())
+  name String
+  cnpj  String?
+  active  Boolean @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+  billing_day Int?
+
+  plan SubscriptionPlan @default(NONE)
+
+  subscription_status SubscriptionStatus @default(NONE)
+  subscription_expires_at DateTime?
+  
+  
+  owner_id String// @unique - UM USUARIO PODE TER VARIAS LOJAS
+  owner User? @relation("StoreOwner", fields: [owner_id], references: [user_id])
+
+  affiliate_id  String?
+  referrer  Affiliate? @relation("StoreReferrer", fields: [affiliate_id], references: [id])
+
+  store_icon_url String?
+
+  users User[] @relation("StoreUsers")
+  products Product[]
+  sales Sale[]
+  bills Bill[]
+
+  bill_products BillProduct[] 
+  sale_products SaleProduct[]
+  sale_payments SalePayment[]
+  stock_entries StockEntry[]
+  physical_bill_cards PhysicalBillCard[]
+  invoices SubscriptionInvoice[]
+
+  @@map("stores")
+}
+
+model Affiliate {
+  id  String @id @default(uuid())
+  name String
+  email String @unique
+  cpf_cnpj  String @unique
+  pix_key String?
+
+  referral_code String @unique
+
+  commission_rate Decimal @default(20.0) @db.Decimal(5, 2)
+
+  active  Boolean @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  referred_stores Store[] @relation("StoreReferrer")
+
+  @@map("affiliates")
+}
+
+model StagedUser {
+
+  id String @id @default(uuid()) // É bom ter um ID próprio
+
+  // dados que serão movidos para a tabela 'users' depois
+  email         String   @unique
+  username      String
+  password_hash String
+  verification_code String   //codigo de 6 digitos
+  last_verification_code_sent_at DateTime // Quando foi enviado o ultimo codigo de verificação
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  expires_at DateTime
+  code_expires_at DateTime
+  cpf_cnpj  String
+  phone     String?
+
+  @@map("staged_users")
+}
+
 //representa um usuário salvo no banco de dados
 model User {
-  user_id       String   @id // UUID gerado pela aplicação
-  username      String   @unique
+  email         String   @unique
+  user_id       String   @id
+  username      String   //@unique - username nao pode ser unique, pois se for unique, o mesmo username nao poderá se repetir em todo o banco de dados, o que é ruim, basta que o username nao se repita somente dentro da mesma loja
   password_hash String
   role          UserRole
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
   active        Boolean @default(true)
 
+  cpf_cnpj      String //se for o dono, isso é obrigatorio para poder gerar as cobrancas no gateway de pagamentos
+  phone         String?
+
+  paying_user   Boolean @default(false)//isso indica se o gestor é o que paga, o que criou sua conta, etc, ou se é um gestor criado por um gestor pago
+  
+  store_id  String?
+  store Store? @relation("StoreUsers", fields: [store_id], references: [store_id])
+  
+  owned_store Store[] @relation("StoreOwner")
+  stock_entries_registered  StockEntry[] @relation("UserRegisteredStock")
+
+  must_change_password Boolean @default(false)
+
   //relacionamentos
   sales_closed  Sale[]        @relation("UserClosedSale")
   items_added   BillProduct[] @relation("UserAddedItem")
+  password_reset_tokens PasswordResetToken[]
+  authorized_devices AuthorizedDevice[]
 
+  @@unique([store_id, username]) //um username deve ser unico APENAS dentro daquela loja
+  //@@unique([store_id, user_id]) //indice composto que sera utilizado por BillProduct e Sale
   @@map("users")
+}
+
+model AuthorizedDevice {
+  authorization_id  String @id @default(uuid())
+  device_id String
+  name  String
+  added_at  DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [user_id])
+  user_id String
 }
 
 //representa um produto salvo no banco de dados
 model Product {
   product_id          String   @id
-  name                String   @unique
+  name                String   //@unique - esse campo nao pode ser unique. Se for unique, um nome nao poderá se repetir ao longo de todo o banco de dados, o que nao tem necessidade, basta que ele seja unico dentro da loja
   unit_price_in_reais Decimal  @db.Decimal(10, 2)
-  gtin_code           String   @unique
+  gtin_code           String   //@unique - esse campo nao pode ser unique. Se for unique, a loja A nao vai poder cadastrar uma coca-cola se a loja B ja tiver cadastrado
   is_internal         Boolean
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
   active              Boolean  @default(true)
 
+  store_id  String
+  store Store @relation(fields: [store_id], references: [store_id])
+
+  track_stock         Boolean @default(false) //indica se esse produto contra estoque (Ex: Coca-cola = true, Coxinha de Frango = false)
+  stock_quantity      Int @default(0)
+
+  requires_preparation  Boolean @default(false) //indica se um produto precisa ser preparado na hora antes de ser vendido
+
+
   //relacionamentos
   bill_products BillProduct[]
   sale_products SaleProduct[]
+  stock_entries StockEntry[] //historico de entradas desse produto
 
+  @@index([store_id, name])
+
+  @@unique([store_id, gtin_code]) //o produto é unico dentro de uma loja, mas pode repetir em outras
+  @@unique([store_id, product_id]) //indice composto que será utilizado por BillProduct e SaleProduct
+  @@unique([store_id, name])
+  
   @@map("products")
+}
+
+model StockEntry{ //tabela que registra as entradas de estoque
+  entry_id  String @id @default(uuid())
+  quantity  Int //sempre positivo Ex: 250
+
+  unit_cost Decimal? @db.Decimal(10, 2) // Ex:2.00
+  total_cost Decimal? @db.Decimal(10, 2) //(calculado quantity * unit_cost)
+
+  created_at DateTime @default(now())
+
+  store_id  String
+  store Store @relation(fields: [store_id], references: [store_id])
+
+  product_id String
+  product Product @relation(fields: [store_id, product_id], references: [store_id, product_id])
+
+  user_id String
+  user  User @relation("UserRegisteredStock", fields: [user_id], references: [user_id])
+
+  @@map("stock_entries")
+
 }
 
 //representa uma comanda
 model Bill {
   bill_id        String     @id
-  bill_code_gtin String     // O código físico (papel)
+  bill_code_gtin String     // O código da comanda física (papel)
   status         BillStatus
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt
 
+  store_id String
+  store Store @relation(fields: [store_id], references: [store_id])
+
+
   //relacionamentos
   items          BillProduct[]
+
+  generated_sale_products SaleProduct[]
 
   
   //uma comanda pode gerar no máximo UMA venda final.
   //o campo fica do lado da Sale (origin_bill_id), aqui é o espelho.
+  @@unique([store_id, bill_id])
   @@map("bills")
 }
+
+model PhysicalBillCard{
+  id String @id @default(uuid())
+  code  String
+  
+  is_lost Boolean @default(false)
+  created_at  DateTime  @default(now())
+  updated_at DateTime @updatedAt
+
+  store_id String
+  store Store @relation(fields: [store_id], references: [store_id])
+
+  @@unique([store_id, code])
+  @@map("physical_bills")
+}
+
 
 //representa um produto adicionado a comanda
 model BillProduct {
   bill_item_id      String  @id
-  quantity          Int
   price_at_addition Decimal @db.Decimal(10, 2) // Preço congelado no momento do bipe
   product_name      String
   product_gtin_code String
+
+  
 
   //chaves Estrangeiras
   bill_id    String
   product_id String
   user_id    String
+  store_id String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
 
   //relacionamentos
-  bill    Bill    @relation(fields: [bill_id], references: [bill_id])
-  product Product @relation(fields: [product_id], references: [product_id])
-  user    User    @relation("UserAddedItem", fields: [user_id], references: [user_id])
+  bill    Bill    @relation(fields: [store_id, bill_id], references: [store_id, bill_id]) //a comanda vinculada TEM que existir e TEM que ser da mesma loja 
+  product Product @relation(fields: [store_id, product_id], references: [store_id, product_id])// o produto adicionado a comanda TEM que existir e TEM que ser da mesma loja
+  user    User    @relation("UserAddedItem", fields: [user_id], references: [user_id]) //o usuario que adicionou TEM que ser da mesma loja
+  store   Store   @relation(fields: [store_id], references: [store_id])
 
   @@map("bill_products")
 }
+
+//REFATOREI DAQUI PRA CIMA. DAQUI PRA BAIXO AINDA FALTA REFATORAR
 
 model Sale {
   sale_id        String     @id
   total_price    Decimal    @db.Decimal(10, 2)
   status         SaleStatus
-  user_id        String     //quem fechou a venda
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt
 
+  store_id  String
+  store     Store @relation(fields: [store_id], references: [store_id])
+
+
   //relacionamentos
-  user        User          @relation("UserClosedSale", fields: [user_id], references: [user_id])
+  user_id        String     //quem fechou a venda
+  user        User          @relation("UserClosedSale", fields: [user_id], references: [user_id]) //o usuario que fechou a venda TEM que ser da mesma loja
+  seller_name String
+  seller_role String
+
   items       SaleProduct[]
   payments    SalePayment[]
 
+  @@unique([store_id, sale_id]) //indice composto necessario para que SaleProduct e SalePayment possam criar chaves estrangeiras que apontam pra ca
   @@map("sales")
+  @@index([store_id, status, created_at])
 }
 
 
@@ -133,18 +372,26 @@ model Sale {
 model SaleProduct {
   sale_product_id String  @id
   quantity        Int
-  unit_price_sold Decimal @db.Decimal(10, 2)
+
+  unit_price_snapshot Decimal @db.Decimal(10, 2)
+  product_name_snapshot String //preserva o nome original do momento da venda para sempre
+  product_gtin_snapshot String //preserva o gtin code original do momento da venda para sempre 
   
+  store_id String
+  store Store @relation(fields: [store_id], references: [store_id])
+
   //chaves estrangeiras
   sale_id    String
   product_id String
   origin_bill_id String? //opcional pois o item da venda pode ter sido feito direto no balcao, ou seja, sem comanda
 
   //relacionamentos
-  sale    Sale    @relation(fields: [sale_id], references: [sale_id], onDelete: Cascade)
-  product Product @relation(fields: [product_id], references: [product_id])
+  sale    Sale    @relation(fields: [store_id, sale_id], references: [store_id, sale_id], onDelete: Cascade)
+  product Product @relation(fields: [store_id, product_id], references: [store_id, product_id])
+  origin_bill Bill? @relation(fields: [store_id, origin_bill_id], references: [store_id, bill_id]) //se veio de comanda, a comanda deve ser da mesma loja
 
   @@map("sale_products")
+  @@index([store_id, sale_id])
 }
 
 //representa um pagamento vinculado a uma venda fechada - 'sale'
@@ -157,22 +404,26 @@ model SalePayment {
   //chaves estrangeiras
   sale_id String
 
+  store_id String
+  store Store @relation(fields: [store_id], references: [store_id])
+
   //relacionamentos
-  sale Sale @relation(fields: [sale_id], references: [sale_id], onDelete: Cascade)
+  sale Sale @relation(fields: [store_id, sale_id], references: [store_id, sale_id], onDelete: Cascade) //o pagamento só é vinculado a uma MESMA venda e uma MESMA loja
 
   @@map("sale_payments")
+  @@index([store_id, sale_id])
 }
 
-model MainGestor {
-  main_gestor_id String @id
-  singleton_guard Boolean @default(true) @unique
+model PasswordResetToken {
+  id  String @id @default(uuid())
+
+  user_id String @unique //só deve haver um codigo por usuario ao mesmo tempo
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  token String
+  created_at DateTime @default(now())
+  expires_at DateTime
+  failed_attempts Int @default(0)
+  @@map("password_reset_tokens")
+  
 }
-/*
-  Insere-se o 1º Gestor. O campo singleton_guard é salvo como true. Sucesso.
-
-  Tenta-se inserir um 2º Gestor. O Prisma tenta salvar singleton_guard como true (padrão).
-
-  O Banco (Postgres) grita: "Erro! Já existe uma linha com 'true' e essa coluna deve ser única!".
-
-  Resultado: É fisicamente impossível ter 2 gestores principais.
-*/

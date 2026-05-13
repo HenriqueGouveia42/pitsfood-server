@@ -1,3 +1,15 @@
+import { DomainError } from "../../../shared/errors/DomainError.js";
+import { validCNPJ } from "../../../shared/validators/valid.cnpj.js";
+import { validateCPF } from "../../../shared/validators/valid.cpf.js";
+
+const MAX_QUANTITY_AUTHORIZED_DEVICES: number  = 10
+
+export type AuthorizedDeviceProps = {
+    readonly device_id: string;
+    readonly name: string;
+    readonly added_at: Date; 
+}
+
 export enum UserRole {
     GESTOR = "GESTOR",
     CAIXA = "CAIXA",
@@ -6,12 +18,34 @@ export enum UserRole {
 
 export type UserProps = {
     readonly user_id: string;
+    readonly store_id: string | null,
+    readonly email: string,
     readonly username: string;
     readonly password_hash: string;
     readonly created_at: string;
     readonly updated_at: string;
     readonly role: UserRole;
     readonly active: boolean;
+    readonly must_change_password: boolean,
+    readonly paying_user: boolean,
+
+    readonly cpf_cnpj: string,
+    readonly phone: string | null
+    readonly authorized_devices: AuthorizedDeviceProps[];
+}
+
+export type BuildUserProps = {
+    user_id: string,
+    nowDate: string,
+    username: string,
+    password_hash: string,
+    role: UserRole,
+    email: string,
+    store_id: string | null,
+    must_change_password: boolean,
+    is_paying_user: boolean,
+    cpf_cnpj: string,
+    phone: string | null,
 }
 
 export class User {
@@ -20,29 +54,64 @@ export class User {
 
     //validacoes
     private static validateUsername(username: string): void {
-        if (username.length < 3) throw new Error("Nome de usuário deve ter pelo menos 3 caracteres");
-        if (username.length > 50) throw new Error("Nome de usuário não pode ultrapassar 50 caracteres");
+        if (username.length < 3) throw new DomainError("Nome de usuário deve ter pelo menos 3 caracteres");
+        if (username.length > 50) throw new DomainError("Nome de usuário não pode ultrapassar 50 caracteres")
+    }
+
+    private static validatePayingUser(user:User): void{
+        if(user.paying_user && user.role != UserRole.GESTOR) throw new DomainError("O usuario pago necessariamente é um gestor");
+        if(user.paying_user && user.storeId) throw new DomainError("Um usuario gestor pago nao pode possuir a propriedade 'store_id'");
+    }
+
+    private static formatUsername(username: string): string {
+        return username
+            .trim()
+            .toLowerCase()
+            .split(' ')
+            .filter(word => word.length > 0) //Remove espaços duplos acidentais
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 
     //fabric apara criação de novos usuários (cadastrar novo usuario)
-    public static buildUser(username: string, password_hash: string, role: UserRole): User {
-        User.validateUsername(username);
+    public static buildUser(
+        props: BuildUserProps
+    ): User {
 
-        const now = new Date().toISOString();
+        const finalName: string = this.formatUsername(props.username);
 
-        return new User({
-            user_id: crypto.randomUUID(),
-            username,
-            password_hash,
-            created_at: now,
-            updated_at: now,
-            role,
-            active: true
-        });
+        User.validateUsername(finalName);
+
+        //ou ele enviou um CPF ou ele enviou um CNPJ
+
+        const is_valid_cpf: boolean = validateCPF(props.cpf_cnpj);
+        const is_valid_cnpj: boolean = validCNPJ(props.cpf_cnpj);
+
+        if ((!is_valid_cnpj)&&(!is_valid_cpf)) throw new DomainError("Precisa de um CPF ou CNPJ valido");
+
+        const user:User = new User({
+            user_id: props.user_id,
+            store_id: props.store_id,
+            email: props.email,
+            username: finalName,
+            password_hash: props.password_hash,
+            created_at: props.nowDate,
+            updated_at: props.nowDate,
+            role: props.role,
+            active: true,
+            must_change_password: props.must_change_password,
+            paying_user: props.is_paying_user,
+            cpf_cnpj: props.cpf_cnpj,
+            phone: props.phone,
+            authorized_devices: []
+        })
+
+        User.validatePayingUser(user);
+
+        return user;
     }
 
     public static restore(props: UserProps): User{
-        User.validateUsername(props.username);
         return new User(props);
     }
 
@@ -54,18 +123,100 @@ export class User {
     get createdAt() { return this.props.created_at; }
     get updatedAt() { return this.props.updated_at; }
     get active() { return this.props.active; }
+    get storeId() {return this.props.store_id}
+    get email() {return this.props.email}
+    get mustChangePassword() {return this.props.must_change_password; }
+    get paying_user() {return this.props.paying_user; }
+    get cpf_cnpj() {return this.props.cpf_cnpj; }
+    get phone() {return this.props.phone; }
+    get authorized_devices() { return this.props.authorized_devices }
+
 
     //setters que retornam novos objetos, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newUsername:string, newHashedPassword: string, active: boolean): User {
 
-        User.validateUsername(newUsername);
+        const formattedUsername: string = User.formatUsername(newUsername);
 
+        User.validateUsername(formattedUsername);
+        
         return new User({
             ...this.props,
-            username: newUsername,
+            username: formattedUsername,
             password_hash: newHashedPassword,
             active: active,
             updated_at: new Date().toISOString()
         })
     }
+
+    public setStoreId(store_id: string | null): User {
+
+        return new User({
+            ...this.props,
+            store_id: store_id
+        })
+
+    }
+
+    public setNewPassword(new_password: string): User{
+        return new User({
+            ...this.props,
+            password_hash: new_password
+        })
+    }
+
+    public setMustChangePasswordToFalse(): User{
+        return new User({
+            ...this.props,
+            must_change_password: false
+        })
+    }
+
+    public setMustChangePasswordToTrue(): User{
+        return new User({
+            ...this.props,
+            must_change_password: true
+        })
+    }
+
+    public addAuthorizedDeviceId(device_id: string, name: string, now: Date): User{
+
+        if (this.authorized_devices.length > MAX_QUANTITY_AUTHORIZED_DEVICES){
+            throw new DomainError("Usuario atingiu a quantidade máxima de dispositivos autorizados", "ID_TOO_LONG");
+        }
+
+        if (device_id.length > 40){
+            throw new DomainError("Id muito longo", "INVALID_ID_LENGHT");
+        }
+
+        if (name.length > 40){
+            throw new DomainError("Nome muito longo", "NAME_TOO_LONG");
+        }
+
+        const newDevice: AuthorizedDeviceProps = {
+            device_id,
+            name,
+            added_at: now
+        }
+
+        return new User({
+            ...this.props,
+            authorized_devices: [...this.props.authorized_devices, newDevice]
+        })
+    }
+
+    public removeAuthorizedDeviceId(device_id: string): User {
+
+        const IdAuthorizedDeviceIndex: number = this.authorized_devices.findIndex(item => item.device_id === device_id);
+
+        if (IdAuthorizedDeviceIndex === -1){
+            throw new DomainError("Dispositivo não encontrado", "DEVICE_NOT_FOUND");
+        }
+
+        return new User({
+            ...this.props,
+            authorized_devices: this.props.authorized_devices.filter(item => item.device_id !== device_id)
+        })
+    }
+
+    
 }

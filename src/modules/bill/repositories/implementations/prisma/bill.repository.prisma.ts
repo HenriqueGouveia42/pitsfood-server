@@ -1,265 +1,233 @@
-import { Bill, billStates, type BillProps} from "../../../entities/bill.js"
+import { Prisma } from "../../../../../generated/prisma/client.js";
+import { Bill as EntityBill, billStates, type BillProps } from "../../../entities/bill.js";
+import type { Bill as PrismaBill } from "../../../../../generated/prisma/client.js";
+import type { BillProduct as PrismaBillProduct } from "../../../../../generated/prisma/client.js";
 import type { IBillRepository } from "../../bill.repository.interface.js";
-import { prisma } from "../../../../../shared/infra/prisma.js"
+import { PhysicalBill as EntityPhysicalBill } from "../../../entities/physicalBIllCard.js";
+import type { PhysicalBillCard as PrismaPhysicalBillCard } from "../../../../../generated/prisma/client.js";
+import { prisma } from "../../../../../shared/infra/prisma.js";
 import { Decimal } from 'decimal.js';
 
-export enum BillStatus{
+// Enum local para tipagem
+export enum BillStatus {
     ABERTA = "ABERTA",
     FECHADA = "FECHADA",
     CANCELADA = "CANCELADA",
 }
 
+//tipo auxiliar para garantir que o mapper de leitura saiba que os itens podem vir
+type PrismaBillWithItems = PrismaBill & { items?: PrismaBillProduct[] };
+
 export class PrismaBillRepository implements IBillRepository {
 
-    //mappers
-    private static entityToPrismaDataMapper(bill: Bill): any{
-        return{
+    private static entityToPrismaBillDataMapper(bill: EntityBill): Prisma.BillUncheckedCreateInput {
+        return {
             bill_id: bill.bill_id,
             bill_code_gtin: bill.bill_code,
             status: bill.status,
-            created_at: bill.createdAt,
-            updated_at: bill.updatedAt,
-            items: bill.items.map(item => ({
-                bill_item_id: item.bill_item_id,
-                quantity: item.quantity,
-                price_at_addition: item.price_at_addition,
-                product_name: item.product_name,
-                product_gtin_code: item.product_gtin_code,
+            created_at: new Date(bill.createdAt),
+            updated_at: new Date(bill.updatedAt),
+            
+            store_id: bill.store_id,
 
-                product_id: item.product_id,
-                user_id: item.user_id,
+            items: {
+                create: bill.items.map(item => ({
+                    bill_item_id: item.bill_item_id,
+                    price_at_addition: item.price_at_addition.toNumber(),
+                    product_name: item.product_name,
+                    product_gtin_code: item.product_gtin_code,
 
-                bill_id: bill.bill_id
-            }))
-        }
+                    store_id: bill.store_id,
+                    product_id: item.product_id,
+                    user_id: item.user_id,
+
+                    created_at: new Date(item.created_at),
+                    updated_at: new Date(item.updated_at ?? new Date())
+                }))
+            }
+        };
     }
 
-    private static prismaToEntityDataMapper(prismaData: any): Bill{
-
-        const bill: BillProps = {
+    
+    private static prismaToEntityBillDataMapper(prismaData: PrismaBillWithItems): EntityBill {
+        const billProps: BillProps = {
             bill_id: prismaData.bill_id,
             bill_code_gtin: prismaData.bill_code_gtin,
-            status: prismaData.status,
-            created_at: prismaData.created_at,
-            updated_at: prismaData.updated_at,
+            status: prismaData.status as billStates,
+            store_id: prismaData.store_id,
+            created_at: prismaData.created_at.toISOString(),
+            updated_at: prismaData.updated_at.toISOString(),
+
             items: prismaData.items
-                ? prismaData.items.map((item: any) =>({
+                ? prismaData.items.map((item: PrismaBillProduct) => ({
                     bill_item_id: item.bill_item_id,
                     user_id: item.user_id,
                     product_id: item.product_id,
-                    quantity: item.quantity,
-                    price_at_addition: new Decimal(item.price_at_addition),
                     bill_id: item.bill_id,
                     product_name: item.product_name,
-                     product_gtin_code: item.product_gtin_code
+                    product_gtin_code: item.product_gtin_code,
+                    
+                    price_at_addition: new Decimal(item.price_at_addition.toString()),
+                    
+                    store_id: item.store_id, 
+                    
+                    created_at: item.created_at.toISOString(),
+                    updated_at: item.updated_at.toISOString() 
                 }))
-                :   []      
-        }
-        return Bill.restoreBill(bill);
+                : []
+        };
 
+        return EntityBill.restoreBill(billProps);
     }
 
-    //methods
-    async findOpenBillByGtinCode(gtin_code: string): Promise<Bill | null> {
+    private static prismaToEntityPhysicalBillDataMapper(prisma_physical_bill: PrismaPhysicalBillCard): EntityPhysicalBill {
+        return EntityPhysicalBill.restore({
+            id: prisma_physical_bill.id,
+            code: prisma_physical_bill.code,
+            store_id: prisma_physical_bill.store_id,
+            is_lost: prisma_physical_bill.is_lost,
+            created_at: prisma_physical_bill.created_at.toISOString(),
+            updated_at: prisma_physical_bill.updated_at.toISOString()
+        });
+    }
 
-        const prismaBill = await prisma.bill.findFirst({
-            where:{
+    private static entityToPrismaPhysicalBillDataMapper(entity_physical_bill: EntityPhysicalBill): Prisma.PhysicalBillCardCreateManyInput {
+        return {
+            id: entity_physical_bill.id,
+            code: entity_physical_bill.code,
+            store_id: entity_physical_bill.store_id,
+            is_lost: entity_physical_bill.is_lost,
+            created_at: new Date(entity_physical_bill.createdAt),
+            updated_at: new Date(entity_physical_bill.updatedAt)
+        };
+    }
+
+    async getPhysicalBills(store_id: string): Promise<EntityPhysicalBill[] | null> {
+        const prismaPhysicalBills: PrismaPhysicalBillCard[] = await prisma.physicalBillCard.findMany({
+            where: {
+                store_id: store_id
+            }
+        });
+
+        if (prismaPhysicalBills.length === 0) return null;
+
+        return prismaPhysicalBills.map(prisma_bill => (
+            PrismaBillRepository.prismaToEntityPhysicalBillDataMapper(prisma_bill)
+        ));
+    }
+
+    async physicalBillWithThisGtinCodeExists(gtin_code: string, store_id: string): Promise<boolean> {
+        const billCard: PrismaPhysicalBillCard | null = await prisma.physicalBillCard.findUnique({
+            where: {
+                store_id_code: {
+                    store_id: store_id,
+                    code: gtin_code
+                }
+            }
+        });
+
+        return !!billCard;
+    }
+
+    async getOpenBillByGtinCode(gtin_code: string, store_id: string): Promise<EntityBill[]> {
+
+        const prismaBills: PrismaBillWithItems[] = await prisma.bill.findMany({
+            where: {
+                store_id,
                 bill_code_gtin: gtin_code,
-                status: billStates.ABERTA
-            },
-            include: {
-                items: true 
-            }
-        })
-
-        if(!prismaBill){
-            return null
-        }
-
-        const entityBill: Bill = PrismaBillRepository.prismaToEntityDataMapper(prismaBill);
-
-        return entityBill
-
-    }
-
-    async createOpenBill(bill: Bill): Promise<void> {
-
-        const rawPrismaData = PrismaBillRepository.entityToPrismaDataMapper(bill);
-
-        const { items, ...prismaData} = rawPrismaData;
-
-        await prisma.$transaction(async (tx) =>{
-
-            const alreadyOpennedBill = await tx.bill.findFirst({
-                where:{
-                    bill_code_gtin: bill.bill_code,
-                    status: BillStatus.ABERTA
-                }
-            })
-
-            if(alreadyOpennedBill){
-                throw new Error("Proibido criar novo uso de comanda pois esta comanda física ainda está aberta")
-            }
-
-            await tx.bill.create({
-                data: prismaData
-            })
-
-        })
-
-       
-    }
-
-    async createBillBulk(bills: Bill[]): Promise<void> {
-
-        const dataToInsert = bills.map(bill =>{
-            const mapped = PrismaBillRepository.entityToPrismaDataMapper(bill);
-            const { items, ...scalarData} = mapped;
-            return scalarData;
-        })
-
-        await prisma.bill.createMany({
-            data: dataToInsert
-        })
-
-    }
-
-    async findBillById(bill_id: string): Promise<Bill> {
-
-        const prismaBill = await prisma.bill.findUnique({
-            where:{
-                bill_id
-            }
-        })
-
-        if (!prismaBill){
-            throw new Error("Comanda nao encontrada");
-        }
-
-        const bill: Bill = PrismaBillRepository.prismaToEntityDataMapper(prismaBill);
-
-        return bill;
-    }
-
-    async updateSavedBill(bill: Bill): Promise<void>{
-        
-        const rawMappedData = PrismaBillRepository.entityToPrismaDataMapper(bill);
-
-        const {items, ...billHeaderdata } = rawMappedData;
-
-        await prisma.$transaction(async (tx) =>{
-
-            await tx.bill.update({
-                where:{
-                    bill_id: bill.bill_id
-                },
-                data: billHeaderdata
-            })
-
-            await tx.billProduct.deleteMany({
-                where:{
-                    bill_id: bill.bill_id
-                }
-            })
-
-            if (items && items.length > 0){
-                await tx.billProduct.createMany({
-                    data: items
-                })
-            }
-
-        })
-    }
-
-
-    async billWithThisGtinCodeExists(gtin_code: string){
-
-        const billExists = await prisma.bill.findFirst({
-            where:{
-                bill_code_gtin: gtin_code
-            }
-        })
-
-        if (!billExists){
-            return false
-        } else{
-            return true
-        }
-    }
-
-
-    async findManyOpenBillsByGtinCodes(bill_code_gtins: string[]){
-
-        const prismaBills = await prisma.bill.findMany({
-            where:{
-                bill_code_gtin:{
-                    in: bill_code_gtins
-                },
                 status: BillStatus.ABERTA
             },
             include: {
-                items: true
-            }
-        })
-
-        const entityBills: Bill[] = prismaBills.map(item => PrismaBillRepository.prismaToEntityDataMapper(item));
-
-        return entityBills;
-    }
-
-    async closeManyBillsByGtinsCodes(bill_code_gtins: string[]): Promise<Bill[]>{
-
-        const manyBillsUpdated = await prisma.bill.updateMany({
-            where:{
-                bill_code_gtin:{
-                    in: bill_code_gtins
-                },
-                status: BillStatus.ABERTA
-            },
-            data:{
-                status: BillStatus.FECHADA,
-                updated_at: new Date().toISOString()
-            }
-        })
-
-        const prismaBills = await prisma.bill.findMany({
-            where:{
-                bill_code_gtin:{
-                    in: bill_code_gtins
-                },
-                status: BillStatus.FECHADA
-            },
-            include:{
                 items: true
             }
         });
 
-        const billEntities: Bill[] = prismaBills.map(b => PrismaBillRepository.prismaToEntityDataMapper(b));
+        if (prismaBills.length == 0) return []
 
-        return billEntities;
+        const entitieBills: EntityBill[] = prismaBills.map(b => (
+            PrismaBillRepository.prismaToEntityBillDataMapper(b)
+        ));
 
+        return entitieBills;
     }
 
-    async findAllOpenBills(): Promise<Bill[]>{
+    async upsertBill(bill: EntityBill): Promise<void> {
+        
+        //prepara os dados dos ITENS
+        //mapeamos para o formato exato que a tabela bill_products espera
+        const itemsData = bill.items.map(item => ({
+            bill_item_id: item.bill_item_id,
+            price_at_addition: item.price_at_addition.toNumber(),
+            product_name: item.product_name,
+            product_gtin_code: item.product_gtin_code,
+            store_id: bill.store_id,
+            product_id: item.product_id,
+            user_id: item.user_id,
+            created_at: new Date(item.created_at),
+            updated_at: new Date(item.updated_at ?? new Date()),
+            bill_id: bill.bill_id
+        }));
 
-        const prismaOpenBills = await prisma.bill.findMany({
-            where:{
-                status: billStates.ABERTA
-            },
-            include:{
-                items: true
+   
+        await prisma.$transaction(async (tx) => {
+            
+            //garante que a Comanda (Bill) existe ou cria ela (SEM ITENS)
+            await tx.bill.upsert({
+                where: {
+                    store_id_bill_id: {
+                        store_id: bill.store_id,
+                        bill_id: bill.bill_id
+                    }
+                },
+                create: {
+                    bill_id: bill.bill_id,
+                    bill_code_gtin: bill.bill_code,
+                    status: bill.status,
+                    created_at: new Date(bill.createdAt),
+                    updated_at: new Date(bill.updatedAt),
+
+                    store: { connect: { store_id: bill.store_id } }
+                },
+                update: {
+                    status: bill.status,
+                    updated_at: new Date()
+                }
+            });
+
+            // insere os Itens (Bulk Insert)
+            if (itemsData.length > 0) {
+                await tx.billProduct.createMany({
+                    data: itemsData,
+                    skipDuplicates: true //ignora itens que já existem
+                });
             }
-        })
+        });
+    }
 
-        return prismaOpenBills.map(bill => 
-            PrismaBillRepository.prismaToEntityDataMapper(bill)
+    async findAllOpenBills(store_id: string): Promise<EntityBill[]> {
+
+        const prismaOpenBills: PrismaBillWithItems[] = await prisma.bill.findMany({
+            where: {
+                store_id: store_id,
+                status: BillStatus.ABERTA
+            },
+            include: {
+                items: true
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+
+        if (prismaOpenBills.length === 0) {
+            return [];
+        }
+
+        const entityBills: EntityBill[] = prismaOpenBills.map(prismaBill => 
+            PrismaBillRepository.prismaToEntityBillDataMapper(prismaBill)
         );
+
+        return entityBills;
     }
 
-
-
-    listSavedBills(): Promise<Bill[]> {
-        throw new Error("Method not implemented.");
-    }
-    
 }

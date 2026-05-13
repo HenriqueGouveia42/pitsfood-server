@@ -1,62 +1,120 @@
-import { response, Router } from "express";
+import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
+import { UserRole } from "../../../entities/user.js";
 
+// Controllers
 import { loginController } from "../../../useCases/login/index.js";
 import { isLoggedInController } from "../../../useCases/isLoggedIn/index.js";
-import { authMiddleware } from "../../../../../shared/infra/http/middlewares/authMiddleware.js";
 import { logoutController } from "../../../useCases/logout/index.js";
-import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js";
-import { UserRole } from "../../../entities/user.js";
 import { updateUserDataController } from "../../../useCases/editUserData/index.js";
 import { getUsersDataController } from "../../../useCases/getUsersData/index.js";
-import { createUserController } from "../../../useCases/createUser/index.js";
+import { registerEmployeeController } from "../../../useCases/RegisterEmployee/index.js";
+import { setPermanentPasswordController } from "../../../useCases/SetPermanentPassword/index.js";
+import { forgotPasswordSendEmailController } from "../../../useCases/ForgotPassword/ForgotPasswordSendEmail/index.js";
+import { forgotPasswordVerifyResetPasswordTokenController } from "../../../useCases/ForgotPassword/ForgotPasswordVerifyResetPasswordToken/index.js";
 
-import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js";
-import { createUserSchema } from "../zodSchemas/CreateUserSchema.js";
+// Schemas
+import { registerEmployeeSchema } from "../zodSchemas/RegisterEmployeeSchema.js";
 import { updateUserDataSchema } from "../zodSchemas/UpdateUserDataSchema.js";
 import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
 import { loginSchema } from "../zodSchemas/LoginSchema.js";
-const userRoutes = Router();
+import { confirmDeviceController } from "../../../useCases/ConfirmDevice/index.js";
 
-userRoutes.post("/login",
-    validateSchema(loginSchema),
-    (request, response) =>{
-    return loginController.handle(request, response);
+const userRouteBuilder = new SecureRouteBuilder();
+
+
+// ROTAS PÚBLICAS
+userRouteBuilder.build({
+    method: 'post',
+    path: '/login',
+    security: 'PUBLIC',
+    roles: 'PUBLIC',
+    schema: loginSchema, // Adicionado o schema que estava comentado no código original
+    handler: (request, response) => loginController.handle(request, response)
+});
+
+userRouteBuilder.build({
+    method: 'post',
+    path: '/forgot-password-send-email',
+    security: 'PUBLIC',
+    roles: 'PUBLIC',
+    handler: (request, response) => forgotPasswordSendEmailController.handle(request, response)
 })
 
-userRoutes.get("/is-logged-in",  authMiddleware, (request, response) => {
-    return isLoggedInController.handle(request, response);
+userRouteBuilder.build({
+    method: 'post',
+    path: '/forgot-password-verify-reset-token',
+    security: 'PUBLIC',
+    roles: 'PUBLIC',
+    handler: (request, response) => forgotPasswordVerifyResetPasswordTokenController.handle(request, response)
 })
 
-userRoutes.get("/logout", (request, response) =>{
-    return logoutController.handle(request, response)
-})
+// NÍVEL 0: REQUER USUARI PRE-AUTENTICADO, OU SEJA, 
+// QUE ACERTOU LOGIN E SENHA, MAS DISPOSITIVO NAO ESTÁ AUTENTICADO
 
-userRoutes.get("/get-all-users-data",
-    validateSchema(getUsersDataSchema),
-    authMiddleware,
-    authorizeRoles([UserRole.GESTOR]),
-    (request, response) =>{
-        return getUsersDataController.handle(request, response);
-    }
-)
-
-userRoutes.patch("/update-user/:id",
-    validateSchema(updateUserDataSchema),
-    authMiddleware,
-    authorizeRoles([UserRole.GESTOR]),
-    (request, response) =>{
-        return updateUserDataController.handle(request, response);
-    }
-)
-
-userRoutes.post("/create-user",
-    validateSchema(createUserSchema),
-    authMiddleware,
-    authorizeRoles([UserRole.GESTOR]),
-    (request, response) => {
-        return createUserController.handle(request, response);
-    }
-)
+userRouteBuilder.build({
+    method: 'post',
+    path: '/confirm-device',
+    security: 'REQUIRE_PRE_AUTH',
+    roles: 'PUBLIC',
+    handler: (request, response) => confirmDeviceController.handle(request, response)
+}),
 
 
-export { userRoutes }
+// NÍVEL 1: REQUER APENAS USUÁRIO LOGADO
+userRouteBuilder.build({
+    method: 'get',
+    path: '/is-logged-in',
+    security: 'REQUIRE_AUTH',
+    roles: 'PUBLIC',
+    handler: (request, response) => isLoggedInController.handle(request, response)
+});
+
+userRouteBuilder.build({
+    method: 'post',
+    path: '/logout',
+    security: 'PUBLIC',
+    roles: 'PUBLIC',
+    handler: (request, response) => logoutController.handle(request, response)
+});
+
+
+// NÍVEL 2: REQUER LOJA SELECIONADA NA SESSÃO
+userRouteBuilder.build({
+    method: 'get',
+    path: '/get-all-users-data',
+    security: 'REQUIRE_STORE',
+    roles: [UserRole.GESTOR],
+    schema: getUsersDataSchema,
+    handler: (request, response) => getUsersDataController.handle(request, response)
+});
+
+
+// NÍVEL 3: REQUER ASSINATURA ATIVA
+userRouteBuilder.build({
+    method: 'post',
+    path: '/change-my-password',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: 'PUBLIC',
+    handler: (request, response) => setPermanentPasswordController.handle(request, response)
+});
+
+userRouteBuilder.build({
+    method: 'patch',
+    path: '/update-user/:target_user_id',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    schema: updateUserDataSchema,
+    handler: (request, response) => updateUserDataController.handle(request, response)
+});
+
+userRouteBuilder.build({
+    method: 'post',
+    path: '/register-employee',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    schema: registerEmployeeSchema,
+    handler: (request, response) => registerEmployeeController.handle(request, response)
+});
+
+// Exportação limpa e direta
+export const userRoutes = userRouteBuilder.getRouter();

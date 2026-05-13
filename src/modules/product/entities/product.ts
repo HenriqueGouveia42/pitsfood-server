@@ -1,19 +1,51 @@
 import { Decimal } from 'decimal.js';
+import { DomainError } from '../../../shared/errors/DomainError.js';
 
 export type ProductProps = {
     readonly product_id: string;
     readonly name: string;
-    readonly created_at: string;
-    readonly updated_at: string;
     readonly unit_price_in_reais: Decimal;
     readonly gtin_code: string;
     readonly is_internal: boolean;
+    readonly created_at: string;
+    readonly updated_at: string;
     readonly active: boolean;
+    //novos da refatoracao
+    readonly store_id: string;
+    readonly track_stock: boolean;
+    readonly stock_quantity: number;
+    readonly requires_preparation: boolean
 }
+
+export type BuildProductProps = {
+    readonly name: string, 
+    readonly unit_price_in_reais: Decimal, 
+    readonly gtin_code: string | null, 
+    readonly is_internal: boolean,
+    readonly active: boolean,
+    readonly store_id: string,
+    readonly track_stock: boolean,
+    readonly stock_quantity: number,
+    readonly requires_preparation: boolean,
+    readonly now_date: string
+    readonly product_id: string
+}
+
 
 export class Product {
     //constructor e propriedade props são estritamente readonly
     private constructor(private readonly props: ProductProps) {}
+
+    private static validateStock(track_stock: boolean, stock_quantity: number | null) {
+
+        // Se NÃO controla estoque, a quantidade DEVE ser estritamente zero.
+        if (!track_stock && stock_quantity !== 0) {
+            throw new DomainError("Um produto que não controla estoque deve ter quantidade igual a zero.", "INVALID_STOCK");
+        }
+
+        // Se controla estoque (track_stock === true), a quantidade pode ser POSITIVA, ZERO ou NEGATIVA.
+        // Portanto, não lançamos erro nenhum aqui para esse caso.
+    }
 
     //remove zeros à esquerda
     private static normalizeGtin(gtin: string): string{
@@ -49,12 +81,11 @@ export class Product {
         return (nearestTen - sum).toString();
     }
 
-
     private static validateGtin(gtin: string, is_internal: boolean){
 
         //validação de Caracteres
         if (!/^\d+$/.test(gtin)) {
-            throw new Error("O código GTIN deve conter apenas números");
+            throw new DomainError("O código GTIN deve conter apenas números", "INVALID_GTIN");
         }
 
         //validação de Tamanho (Família GS1)
@@ -62,62 +93,65 @@ export class Product {
         const validLengths = [8, 12, 13, 14];
 
         if (!validLengths.includes(gtin.length)) {
-            throw new Error(`GTIN inválido. Tamanho recebido: ${gtin.length}. Esperado: 8, 12, 13 ou 14.`);
+            throw new DomainError(`GTIN inválido. Tamanho recebido: ${gtin.length}. Esperado: 8, 12, 13 ou 14.`, "INVALID_GTIN");
         }
 
         const expectedDigit = Product.calculateGtinChecksum(gtin.slice(0, -1));
         const actualDigit = gtin.slice(-1);
 
         if (expectedDigit !== actualDigit) {
-            throw new Error(`GTIN inválido. Dígito Verificador incorreto. Esperado: ${expectedDigit}, Recebido: ${actualDigit}`);
+            throw new DomainError(`GTIN inválido. Dígito Verificador incorreto. Esperado: ${expectedDigit}, Recebido: ${actualDigit}`, "INVALID_GTIN");
         }
 
         if (gtin.length === 13) {
             const startsWith22 = gtin.startsWith('22');
 
             if (startsWith22 && !is_internal) {
-                throw new Error("Erro! Produto externo não pode começar com '22' (prefixo reservado a produtos internos).");
+                throw new DomainError("Erro! Produto externo não pode começar com '22' (prefixo reservado a produtos internos).", "INVALID_GTIN");
             }
     
             if (!startsWith22 && is_internal) {
-                throw new Error("Erro! Produto interno deve começar com o prefixo '22'.");
+                throw new DomainError("Erro! Produto interno deve começar com o prefixo '22'.", "INVALID_GTIN");
             }
         }
 
     }
 
     private static validateName(name: string) {
-        if (name.length > 100) throw new Error("Nome muito longo");
+        if (name.length > 100) throw new DomainError("Nome muito longo", "INVALID_PRODUCT_NAME");
     }
 
     private static validatePrice(price: Decimal) {
-        if (price.isNegative() || price.gt(1000000)) throw new Error("Preço fora da faixa permitida");
+        if (price.isNegative() || price.gt(1000000)) throw new DomainError("Preço fora da faixa permitida", "INVALID_PRODUCT_PRICE");
     }
 
     //produtos internos vao ter gtin13 code sempre comecando com 202
-    public static buildProduct(
-        name: string, 
-        unit_price_in_reais: Decimal, 
-        gtin_code?: string | null | undefined, 
-        is_internal: boolean = true,
-        active: boolean = true
-    ): Product {
+    public static buildProduct(build_props: BuildProductProps): Product {
 
-        const finalName: string = name.toUpperCase();
+        let finalStockQuantity = 0;
+
+        if (build_props.track_stock){
+            finalStockQuantity = build_props.stock_quantity ? build_props.stock_quantity : 0;
+        } else {
+            finalStockQuantity = 0;
+        }
+        
+        if (build_props.requires_preparation && build_props.track_stock) throw new DomainError("Um produto que precisa ser preparado nao pode ter estoque", "INVALID_PRODUCT");
+
+        const finalName: string = build_props.name.toUpperCase();
 
         let finalGtin: string;
 
-        const sanitizedInputGtin = gtin_code ? Product.normalizeGtin(gtin_code) : undefined;
+        const sanitizedInputGtin = build_props.gtin_code ? Product.normalizeGtin(build_props.gtin_code) : null;
 
         //REGRA 1: Produto externo OBRIGATORIAMENTE precisa de GTIN
-        if (!is_internal && !sanitizedInputGtin) {
-            throw new Error("Um produto externo deve possuir um GTIN-13 informado.");
+        if (!build_props.is_internal && !sanitizedInputGtin) throw new DomainError("Um produto externo deve possuir um GTIN-13 informado.", "MISSING_GTIN");
+        
+        //REGRA 2: Se for interno e NÃO tiver GTIN, gera um.
+        if (build_props.is_internal && !sanitizedInputGtin) {
+            finalGtin = Product.generateGtin13CodeForInternalProduct();
         }
 
-        //REGRA 2: Se for interno e NÃO tiver GTIN, gera um.
-        if (is_internal && !sanitizedInputGtin) {
-            finalGtin = Product.generateGtin13CodeForInternalProduct();
-        } 
 
         //REGRA 3: Se o GTIN foi passado (seja interno manual ou externo), usa ele.
         else {
@@ -126,22 +160,25 @@ export class Product {
         }
        
        
-        Product.validateGtin(finalGtin, is_internal);
-        Product.validateName(name);
-        Product.validatePrice(unit_price_in_reais);
+        Product.validateGtin(finalGtin,build_props.is_internal);
+        Product.validateName(build_props.name);
+        Product.validatePrice(build_props.unit_price_in_reais);
+        Product.validateStock(build_props.track_stock, build_props.stock_quantity);
 
-
-        const now = new Date().toISOString();
 
         return new Product({
-            product_id: crypto.randomUUID(),
+            product_id: build_props.product_id,
             name: finalName,
-            created_at: now,
-            updated_at: now,
-            unit_price_in_reais,
+            unit_price_in_reais: build_props.unit_price_in_reais,
             gtin_code: finalGtin,
-            is_internal,
-            active
+            is_internal: build_props.is_internal,
+            created_at: build_props.now_date,
+            updated_at: build_props.now_date,
+            active: build_props.active,
+            store_id: build_props.store_id,
+            track_stock: build_props.track_stock,
+            stock_quantity: finalStockQuantity,
+            requires_preparation: build_props.requires_preparation
         });
     }
 
@@ -150,6 +187,7 @@ export class Product {
         Product.validateGtin(props.gtin_code, props.is_internal);
         Product.validateName(props.name);
         Product.validatePrice(props.unit_price_in_reais);
+        Product.validateStock(props.track_stock, props.stock_quantity)
         return new Product(props);
     }
 
@@ -162,18 +200,25 @@ export class Product {
     get createdAt() {return this.props.created_at; }
     get updatedAt() { return this.props.updated_at; }
     get active() { return this.props.active; }
+    get store_id() {return this.props.store_id; }
+    get track_stock() {return this.props.track_stock; }
+    get stock_quantity() {return this.props.stock_quantity; }
+    get requires_preparation() {return this.props.requires_preparation}
 
     //setter que retorna novo objeto, mantendo a imutabilidade de um objeto criado
-    public withUpdatedData(newName:string, newPrice: Decimal): Product{
+    public withUpdatedData(newName:string, newUnitPrice: Decimal, newActive: boolean, date_string: string): Product{
 
-        Product.validateName(newName);
-        Product.validatePrice(newPrice);
+        const finalName: string = newName.toUpperCase();
+
+        Product.validateName(finalName);
+        Product.validatePrice(newUnitPrice);
 
         return new Product({
             ...this.props,
-            name: newName,
-            unit_price_in_reais: newPrice,
-            updated_at: new Date().toISOString()
+            name: finalName,
+            unit_price_in_reais: newUnitPrice,
+            active: newActive,
+            updated_at: date_string
         })
     }
 }

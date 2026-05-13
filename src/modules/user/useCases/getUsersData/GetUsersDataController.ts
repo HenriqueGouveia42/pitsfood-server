@@ -10,30 +10,22 @@ export class GetUsersDataController{
     ){}
 
     public async handle(req: Request, res: Response){
-        try{
+        
+        const { active } = req.query;
+        const store_id = req.user.store_id;
 
-            const { active } = req.query;
+        //lógica de conversão: string -> boolean | Undefined
+        let activeFilter: boolean | undefined = undefined;
 
-            //lógica de conversão: string -> boolean | Undefined
-            let activeFilter: boolean | undefined = undefined;
-
-            if (active === 'true') {
-                activeFilter = true;
-            } else if (active === 'false') {
-                activeFilter = false;
-            }
-           
-            const users = await this.getUsersDataUseCase.execute(activeFilter);
-
-            return res.status(200).json(users);
-        }catch(error){
-
-            if (error instanceof AppError){
-                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
-            }
-
-            return res.status(500).json({message: "Erro interno"})
+        if (active === 'true') {
+             activeFilter = true;
+        } else if (active === 'false') {
+            activeFilter = false;
         }
+           
+        const users = await this.getUsersDataUseCase.execute(store_id, activeFilter);
+
+        return res.status(200).json(users);
     }
 
 }

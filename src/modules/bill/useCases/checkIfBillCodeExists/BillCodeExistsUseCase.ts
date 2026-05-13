@@ -2,8 +2,9 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 import type { Bill } from "../../entities/bill.js";
 import type { IBillRepository } from "../../repositories/bill.repository.interface.js";
 
-interface BillCode{
-    bill_code_gtin: string
+type RequestDTO = {
+    store_id: string,
+    gtin_code: string
 }
 
 export class BillCodeExistsUseCase{
@@ -12,18 +13,14 @@ export class BillCodeExistsUseCase{
         private billRep: IBillRepository
     ){}
 
-    async execute({ bill_code_gtin }: BillCode): Promise<boolean>{
+    async execute({ store_id, gtin_code }: RequestDTO): Promise<boolean>{
 
-        if(!bill_code_gtin){
-            throw new AppError("Codigo GTIN da comanda ausente", 400, "GTIN_CODE_NOT_FOUND");
-        }
+        if(!gtin_code) throw new AppError("Codigo GTIN da comanda ausente", 400, "GTIN_CODE_NOT_FOUND");
+        
+        const exists: boolean = await this.billRep.physicalBillWithThisGtinCodeExists(gtin_code, store_id);
 
-        const exists: boolean = await this.billRep.billWithThisGtinCodeExists(bill_code_gtin);
-
-        if(!exists){
-            throw new AppError(`Comanda com o codigo: ${bill_code_gtin} nao existe`, 404, "BILL_NOT_FOUND")
-        }
-
+        if(!exists) return false
+        
         return true;
 
     }

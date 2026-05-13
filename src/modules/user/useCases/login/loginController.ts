@@ -1,49 +1,65 @@
 import type { Request, Response } from "express"
 import { LoginUseCase } from "./loginUseCase.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
+import type { LoginResult } from "./loginUseCase.js";
+import type { CookieOptions } from "express";
 
 export class LoginController {
 
-    constructor(private loginUseCase: LoginUseCase) {}
+    constructor(
+        private loginUseCase: LoginUseCase
+    ) {}
 
-    handle = async(req: Request, res: Response): Promise<Response> =>{
+    // Helper para gerar as opções do cookie dinamicamente
+    private getCookieOptions(maxAge: number): CookieOptions {
+        const isProd = process.env.NODE_ENV === 'production';
+        return {
+            httpOnly: true,
+            secure: true, // Obrigatório para SameSite 'none' (O Chrome aceita true no localhost tranquilamente)
+            sameSite: 'none', // Obrigatório pois Front (localhost/Vercel) e Back (Ngrok/Render) estão em domínios diferentes
+            maxAge,
+            path: '/'
+        };
+    }
 
-        try{
+    handle = async(req: Request, res: Response): Promise<Response> => {
 
-            const { username, password } = req.body;
+        const { email, password } = req.body;
+        const device_id = req.headers['x-device-id'] as string;
 
-            if (!username || !password) {
-                return res.status(400).json({ error: "Username e password são obrigatórios." });
-            }
+        const loginResult: LoginResult = await this.loginUseCase.execute({
+            email,
+            password,
+            device_id
+        })
 
-            const { token, user } = await this.loginUseCase.execute({
-                username,
-                password
+        if (loginResult.status === "DEVICE_CONFIRMATION_REQUIRED"){
+            
+            res.cookie(
+                'pre_auth_token', 
+                loginResult.data.pre_auth_token, 
+                this.getCookieOptions(1000 * 60 * 10) // 10 minutos
+            );
+
+            return res.status(200).json({
+                message: "Autorize o dispositivo com o codigo enviado por email"
             })
+        }
 
-            res.cookie('token', token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                maxAge: 1000 * 60 * 60 * 24,
-                path: '/'
-            })
+        if (loginResult.status === "SUCCESS"){
 
+            res.cookie(
+                'token', 
+                loginResult.data.token, 
+                this.getCookieOptions(1000 * 60 * 60 * 24) // 1 dia
+            );
 
             return res.status(200).json({
                 message: "Login realizado com sucesso",
-                user: user
+                user: loginResult.data.user
             });
-
-        }catch(error){
-
-            console.log(error);
-
-            if (error instanceof AppError){
-                return res.status(error.statusCode).json({message:error.message, code:error.errorCode})
-            }
-
-            return res.status(500).json({message: "Erro ao logar"})
         }
+
+        throw new AppError("Resposta Inusitada", 500, "WEIRD_RESPONSE")
     }
 }

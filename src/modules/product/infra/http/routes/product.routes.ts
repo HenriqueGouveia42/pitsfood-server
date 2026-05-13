@@ -1,29 +1,65 @@
-import { response, Router } from "express"
-import { authMiddleware} from "../../../../../shared/infra/http/middlewares/authMiddleware.js"
-import { authorizeRoles } from "../../../../../shared/infra/http/middlewares/authorizeRolesMiddleware.js"
-import { createProductController } from "../../../useCases/createProduct/index.js"
-import { getAllActiveProductsController } from "../../../useCases/getAllActiveProducts/index.js"
 import { UserRole } from "../../../../user/entities/user.js";
+import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
 
-import { validateSchema } from "../../../../../shared/infra/http/middlewares/validateSchemaMiddleware.js"
-import { CreateProductSchema } from "../zodSchemas/CreateProductSchema.js"
+// Controllers
+import { createProductController } from "../../../useCases/createProduct/index.js";
+import { getAllProductsController } from "../../../useCases/getAllProducts/index.js";
+import { updateProductController } from "../../../useCases/UpdateProduct/index.js";
+import { makeStockEntryController } from "../../../useCases/MakeStockEntry/index.js";
+import { listStockEntriesController } from "../../../useCases/ListStockEntries/index.js";
 
-const productRoutes = Router();
+// Schemas
+import { CreateProductSchema } from "../zodSchemas/CreateProductSchema.js";
+import { ListStockEntriesSchema } from "../zodSchemas/ListStockEntriesSchema.js";
 
-productRoutes.post("/create-product",
-    validateSchema(CreateProductSchema),
-    authMiddleware,
-    authorizeRoles([UserRole.GESTOR]),
-    (request, response) =>{
-    return createProductController.handle(request, response);
-} )
+const productRouteBuilder = new SecureRouteBuilder();
 
-productRoutes.get("/get-all-active-products",
-    authMiddleware,
-    (request, response) =>{
-        return getAllActiveProductsController.handle(request, response);
-    }
-)
+// ==========================================
+// NÍVEL 3: REQUER ASSINATURA ATIVA (Gestão de Produtos e Estoque)
+// ==========================================
 
-export { productRoutes }
+productRouteBuilder.build({
+    method: 'post',
+    path: '/create-product',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    schema: CreateProductSchema,
+    handler: (request, response) => createProductController.handle(request, response)
+});
 
+productRouteBuilder.build({
+    method: 'get',
+    path: '/get-all-products',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: 'PUBLIC', // Sem restrição de cargo, pois Caixa e Vendedor precisam ver o cardápio
+    handler: (request, response) => getAllProductsController.handle(request, response)
+});
+
+productRouteBuilder.build({
+    method: 'patch',
+    path: '/update-product/:product_id',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    // schema: updateProductSchema, // missing zod schema
+    handler: (request, response) => updateProductController.handle(request, response)
+});
+
+productRouteBuilder.build({
+    method: 'post',
+    path: '/make-entry-stock/:product_id',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    // schema: makeStockEntrySchema, // missing zod schema
+    handler: (request, response) => makeStockEntryController.handle(request, response)
+});
+
+productRouteBuilder.build({
+    method: 'get',
+    path: '/stock-entries/history',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    schema: ListStockEntriesSchema,
+    handler: (request, response) => listStockEntriesController.handle(request, response)
+});
+
+export const productRoutes = productRouteBuilder.getRouter();

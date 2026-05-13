@@ -3,10 +3,11 @@ import { z } from "zod";
 export const updateUserDataSchema = z.object({
     // 1. Validação dos parâmetros de rota (URL)
     params: z.object({
-        id: z
+        // CORREÇÃO AQUI: Mudamos de 'id' para 'target_user_id'
+        target_user_id: z
             .string({ error: "O ID do usuário é obrigatório na URL" })
+            .uuid({ message: "ID inválido (deve ser um UUID)" }) // Recomendado se usa UUID
             .min(1, { message: "ID inválido" })
-            // Se o ID for UUID, você pode adicionar .uuid({ message: "ID inválido" })
     }).strict(),
 
     // 2. Validação do corpo da requisição
@@ -25,14 +26,13 @@ export const updateUserDataSchema = z.object({
             .boolean({ error: "O campo active deve ser true ou false" })
             .optional()
     })
-    .strict() 
+    .strict()
     
-    //regra de Negócio: Impedir requisição vazia
+    //impedir requisição vazia (body {})
     .refine((data) => {
-        //verifica se pelo menos um dos campos foi enviado
         return data.name !== undefined || data.password !== undefined || data.active !== undefined;
     }, {
         message: "É necessário enviar ao menos um campo para atualização (name, password ou active)",
-        path: [] //O erro será associado ao objeto body em geral
+        path: [] //erro será associado ao objeto body raiz
     })
 });
