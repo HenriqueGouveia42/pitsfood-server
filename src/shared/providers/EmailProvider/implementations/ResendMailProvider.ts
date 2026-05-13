@@ -23,7 +23,7 @@ export class ResendMailProvider implements IMailProvider {
 
             const { data, error } = await this.client.emails.send({
                 // O domínio aqui DEVE estar verificado no painel do Resend
-                from: "confirmation.pitsfood.com", 
+                from: "naoresponda@confirmation.pitsfood.com", 
                 to: recipients,
                 subject,
                 html: body,
