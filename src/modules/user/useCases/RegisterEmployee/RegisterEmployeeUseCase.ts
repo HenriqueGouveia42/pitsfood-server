@@ -24,7 +24,8 @@ interface RegisterEmployeeUseCaseRequest{
     userId: string,
     email: string,
     cpf_cnpj: string,
-    phone: string | null
+    phone: string | null,
+    target_store_id: string | null | undefined
 }
 
 export interface RegisterEmployeeUseCaseResponse{
@@ -39,21 +40,23 @@ export class RegisterEmployeeUseCase{
         private cacheProvider: ICacheProvider
    ){} 
 
-   async execute({ name, role, plain_text_password, userId, email, cpf_cnpj, phone}: RegisterEmployeeUseCaseRequest): Promise<RegisterEmployeeUseCaseResponse>{
+   async execute({ name, role, plain_text_password, userId, email, cpf_cnpj, phone, target_store_id}: RegisterEmployeeUseCaseRequest): Promise<RegisterEmployeeUseCaseResponse>{
     
+        
+        if (typeof(target_store_id) !== 'string'){
+            throw new AppError("Id da loja ausente", 404, "STORE_ID_NOT_FOUND");
+        }
+
         const userAlreadyExists = await this.userRepository.findUserByEmail(email);
         if (userAlreadyExists) throw new AppError("Este e-mail está indisponível.", 400, "INVALID_EMAIL");
 
         const manager_user: User | null = await this.userRepository.findSavedUserById(userId);
-        if (manager_user == null) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
-
-        if (manager_user.storeId === null) throw new AppError("O usuario nao pode cadastrar funcionarios sem antes criar uma loja", 400, "MUST_CREATE_STORE");
-
+        if (!manager_user) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
         if (manager_user.role != UserRole.GESTOR) throw new AppError("Usuario precisa ser GESTOR para criar uma loja", 403, "MUST_BE_GESTOR");
         if (!manager_user.paying_user) throw new AppError("Usuario gestor precisa ser um gestor pago, ou seja, aquele que criou a loja!");
 
-        const store: Store | null = await this.storeRepository.findSavedStoreById(manager_user.storeId);
-        if (store === null) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND")
+        const store: Store | null = await this.storeRepository.findSavedStoreById(target_store_id);
+        if (!store) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND")
         if (store.ownerId != manager_user.id) throw new AppError("O usuario não é o dono da loja", 403, "MUST_BE_THE_OWNER");
 
         //PRECISAMOS SABER SE A LOJA JÁ ATINGIU A QUANTIDADE MAXIMA DE USUARIOS COM ESSE CARGO PARA O SEU PLANO
@@ -61,7 +64,6 @@ export class RegisterEmployeeUseCase{
         const store_plan: SubscriptionPlan = store.plan as SubscriptionPlan;
         const user_role: UserRole = role as UserRole;
         const max_quantity_users_this_role_for_this_store: number | null | undefined = PLAN_LIMITS[store_plan].limits.max_users[user_role];
-        console.log(max_quantity_users_this_role_for_this_store);
 
         if (!max_quantity_users_this_role_for_this_store){
             throw new Error("Erro. Plano sem quantidade maxima de usuarios")

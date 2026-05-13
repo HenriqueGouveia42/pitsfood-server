@@ -31,6 +31,7 @@ export class CreateStoreUseCase{
         if (!user) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
 
         if (user.role != UserRole.GESTOR) throw new AppError("'role' nao permitido", 403, "INVALID_ROLE");
+        if(user.storeId) throw new AppError("Um GESTOR pago pode ter varias lojas", 404, "INVALID_PAYING_USER");
 
         const store_id: string = crypto.randomUUID().toString();
         const now: string = new Date().toISOString();

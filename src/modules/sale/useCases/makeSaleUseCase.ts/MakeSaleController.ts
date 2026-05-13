@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import type { MakeSaleUseCase } from "./MakeSaleUseCase.js";
 import { PaymentMethod } from "../../entities/sale.js";
+import { AppError } from "../../../../shared/errors/AppError.js";
 
 type PaymentDTO = {
     amount: string | number;
@@ -22,6 +23,10 @@ export class MakeSaleController {
     public async handle(req: Request, res: Response): Promise<Response> {
 
         const { bill_physical_codes, products_gtin_codes, payments }: MakeSaleRequestDTO = req.body;
+
+        if (typeof(req.user) === 'undefined'){
+            throw new AppError("req.user undefined", 500, "REQ_USER_UNDEFINED");
+        }
 
         const user_id: string = req.user.id;
         const store_id: string = req.user.store_id;

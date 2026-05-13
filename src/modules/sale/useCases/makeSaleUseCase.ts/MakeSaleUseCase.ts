@@ -135,7 +135,20 @@ export class MakeSaleUseCase{
                 if (!product) throw new AppError(`Produto avulso com código ${gtin} não encontrado no sistema.`, 404, "PRODUCT_NOT_FOUND");
 
                 if (!product.active) throw new AppError(`O produto ${product.name} está desativado e não pode ser vendido.`, 400, "INACTIVE_PRODUCT");
-
+                    /*
+                    (alias) type SaleProductProp = {
+                        readonly sale_product_id: string;
+                        readonly quantity: number;
+                        readonly unit_price_snapshot: Decimal;
+                        readonly product_name_snapshot: string;
+                        readonly product_gtin_snapshot: string;
+                        readonly store_id: string;
+                        readonly sale_id: string;
+                        readonly product_id: string;
+                        readonly origin_bill_id: string | null;
+                    }
+                    import SaleProductProp
+                    */
                 saleProducts.push({
                     sale_product_id: crypto.randomUUID(),
                     quantity: gtinCounts[gtin] ?? 1,
@@ -145,6 +158,7 @@ export class MakeSaleUseCase{
                     store_id,
                     sale_id,
                     product_id: product.id,
+                    origin_bill_id: null
                 });
             }
         }

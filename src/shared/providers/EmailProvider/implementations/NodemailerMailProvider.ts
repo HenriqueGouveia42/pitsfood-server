@@ -3,6 +3,8 @@ import type { Transporter } from "nodemailer";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IMailProvider, ISendMailDTO } from "../interface/IMailProvider.js"
 
+import { SYSTEM_NAME } from "../../../../config/system_data.js";
+
 export class NodemailerMailProvider implements IMailProvider {
     private client: Transporter | null = null;
     
@@ -39,6 +41,7 @@ export class NodemailerMailProvider implements IMailProvider {
     }
 
     async sendMail({ to, subject, body }: ISendMailDTO): Promise<void> {
+        
         if (!this.client) {
             await this.initializeClient();
         }
@@ -49,7 +52,7 @@ export class NodemailerMailProvider implements IMailProvider {
 
         const message = await this.client.sendMail({
             to,
-            from: "Manga Food <noreply@pitstop.com.br>",
+            from: `${SYSTEM_NAME} <noreply@${SYSTEM_NAME}.com.br>`,
             subject,
             html: body 
         });

@@ -11,7 +11,7 @@ declare global {
       user?: {
         id: string;
         role: UserRole;
-        store_id: string;
+        store_id: string | null | undefined;
         must_change_password: boolean;
         is_paying_user: true,
         token_version: number

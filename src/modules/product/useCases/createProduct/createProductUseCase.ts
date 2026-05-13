@@ -7,6 +7,8 @@ import type { User } from "../../../user/entities/user.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import type { BuildProductProps } from "../../entities/product.js";
+import type { Store } from "../../../store/entities/store.js";
+import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 
 interface IRequest{
     name: string,
@@ -29,7 +31,8 @@ export class CreateProductUseCase{
     constructor(
         private productRepository: IProductRepository,
         private userRepository: IUserRepository,
-        private cacheProvider: ICacheProvider
+        private cacheProvider: ICacheProvider,
+        private storeRepository: IStoreRepository
     ) {}
 
     public async execute( { name, unit_price_in_reais, gtin_code, is_internal, active, store_id, track_stock, stock_quantity, user_id, requires_preparation }: IRequest ){
@@ -38,7 +41,11 @@ export class CreateProductUseCase{
         const user: User | null = await this.userRepository.findSavedUserById(user_id)
 
         if (!user) throw new AppError("usuario nao encontrado", 404, "USER_NOT_FOUND");
-        if(user.storeId != store_id) throw new AppError("Usuario nao pertence a loja", 404, "STORE_MISMATCH");
+
+        const store: Store | null  = await this.storeRepository.findSavedStoreById(store_id);
+        if(!store) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND");
+        
+        if(user.id != store.ownerId) throw new AppError("Usuario nao pertence a loja", 404, "STORE_MISMATCH");
 
         const now_date: string = new Date().toISOString();
         const product_id: string = crypto.randomUUID();

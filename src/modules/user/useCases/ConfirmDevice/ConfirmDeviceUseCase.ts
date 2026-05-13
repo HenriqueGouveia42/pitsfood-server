@@ -80,7 +80,12 @@ export class ConfirmDeviceUseCase {
 
             const timeSinceLastFailure: number = now.getTime() - new Date(deviceData.last_time_fetched_at).getTime();
             if(timeSinceLastFailure < ONE_MINUTE_COOL_DOWN_IN_MS){
-                throw new AppError(`Aguarde ${Math.floor((ONE_MINUTE_COOL_DOWN_IN_MS - now.getTime())/1000)} segundos para tentar novamente`, 429, "TOO_MANY_REQUESTS");
+
+                throw new AppError(
+                    `Aguarde ${Math.floor((ONE_MINUTE_COOL_DOWN_IN_MS - timeSinceLastFailure) / 1000)} segundos para tentar novamente`, 
+                    429, 
+                    "TOO_MANY_REQUESTS"
+                );
             }
         }
         

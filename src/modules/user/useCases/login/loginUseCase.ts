@@ -23,7 +23,7 @@ export type DeviceAuthorizationData = {
     failed_attemps: number
 }
 
-export interface ILoginSucess {
+export type ILoginSucess = {
     token: string,
     user: {
         id: string,
@@ -85,6 +85,7 @@ export class LoginUseCase {
         const user: User | null = await this.userRepository.findUserByEmail(email);
         if(!user) throw new AppError("Email ou senha incorretos", 404, "INVALID_CREDENTIALS");
         if (!user.active) throw new AppError("Usuário inativo. Contate o administrador do sistema", 403, "USER_DISABLED");
+        if (user.paying_user && user.storeId) throw new AppError("Um usuario ")
 
         //2 - Verify if password matches
         const passwordMatch: boolean = await this.hasheStringProvider.compare(password, user.passwordHash);
@@ -190,7 +191,7 @@ export class LoginUseCase {
                 token,
                 user: {
                     id: user.id,
-                    store_id: user.paying_user ? null : user.storeId, //se for um usuario paga, retorna null, para que ele possa ir escolher sua loja. Se for um usuario criado, ja retorna com o id da loja
+                    store_id: user.paying_user ? null : user.storeId, //se for um usuario pago, retorna null, para que ele possa ir escolher sua loja. Se for um usuario criado, ja retorna com o id da loja
                     username: user.username,
                     role: user.role,
                     must_change_password: user.mustChangePassword,

@@ -1,6 +1,6 @@
 import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
-import type { IProductRepository } from "../../repositories/product.repository.interface.js";
+import type { IProductRepository } from "../../repositories/interfaces/product.repository.interface.js";
 import { User, UserRole } from "../../../user/entities/user.js";
 import { Store } from "../../../store/entities/store.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
@@ -49,7 +49,12 @@ export class MakeStockEntryUseCase{
         const store: Store | null = await this.storeRepository.findSavedStoreById(store_id);
         if (!store) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND");
 
-        if (user_trying_to_make_entry.storeId != store.id) throw new AppError("Usuario gestor nao pertence a essa loja", 403, "STORE_MISMATCH");
+        const isStoreOwner: boolean = store.ownerId === user_trying_to_make_entry.id;
+        const isAssignedGestor: boolean = user_trying_to_make_entry.storeId === store.id
+
+        if(!isStoreOwner && !isAssignedGestor){
+            throw new AppError("Usuario gestor nao pertence a essa loja", 403, "STORE_MISMATCH");
+        }
 
         const product_to_be_updated: Product | null = await this.productRepository.findSavedProductById(product_id, store_id);
         if (!product_to_be_updated) throw new AppError("Produto nao encontrado", 404, "PRODUCT_NOT_FOUND");

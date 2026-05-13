@@ -25,8 +25,9 @@ export class RegisterEmployeeController{
       
         const { name, role, plain_text_password, email, cpf_cnpj, phone }: RegisterEmployeeControllerRequest  = req.body;
 
-        const userId = req.user.id; //userId vem da requisiticao
-
+        const userId = req.user?.id;
+        const store_id = req.user?.store_id;
+        
         if(!name || !role || !plain_text_password || !email || !userId || !cpf_cnpj){
             throw new AppError("Algum dado para criar um usuario está faltando", 400, "INVALID_USER_DATA_SENT")
         }
@@ -35,9 +36,7 @@ export class RegisterEmployeeController{
             throw new AppError("Role inválido", 400, "INVALID_USER_ROLE");
         }
 
-        //console.log(name, role, plain_text_password, email, userId);
-
-        const userData: RegisterEmployeeUseCaseResponse = await this.createUserUseCase.execute({name, role, plain_text_password, email, userId, cpf_cnpj, phone});
+        const userData: RegisterEmployeeUseCaseResponse = await this.createUserUseCase.execute({name, role, plain_text_password, email, userId, cpf_cnpj, phone, target_store_id: store_id});
 
         return res.status(200).json(userData);
 

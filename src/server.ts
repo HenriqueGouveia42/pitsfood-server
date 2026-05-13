@@ -3,6 +3,7 @@ import { router } from "./shared/infra/http/routes/index.js"
 import { globalErrorMiddleware } from "./shared/infra/http/middlewares/globalErrorMiddleware.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { AppError } from "./shared/errors/AppError.js";
 
 const app = express();
 
@@ -19,6 +20,18 @@ app.use(cors({
 
 app.use(express.json())
 app.use(cookieParser())
+
+export function launchGuardMiddleware(req, res, next) {
+
+    if (process.env.PITSFOOD_LAUNCHED !== "true") {
+        throw new AppError("O sistema Pitsfood ainda não foi lançado ou está temporariamente indisponível.", 403);
+    }
+    
+    next();
+}
+
+app.use(launchGuardMiddleware);
+
 app.use(router);
 
 app.use(globalErrorMiddleware);

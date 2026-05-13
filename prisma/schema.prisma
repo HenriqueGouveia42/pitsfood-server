@@ -202,7 +202,7 @@ model User {
   authorized_devices AuthorizedDevice[]
 
   @@unique([store_id, username]) //um username deve ser unico APENAS dentro daquela loja
-  @@unique([store_id, user_id]) //indice composto que sera utilizado por BillProduct e Sale
+  //@@unique([store_id, user_id]) //indice composto que sera utilizado por BillProduct e Sale
   @@map("users")
 }
 
@@ -266,7 +266,7 @@ model StockEntry{ //tabela que registra as entradas de estoque
   product Product @relation(fields: [store_id, product_id], references: [store_id, product_id])
 
   user_id String
-  user  User @relation("UserRegisteredStock", fields: [store_id, user_id], references: [store_id, user_id])
+  user  User @relation("UserRegisteredStock", fields: [user_id], references: [user_id])
 
   @@map("stock_entries")
 
@@ -334,7 +334,7 @@ model BillProduct {
   //relacionamentos
   bill    Bill    @relation(fields: [store_id, bill_id], references: [store_id, bill_id]) //a comanda vinculada TEM que existir e TEM que ser da mesma loja 
   product Product @relation(fields: [store_id, product_id], references: [store_id, product_id])// o produto adicionado a comanda TEM que existir e TEM que ser da mesma loja
-  user    User    @relation("UserAddedItem", fields: [store_id, user_id], references: [store_id, user_id]) //o usuario que adicionou TEM que ser da mesma loja
+  user    User    @relation("UserAddedItem", fields: [user_id], references: [user_id]) //o usuario que adicionou TEM que ser da mesma loja
   store   Store   @relation(fields: [store_id], references: [store_id])
 
   @@map("bill_products")
@@ -355,7 +355,7 @@ model Sale {
 
   //relacionamentos
   user_id        String     //quem fechou a venda
-  user        User          @relation("UserClosedSale", fields: [store_id, user_id], references: [store_id, user_id]) //o usuario que fechou a venda TEM que ser da mesma loja
+  user        User          @relation("UserClosedSale", fields: [user_id], references: [user_id]) //o usuario que fechou a venda TEM que ser da mesma loja
   seller_name String
   seller_role String
 

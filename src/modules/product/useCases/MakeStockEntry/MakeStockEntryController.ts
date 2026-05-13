@@ -18,12 +18,18 @@ export class MakeStockEntryController{
     public async handle(req: Request, res: Response): Promise<Response>{
 
         const { product_id } = req.params;
-        const user_id = req.user.id;
-        const store_id = req.user.store_id
+
+        if(!req.user){
+            throw new AppError("req.user undefined", 500, "REQ_USER_UNDEFINED")
+        }
+        if(!req.user.store_id){
+            throw new AppError("req.user.store_id undefined");
+        }
+        const user_id: string = req.user.id;
+        const store_id: string = req.user.store_id
 
         const { entry_stock_quantity, unit_cost }: MakeStockEntryControllerRequestDTO = req.body;
 
-        //await this.makeStockEntryUseCase.execute({user_id, store_id, product_id, entry_stock_quantity, unit_cost});
         const username_that_made_stock_entry:  MakeStockEntryUseCaseResponseDTO = await this.makeStockEntryUseCase.execute({user_id, store_id, product_id, entry_stock_quantity, unit_cost});
 
         return res.status(200).json({message: `${username_that_made_stock_entry} deu entrada no estoque com sucesso!`});

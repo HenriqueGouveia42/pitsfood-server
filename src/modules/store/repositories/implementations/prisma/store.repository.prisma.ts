@@ -104,31 +104,15 @@ export class PrismaStoreRepository implements IStoreRepository {
 
         const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
 
-        const resultPrismaStore = await prisma.$transaction(async (tx) =>{
-
-            const createdStore = await tx.store.create({
-                data: storePrismaData
-            }) //persiste aloja
-
-            if (storePrismaData.owner_id){
-                await tx.user.update({
-                    where:{
-                        user_id: store.ownerId
-                    },
-                    data:{
-                        store_id: store.id,
-                        role: UserRole.GESTOR
-                    }
-                })
-            }//atualiza o usuario
-            return createdStore
+        const created_store = await prisma.store.create({
+            data: storePrismaData
         })
 
-        if (resultPrismaStore === null){
+        if (created_store === null){
             return null
         }
 
-        const entityStore: Store = PrismaStoreRepository.prismaToEntityDataMapper(resultPrismaStore);
+        const entityStore: Store = PrismaStoreRepository.prismaToEntityDataMapper(created_store);
 
         return entityStore;
 

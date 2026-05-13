@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { User, UserRole, type BuildUserProps } from './user.js';
+import { User, UserRole, type BuildUserProps, type UserProps } from './user.js';
 import { DomainError } from '../../../shared/errors/DomainError.js';
 
 // Constantes auxiliares para facilitar os testes
@@ -22,7 +22,7 @@ const baseBuildProps: BuildUserProps = {
 };
 
 // Base Props para o método restore (UserProps)
-const baseRestoreProps = {
+const baseRestoreProps: UserProps = {
     user_id: "uuid-1",
     store_id: null,
     email: "test@test.com",
@@ -35,7 +35,8 @@ const baseRestoreProps = {
     must_change_password: false,
     paying_user: false,
     cpf_cnpj: VALID_CPF,
-    phone: null
+    phone: null,
+    authorized_devices: []
 };
 
 // AAA (Arrange, Act, Assert)

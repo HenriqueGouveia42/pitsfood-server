@@ -11,16 +11,19 @@ export async function ensureSubscriptionActiveMiddleware(
     res: Response,
     next: NextFunction
 ) {
+    if (!req.user){
+        throw new AppError("req.user ausente", 404, "REQ_USER_UNDEFINED");
+    }
     const { store_id } = req.user;
 
     if (!store_id) throw new AppError("Contexto de loja não encontrado.", 500, "INTERNAL_SERVER_ERROR");
     
     const cacheKey: string = CacheKeys.Store.SUBSCRIPTION_STATUS(store_id);
 
-    //tenta pegar do Cache (Rápido)
+    //cache
     let status = await cacheProvider.get(cacheKey);
 
-    //cache Miss? Vai no Banco (Lento, mas necessário na primeira vez)
+    //cache Miss
     if (!status) {
         
         const storeRepository = new PrismaStoreRepository();
