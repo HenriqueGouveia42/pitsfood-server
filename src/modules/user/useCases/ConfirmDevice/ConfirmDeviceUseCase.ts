@@ -66,10 +66,6 @@ export class ConfirmDeviceUseCase {
         //3 - Fetch the 'DeviceAuthorizationData' object
         const deviceData: DeviceAuthorizationData | null = await this.cacheProvider.get<DeviceAuthorizationData>(cache_key);
 
-        /*if (!deviceData || deviceData.authorization_code !== input.authorize_device_code) {
-            throw new AppError("Código de autorização inválido ou expirado.", 401, "INVALID_AUTHORIZATION_CODE");
-        }*/
-
         //3.1 - 'cache-key' incorrect. At least one of 'user_id' or 'device_id' is incorrect
         if(!deviceData){
             throw new AppError("Código de autorização inválido ou expirado.", 401, "INVALID_AUTHORIZATION_CODE");
