@@ -37,23 +37,22 @@ export class UpdateUserDataUseCase {
         active, 
     }: IRequestUseCase): Promise<void> {
         
-        //VALIDACOES DE USUARIO
-        //------------------------------------------------------------------------------------------------ INICIO
         const user_target: User | null = await this.userRepository.findSavedUserById(target_user_id);
         if(!user_target) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
 
         const userTryingToUpdate: User | null = await this.userRepository.findSavedUserById(modifier_user_id);
         if (!userTryingToUpdate) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
-        if (userTryingToUpdate.storeId != user_target.storeId) throw new AppError("ID de usuario nao existe nessa loja", 404, "MUST_BE_THE_SAME_STORE");
+
+        if (modifier_user_id != user_target.storeId) throw new AppError("ID de usuario nao existe nessa loja", 404, "MUST_BE_THE_SAME_STORE");
         if (userTryingToUpdate.role != UserRole.GESTOR) throw new AppError("USUARIO NAO É GESTOR", 403, "USER_MUST_BE_GESTOR");
-        if (userTryingToUpdate.storeId != modifier_user_store_id) throw new AppError("Inconsistência: Token não pertence à loja do usuário", 404, "USER_MUST_BE_OWNER");
 
         const store: Store | null = await this.storeRepository.findSavedStoreById(modifier_user_store_id);
         if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
+
+        if(store.ownerId != userTryingToUpdate.id) throw new AppError("Usuario precisa ser dessa mesma loja", 404, "USER_MISMATCH");
     
 
         const finalName: string = (name !== undefined) ? name : user_target.username;
-
         let finalActive: boolean = user_target.active;
 
         if(active !== undefined){

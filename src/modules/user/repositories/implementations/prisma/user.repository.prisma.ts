@@ -3,10 +3,13 @@ import { User } from "../../../entities/user.js";
 import { PasswordResetToken } from "../../../entities/passwordResetToken.js";
 import type { User as PrismaUser } from "../../../../../generated/prisma/client.js";
 import type { IUserRepository } from "../../interfaces/user.repository.interface.js";
+import { Store } from "../../../../store/entities/store.js";
+import type { Store as PrismaStore } from "../../../../../generated/prisma/client.js";
 
 import { prisma } from "../../../../../shared/infra/prisma.js"
 import { Prisma } from "../../../../../generated/prisma/client.js";
 import type { UserUncheckedCreateInput } from "../../../../../generated/prisma/models.js";
+import { AppError } from "../../../../../shared/errors/AppError.js";
 
 type PrismaUsersWithDevices = Prisma.UserGetPayload<{
     include: { authorized_devices: true }
@@ -114,41 +117,51 @@ export class PrismaUserRepository implements IUserRepository {
 
     async listAllSavedUsers(store_id: string, active: boolean | undefined): Promise<User[]> {
 
-        let prismaUsers: PrismaUsersWithDevices[];
+        // Extraímos o resultado diretamente da transação
+        const prismaUsers = await prisma.$transaction(async tx => {
 
-        if(active != undefined ){
+            // 1. Montamos as condições de busca dinamicamente
+            const userWhere: any = { store_id };
+            const ownerWhere: any = {};
 
-            prismaUsers = await prisma.user.findMany({
-                where:{
-                    active,
-                    store_id
-                },
-                include: {
-                    authorized_devices: true
-                }
+            if (active !== undefined) {
+                userWhere.active = active;
+                ownerWhere.active = active;
+            }
+
+            // 2. Busca os funcionários
+            const users = await tx.user.findMany({
+                where: userWhere,
+                include: { authorized_devices: true }
             });
 
-        } else{
+            // 3. Busca a loja
+            const store = await tx.store.findUnique({
+                where: { store_id: store_id }
+            });
 
-            prismaUsers = await prisma.user.findMany({
-                where:{
-                    store_id
-                },
-                include: {
-                    authorized_devices: true
-                }
-            })
-        }
-        
+            if (!store) throw new AppError("Loja nao encontrada");
 
-        if (prismaUsers.length === 0){
-            return [];
-        }
+            // 4. Busca o dono da loja
+            ownerWhere.user_id = store.owner_id;
+            
+            const ownerUser = await tx.user.findUnique({
+                where: ownerWhere,
+                include: { authorized_devices: true }
+            });
 
-        return prismaUsers.map(prismaUser =>
-            PrismaUserRepository.prismaToEntityDataMapper(prismaUser)
-        );       
-    }
+            if (!ownerUser) throw new AppError("Loja sem dono");
+
+            // Retorna a combinação dos usuários e do dono
+            return [...users, ownerUser];
+        });
+
+    if (prismaUsers.length === 0) return [];
+
+    return prismaUsers.map(prismaUser =>
+        PrismaUserRepository.prismaToEntityDataMapper(prismaUser)
+    );
+}
 
     async findUserByEmail(email: string): Promise<User | null> {
         
