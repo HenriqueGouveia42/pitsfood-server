@@ -43,12 +43,10 @@ export class UpdateUserDataUseCase {
         const userTryingToUpdate: User | null = await this.userRepository.findSavedUserById(modifier_user_id);
         if (!userTryingToUpdate) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
 
-        if (modifier_user_id != user_target.storeId) throw new AppError("ID de usuario nao existe nessa loja", 404, "MUST_BE_THE_SAME_STORE");
         if (userTryingToUpdate.role != UserRole.GESTOR) throw new AppError("USUARIO NAO É GESTOR", 403, "USER_MUST_BE_GESTOR");
 
         const store: Store | null = await this.storeRepository.findSavedStoreById(modifier_user_store_id);
         if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
-
         if(store.ownerId != userTryingToUpdate.id) throw new AppError("Usuario precisa ser dessa mesma loja", 404, "USER_MISMATCH");
     
 
