@@ -108,7 +108,7 @@ export class PrismaSubscriptionInvoiceRepository implements ISubscriptionInvoice
         
         // --- INÍCIO DO DEBUG EXTREMO ---
         console.log("================ DEBUG DB ================");
-        console.log("URL ATUAL DO BANCO:", process.env.DATABASE_URL);
+        console.log("URL ATUAL DO BANCO:", process.env.MULTI_TENANT_DATABASE_URL);
         
         try {
             // Vamos fazer uma query bruta (Raw SQL) para perguntar ao PostgreSQL 
