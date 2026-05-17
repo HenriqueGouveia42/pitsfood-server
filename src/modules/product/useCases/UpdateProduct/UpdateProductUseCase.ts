@@ -7,6 +7,8 @@ import type { Product } from '../../entities/product.js';
 import { UserRole } from '../../../../generated/prisma/enums.js';
 import type { ICacheProvider } from '../../../../shared/providers/CacheProvider/models/ICacheProvider.js';
 import { CacheKeys } from '../../../../shared/constants/cache-keys.js';
+import type { IStoreRepository } from '../../../store/repositories/interfaces/store.repository.interface.js';
+import type { Store } from '../../../store/entities/store.js';
 // Store entity import removido pois a busca redundante foi removida
 
 interface UpdateProductUseCaseRequest{
@@ -22,7 +24,8 @@ export class UpdateProductUseCase{
     constructor(
         private productRepository: IProductRepository,
         private userRepository: IUserRepository,
-        private cacheProvider: ICacheProvider
+        private cacheProvider: ICacheProvider,
+        private storeRepository: IStoreRepository
     ){}
 
     public async execute({ product_id, store_id, user_id, name, unit_price_in_reais, active }: UpdateProductUseCaseRequest){
@@ -41,10 +44,11 @@ export class UpdateProductUseCase{
             throw new AppError("Usuario nao é gestor", 403, "USER_BE_GESTOR");
         }
 
-        //fazemos isso AGORA para evitar buscar o produto se o usuário já estiver errado.
-        if (user_trying_to_update.storeId !== store_id) {
-            throw new AppError("Usuario nao pertence a esta loja", 403, "STORE_MISMATCH");
-        }
+    
+        const store: Store | null = await this.storeRepository.findSavedStoreById(store_id);
+        if (!store) throw new AppError("Loja invalida", 404, "STORE_NOT_FOUND");
+
+        if (store.ownerId !== user_trying_to_update.id) throw new AppError("Usuario nao é o dono desta loja", 403, "STORE_MISMATCH");
 
         //validação do Produto
         //repositório já garante que traz o produto APENAS se ele for da store_id informada.
