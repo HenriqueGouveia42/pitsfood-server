@@ -11,6 +11,7 @@ export type StockEntryProps = {
     unit_cost: Decimal;
     total_cost: Decimal;
     created_at: Date | string; //aceita Date (do banco) ou string (se vier de JSON)
+    user_id: string;
 }
 
 export class StockEntry {
@@ -30,4 +31,5 @@ export class StockEntry {
     get unitCost() { return this.props.unit_cost; }
     get totalCost() { return this.props.total_cost; }
     get created_date() { return new Date(this.props.created_at); }
+    get user_id() { return this.props.user_id }
 }

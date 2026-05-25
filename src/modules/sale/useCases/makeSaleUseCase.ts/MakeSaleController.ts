@@ -29,7 +29,9 @@ export class MakeSaleController {
         }
 
         const user_id: string = req.user.id;
-        const store_id: string = req.user.store_id;
+        const store_id: string | undefined | null = req.user.store_id;
+
+        if (!store_id) throw new AppError("store_id ausente");
 
         const sale = await this.makeSaleUseCase.execute({ 
             store_id, 

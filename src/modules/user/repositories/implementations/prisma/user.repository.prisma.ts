@@ -3,11 +3,9 @@ import { User } from "../../../entities/user.js";
 import { PasswordResetToken } from "../../../entities/passwordResetToken.js";
 import type { User as PrismaUser } from "../../../../../generated/prisma/client.js";
 import type { IUserRepository } from "../../interfaces/user.repository.interface.js";
-import { Store } from "../../../../store/entities/store.js";
-import type { Store as PrismaStore } from "../../../../../generated/prisma/client.js";
 
-import { prisma } from "../../../../../shared/infra/prisma.js"
-import { Prisma } from "../../../../../generated/prisma/client.js";
+import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js"
+import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js";
 import type { UserUncheckedCreateInput } from "../../../../../generated/prisma/models.js";
 import { AppError } from "../../../../../shared/errors/AppError.js";
 
@@ -16,6 +14,12 @@ type PrismaUsersWithDevices = Prisma.UserGetPayload<{
 }>
 
 export class PrismaUserRepository implements IUserRepository {
+
+    private db: PrismaClient | Prisma.TransactionClient;
+
+    constructor(transactionClient?: Prisma.TransactionClient){
+        this.db = transactionClient ? transactionClient : globalPrisma
+    }
 
     private static prismaToEntityDataMapper(prismaUser: PrismaUsersWithDevices): User {
 
@@ -74,14 +78,14 @@ export class PrismaUserRepository implements IUserRepository {
         
         const prismaData = PrismaUserRepository.entityToPrismaDataMapper(user);
 
-        await prisma.user.create({
+        await this.db.user.create({
             data: prismaData
         })
     }
 
     async findSavedUserById(user_id: string): Promise<User | null> {
 
-        const prismaUser = await prisma.user.findUnique({
+        const prismaUser = await this.db.user.findUnique({
             where:{
                 user_id,
             },
@@ -104,7 +108,7 @@ export class PrismaUserRepository implements IUserRepository {
 
         const { user_id, store_id, created_at, authorized_devices, ...dataToUpdate } = prismaData;
 
-        await prisma.user.update({
+        await this.db.user.update({
             where:{
                 user_id: user.id,
             },
@@ -116,56 +120,47 @@ export class PrismaUserRepository implements IUserRepository {
     }
 
     async listAllSavedUsers(store_id: string, active: boolean | undefined): Promise<User[]> {
+        
+        const userWhere: any = { store_id };
+        const ownerWhere: any = {};
 
-        // Extraímos o resultado diretamente da transação
-        const prismaUsers = await prisma.$transaction(async tx => {
+        if (active !== undefined) {
+            userWhere.active = active;
+            ownerWhere.active = active;
+        }
 
-            // 1. Montamos as condições de busca dinamicamente
-            const userWhere: any = { store_id };
-            const ownerWhere: any = {};
-
-            if (active !== undefined) {
-                userWhere.active = active;
-                ownerWhere.active = active;
-            }
-
-            // 2. Busca os funcionários
-            const users = await tx.user.findMany({
-                where: userWhere,
-                include: { authorized_devices: true }
-            });
-
-            // 3. Busca a loja
-            const store = await tx.store.findUnique({
-                where: { store_id: store_id }
-            });
-
-            if (!store) throw new AppError("Loja nao encontrada");
-
-            // 4. Busca o dono da loja
-            ownerWhere.user_id = store.owner_id;
-            
-            const ownerUser = await tx.user.findUnique({
-                where: ownerWhere,
-                include: { authorized_devices: true }
-            });
-
-            if (!ownerUser) throw new AppError("Loja sem dono");
-
-            // Retorna a combinação dos usuários e do dono
-            return [...users, ownerUser];
+        const users = await this.db.user.findMany({
+            where: userWhere,
+            include: { authorized_devices: true }
         });
 
-    if (prismaUsers.length === 0) return [];
+        const store = await this.db.store.findUnique({
+            where: { store_id: store_id }
+        });
 
-    return prismaUsers.map(prismaUser =>
-        PrismaUserRepository.prismaToEntityDataMapper(prismaUser)
-    );
-}
+        if (!store) throw new AppError("Loja nao encontrada");
+
+        ownerWhere.user_id = store.owner_id;
+        
+        const ownerUser = await this.db.user.findUnique({
+            where: ownerWhere,
+            include: { authorized_devices: true }
+        });
+
+        if (!ownerUser) throw new AppError("Loja sem dono");
+
+        const prismaUsers = [...users, ownerUser];
+
+        if (prismaUsers.length === 0) return [];
+
+        return prismaUsers.map(prismaUser =>
+            PrismaUserRepository.prismaToEntityDataMapper(prismaUser)
+        );
+    }
 
     async findUserByEmail(email: string): Promise<User | null> {
         
-        const prismaUserData = await prisma.user.findFirst({
+        const prismaUserData = await this.db.user.findFirst({
             where:{
                 email
             },
@@ -184,7 +179,7 @@ export class PrismaUserRepository implements IUserRepository {
 
     async findUserByCPFCNPJ(cpf_cnpj: string): Promise<User | null> {
         
-        const user: PrismaUsersWithDevices | null = await prisma.user.findFirst({
+        const user: PrismaUsersWithDevices | null = await this.db.user.findFirst({
             where:{
                 cpf_cnpj: cpf_cnpj
             },
@@ -201,7 +196,7 @@ export class PrismaUserRepository implements IUserRepository {
 
     async updateForgottenPasswordAndConsumeToken(updated_password_user: User, password_reset_token: PasswordResetToken){
         
-        await prisma.$transaction(async (tx) =>{
+        await this.db.$transaction(async (tx) =>{
 
             const prismaUserData: UserUncheckedCreateInput = PrismaUserRepository.entityToPrismaDataMapper(updated_password_user);
 
@@ -227,7 +222,7 @@ export class PrismaUserRepository implements IUserRepository {
 
     async addAuthorizedDevice(user_id: string, device_id: string, device_name: string): Promise<void> {
         
-        await prisma.authorizedDevice.create({
+        await this.db.authorizedDevice.create({
             data:{
                 user_id: user_id,
                 device_id: device_id,

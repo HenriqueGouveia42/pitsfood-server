@@ -16,6 +16,11 @@ export enum SubscriptionStatus {
     CANCELED = "CANCELED"
 }
 
+export type SubscriptionPlanAndStatus = {
+    plan: SubscriptionPlan,
+    plan_status: SubscriptionStatus
+}
+
 export type StoreProps = {
     readonly store_id: string;
     readonly name: string;

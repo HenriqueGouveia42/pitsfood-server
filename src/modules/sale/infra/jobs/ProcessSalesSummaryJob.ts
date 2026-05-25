@@ -20,7 +20,6 @@ export async function processSalesSummaryJob(job: Job) {
 
     try {
         // 2. O TRABALHO PESADO: Vai no PostgreSQL fazer os agrupamentos
-        console.log("VOU COMECAR AGORA")
         const report: SalesReportDTO = await saleRepository.getSalesSummaryByPeriod(start, end, store_id);
 
         // 3. SALVA NO CACHE: Disponibiliza para a API (que está sendo "pollada" pelo front)

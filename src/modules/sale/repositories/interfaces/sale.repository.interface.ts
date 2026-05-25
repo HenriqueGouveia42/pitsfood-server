@@ -28,7 +28,6 @@ export interface ISaleRepository {
     findSavedSaleById(sale_id: string): Promise<Sale>;
     listSavedSales(): Promise<Sale[]>;
     deleteSavedSaleById(sale_id: string): Promise<void>;
-    createSaleAndCloseBills(sale: Sale, billCodesToClose: string[]): Promise<void>;
     findByPeriod(startDate: Date, endDate: Date): Promise<Sale[]>;
     getSalesSummaryByPeriod(startDate: Date, endDate: Date, store_id: string): Promise<SalesReportDTO>;
     findPaginatedSales(store_id: string, skip: number, limit: number): Promise<Sale[]>

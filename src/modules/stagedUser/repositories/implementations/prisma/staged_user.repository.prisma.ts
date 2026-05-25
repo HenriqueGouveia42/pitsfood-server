@@ -7,9 +7,16 @@ import { User, UserRole } from "../../../../user/entities/user.js"
 import type { User as PrismaUser } from "../../../../../generated/prisma/client.js"
 import type { UserProps } from "../../../../user/entities/user.js"
 
-import { prisma } from "../../../../../shared/infra/prisma.js"
+import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js"
+import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js"
 
 export class PrismaStagedUserRepository implements IStagedUserRepository{
+
+    private db: PrismaClient | Prisma.TransactionClient;
+
+    constructor(transactionClient?: Prisma.TransactionClient){
+        this.db = transactionClient ? transactionClient : globalPrisma
+    }
 
     private static prismaToStagedUserEntityDataMapper(prismaStagedUser: PrismaStagedUser): StagedUser{
 
@@ -59,7 +66,7 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
 
         const prismaData: PrismaStagedUser = PrismaStagedUserRepository.entityToPrismaDataMapper(stagedUser);
 
-        await prisma.stagedUser.upsert({
+        await this.db.stagedUser.upsert({
             where: { id: stagedUser.id },
             update: prismaData,
             create: prismaData
@@ -69,7 +76,7 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
 
     async findStagedUserById(staged_user_id: string): Promise <StagedUser | null>{
 
-        const prismaData = await prisma.stagedUser.findFirst({
+        const prismaData = await this.db.stagedUser.findFirst({
             where:{
                 id: staged_user_id
             }
@@ -84,7 +91,7 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
 
     async deleteStagedUserById(staged_user_id: string): Promise <void>{
 
-        await prisma.stagedUser.delete({
+        await this.db.stagedUser.delete({
             where:{
                 id: staged_user_id
             }
@@ -94,7 +101,7 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
 
     async findStagedUserByEmail(email: string): Promise<StagedUser | null> {
         
-        const prismaData = await prisma.stagedUser.findFirst({
+        const prismaData = await this.db.stagedUser.findFirst({
             where:{
                 email
             }
@@ -107,39 +114,4 @@ export class PrismaStagedUserRepository implements IStagedUserRepository{
         return entityData;
     }
 
-    async deleteStagedUserAndCreateUser(staged_user: StagedUser, user: User): Promise<void>{
-        
-        const newUserData: UserProps = {
-
-            email:user.email,
-            user_id: user.id,
-            username: user.username,
-            password_hash: user.passwordHash,
-            role: user.role,
-            created_at: user.createdAt,
-            updated_at: user.updatedAt,
-            active: user.active,
-            store_id: user.storeId || null,
-            must_change_password: user.mustChangePassword, //deve ser false, pois esse é o usuario que se cadastrou pelo email
-            paying_user: true, //deve ser true, pois se está sendo criado por esse repo, quer dizer que é um usuario pago
-            cpf_cnpj: user.cpf_cnpj,
-            phone: user.phone ? user.phone : null
-        }
-        
-        await prisma.$transaction(async (tx) =>{
-
-            await tx.stagedUser.delete({
-                where:{ 
-                    id: staged_user.id
-                }
-            })
-
-            await tx.user.create({
-                data: newUserData
-            })
-        })
-
-    }
-
-    
 }

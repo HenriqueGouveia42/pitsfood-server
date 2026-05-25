@@ -1,5 +1,4 @@
 import { User } from "../../entities/user.js";
-import { Store } from "../../../store/entities/store.js";
 import type { PasswordResetToken } from "../../entities/passwordResetToken.js";
 
 export interface IUserRepository {

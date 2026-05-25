@@ -5,10 +5,8 @@ import type { IStoreRepository } from "../../interfaces/store.repository.interfa
 import { PhysicalBill as EntityPhysicalBill } from "../../../../bill/entities/physicalBIllCard.js";
 import type { PhysicalBillCard as PrismaPhysicalBill } from "../../../../../generated/prisma/client.js";
 
-import { InvoiceStatus as PrismaInvoiceStatus } from "../../../../../generated/prisma/client.js";
-import { SubscriptionInvoice } from "../../../entities/subscriptionInvoice.js";
-
-import { prisma } from "../../../../../shared/infra/prisma.js";
+import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
+import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js";
 import { AppError } from "../../../../../shared/errors/AppError.js";
 
 import type { Store as PrismaStoreModel } from "../../../../../generated/prisma/client.js";
@@ -26,6 +24,12 @@ import { SubscriptionStatus } from "../../../entities/store.js";
 import { PLAN_LIMITS } from "../../../../../config/plans.config.js";
 
 export class PrismaStoreRepository implements IStoreRepository {
+
+    private db: PrismaClient | Prisma.TransactionClient;
+
+    constructor(transactionClient?: Prisma.TransactionClient){
+        this.db = transactionClient ? transactionClient : globalPrisma
+    }
 
     private static prismaToEntityDataMapper(prismaStore: PrismaStoreModel): Store {
 
@@ -104,7 +108,7 @@ export class PrismaStoreRepository implements IStoreRepository {
 
         const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
 
-        const created_store = await prisma.store.create({
+        const created_store = await this.db.store.create({
             data: storePrismaData
         })
 
@@ -120,7 +124,7 @@ export class PrismaStoreRepository implements IStoreRepository {
 
     async findSavedStoreById(store_id: string): Promise<Store | null> {
 
-        const storePrismaData = await prisma.store.findUnique({
+        const storePrismaData = await this.db.store.findUnique({
             where: {
                 store_id
             }
@@ -139,7 +143,7 @@ export class PrismaStoreRepository implements IStoreRepository {
 
         const { created_at, ...dataToUpdate } = storePrismaData;
 
-        await prisma.store.update({
+        await this.db.store.update({
             where: {
                 store_id: storePrismaData.store_id
             },
@@ -148,7 +152,7 @@ export class PrismaStoreRepository implements IStoreRepository {
     }
 
     async listAllSavedStores(user_id: string): Promise<Store[]> {
-        const storesPrismaData = await prisma.store.findMany({
+        const storesPrismaData = await this.db.store.findMany({
             where:{
                 owner_id: user_id
             }
@@ -163,7 +167,7 @@ export class PrismaStoreRepository implements IStoreRepository {
 
     async storeWithThisNameExists(name: string): Promise<boolean>{
 
-        const prismaStore = await prisma.store.findFirst({
+        const prismaStore = await this.db.store.findFirst({
             where:{
                 name
             }
@@ -174,52 +178,9 @@ export class PrismaStoreRepository implements IStoreRepository {
         return true
     }
 
-    async saveActivationTransaction(
-        store: Store, 
-        paid_invoice: SubscriptionInvoice,
-        physicalBIllCards: Set<EntityPhysicalBill>
-
-    ): Promise<void> {
-
-        const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
-
-        const { store_id, created_at, ...storeUpdateData } = storePrismaData;
-
-        const prismaPhysicalBills = Array.from(physicalBIllCards, (b) => 
-            PrismaStoreRepository.entityToPrismaPhysicalBillDataMapper(b));
-        
-        await prisma.$transaction(async (tx) => {
-
-            //atualiza a loja
-            await tx.store.update({
-                where: { store_id: store.id },
-                data: storeUpdateData
-            });
-
-            //atualiza a fatura
-            await tx.subscriptionInvoice.update({
-                where: { invoice_id: paid_invoice.id },
-                data:{
-                    status: paid_invoice.status as unknown as PrismaInvoiceStatus,
-                    paid_at: paid_invoice.paidAt ? new Date(paid_invoice.paidAt) : new Date()
-                }
-            });
-
-            //cria as novas comandas em lote
-            if (prismaPhysicalBills.length > 0){
-                await tx.physicalBillCard.createMany({
-                    data: prismaPhysicalBills
-                })
-            }
-
-        })
-
-       
-    }
-
     async findActiveAndExpiredStores(currentDate: Date): Promise<Store[]> {
 
-        const prismaStores: PrismaStoreModel[] = await prisma.store.findMany({
+        const prismaStores: PrismaStoreModel[] = await this.db.store.findMany({
             where: {
                 active: true, //A loja não foi "apagada" ou banida do sistema
                 subscription_status: SubscriptionStatus.ACTIVE, //O banco ainda acha que ela está em dia
@@ -247,19 +208,19 @@ export class PrismaStoreRepository implements IStoreRepository {
             const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
             const { created_at, ...dataToUpdate } = storePrismaData;
 
-            return prisma.store.update({
+            return this.db.store.update({
                 where: { store_id: storePrismaData.store_id },
                 data: dataToUpdate
             });
         });
 
         // Executa todas as atualizações dentro de uma única transação atômica
-        await prisma.$transaction(updatePromises);
+        await Promise.all(updatePromises);    
     }
 
     async findActiveStores(): Promise<Store[]> {
         
-        const prismaStores = await prisma.store.findMany({
+        const prismaStores = await this.db.store.findMany({
             where:{
                 active: true
             }
@@ -280,7 +241,7 @@ export class PrismaStoreRepository implements IStoreRepository {
         const endOfDay: Date = new Date(targetDate);
         endOfDay.setHours(0, 0, 0, 0);
 
-        const prismaStores: PrismaStoreModel[] = await prisma.store.findMany({
+        const prismaStores: PrismaStoreModel[] = await this.db.store.findMany({
             where:{
                 active: true,
                 subscription_status: SubscriptionStatus.ACTIVE,

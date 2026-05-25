@@ -6,5 +6,4 @@ export interface IStagedUserRepository{
     findStagedUserById(staged_user_id: string): Promise <StagedUser | null>;
     findStagedUserByEmail(email: string): Promise<StagedUser | null>;
     deleteStagedUserById(staged_user_id: string): Promise <void>;
-    deleteStagedUserAndCreateUser(staged_user: StagedUser, user: User): Promise<void>;
 }

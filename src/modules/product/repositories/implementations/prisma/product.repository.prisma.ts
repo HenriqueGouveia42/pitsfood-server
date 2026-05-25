@@ -1,16 +1,20 @@
-import { Product, type ProductProps } from '../../../entities/product.js';
-import type { IProductRepository } from '../../product.repository.interface.js';
-import { StockEntry } from '../../../entities/stock-entry.js';
 
-import { prisma } from "../../../../../shared/infra/prisma.js"
+import { Product, type ProductProps } from '../../../entities/product.js';
+import type { IProductRepository } from '../../interfaces/product.repository.interface.js';
+
+import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
 import { AppError } from '../../../../../shared/errors/AppError.js';
-import { Decimal } from 'decimal.js';
+import { Prisma, PrismaClient } from '../../../../../generated/prisma/client.js';
 
 export class PrismaProductRepository implements IProductRepository {
 
-    //mappers
+    private db: PrismaClient | Prisma.TransactionClient;
+
+    constructor(transactionClient?: Prisma.TransactionClient){
+        this.db = transactionClient ? transactionClient : globalPrisma;
+    }
+
     private static prismaToEntityDataMapper(prismaProduct: any): Product {
-        
         const productProps: ProductProps = {
             product_id: prismaProduct.product_id,
             name: prismaProduct.name,
@@ -24,8 +28,7 @@ export class PrismaProductRepository implements IProductRepository {
             track_stock: prismaProduct.track_stock,
             stock_quantity: prismaProduct.stock_quantity,
             requires_preparation: prismaProduct.requires_preparation
-        }
-
+        };
         return Product.restoreProduct(productProps);
     }
 
@@ -39,257 +42,108 @@ export class PrismaProductRepository implements IProductRepository {
             created_at: new Date(product.createdAt),
             updated_at: new Date(product.updatedAt),
             active: product.active,
-
-            store: {
-                connect: { store_id: product.store_id}
-            },
-
+            store: { connect: { store_id: product.store_id} },
             track_stock: product.track_stock,
             stock_quantity: product.stock_quantity,
             requires_preparation: product.requires_preparation
-        }
+        };
     }
 
-    private static prismaEntryToDomainMapper(prismaEntry: any): StockEntry {
-        return StockEntry.restore({
-            entry_id: prismaEntry.entry_id,
-            product_id: prismaEntry.product_id,
-            store_id: prismaEntry.store_id,
-            quantity: prismaEntry.quantity,
-            
-            //garantimos que seja Decimal
-            unit_cost: new Decimal(prismaEntry.unit_cost), 
-            total_cost: new Decimal(prismaEntry.total_cost),
-            
-            created_at: prismaEntry.created_at.toISOString(), //normaliza data
-            
-            //achatamos os relacionamentos para facilitar a vida do Frontend
-            user_name: prismaEntry.user ? prismaEntry.user.username : 'Desconhecido',
-            product_name: prismaEntry.product ? prismaEntry.product.name : 'Produto Removido'
-        });
-    }
-
-    //methods
     async saveProduct(product: Product, store_id: string): Promise<void> {
-
         if (product.store_id !== store_id){
             throw new AppError("Tentativa de violação de segurança: O produto não pertence a essa loja", 403, "STORE_MISMATCH");
         }
-
         const entityToPrismaDataMapped = PrismaProductRepository.entityToPrismaDataMapper(product);
-
-        await prisma.product.create({
-            data: entityToPrismaDataMapped
-        })
+        await this.db.product.create({ data: entityToPrismaDataMapped });
     }
 
     async findSavedProductById(product_id: string, store_id: string): Promise<Product | null> {
-
-        const prismaProduct = await prisma.product.findUnique({
-            where:{
-                store_id_product_id:{
-                    store_id,
-                    product_id,
-                }
-            }
-        })
-
-        if(!prismaProduct){
-            return null;
-        }
-
-        const productMapped: Product = PrismaProductRepository.prismaToEntityDataMapper(prismaProduct);
-
-        return productMapped;
+        const prismaProduct = await this.db.product.findUnique({
+            where: { store_id_product_id: { store_id, product_id } }
+        });
+        if(!prismaProduct) return null;
+        return PrismaProductRepository.prismaToEntityDataMapper(prismaProduct);
     }
 
     async findSavedProductByGtinCode(gtin_code: string, store_id: string): Promise<Product | null>{
-
-        const prismaProduct = await prisma.product.findUnique({
-            where:{
-                store_id_gtin_code:{
-                    store_id,
-                    gtin_code
-                }
-               
-            }
-        })
-
-        if (!prismaProduct){
-            return null;
-        }
-
-        const product: Product = PrismaProductRepository.prismaToEntityDataMapper(prismaProduct);
-
-        return product;
+        const prismaProduct = await this.db.product.findUnique({
+            where: { store_id_gtin_code: { store_id, gtin_code } }
+        });
+        if (!prismaProduct) return null;
+        return PrismaProductRepository.prismaToEntityDataMapper(prismaProduct);
     }
 
     async findManySavedProductsByGtinCodes(gtin_codes: string[], store_id: string): Promise<Product[] | []>{
-
-        if (gtin_codes.length == 0){
-            return [];
-        }
-        
-        const prisma_products: any[] = await prisma.product.findMany({
-            where:{
+        if (gtin_codes.length == 0) return [];
+        const prisma_products: any[] = await this.db.product.findMany({
+            where: {
                 store_id: store_id,
-                gtin_code: {
-                    in: gtin_codes 
-                },
+                gtin_code: { in: gtin_codes },
             }
-        })
-
+        });
         return prisma_products.map(p => PrismaProductRepository.prismaToEntityDataMapper(p));
     }
 
     async updateSavedProduct(product: Product, store_id: string): Promise<Product> {
-
         if (product.store_id != store_id){
             throw new AppError("Tentativa de violação de segurança: O produto não pertence a essa loja", 403, "STORE_MISMATCH");
         }
-
         const mappedToPrisma = PrismaProductRepository.entityToPrismaDataMapper(product);
+        const { product_id, created_at, store, stock_quantity, ...dataToUpdate } = mappedToPrisma;
 
-        //remover id e created_at do objeto que será enviado para o 'data'
-        const { 
-            product_id,
-            created_at,
-            store,
-            stock_quantity,
-            ...dataToUpdate } = mappedToPrisma;
-
-        const updatedProduct = await prisma.product.update({
-            where:{
-                store_id_product_id:{
-                    store_id: store_id,
-                    product_id: product.id
-                }
-            },
-            data:{
-                ...dataToUpdate,
-            }
-        })
-
-        const mappedToEntity: Product = PrismaProductRepository.prismaToEntityDataMapper(updatedProduct);
-
-        return mappedToEntity;
+        const updatedProduct = await this.db.product.update({
+            where: { store_id_product_id: { store_id: store_id, product_id: product.id } },
+            data: { ...dataToUpdate }
+        });
+        return PrismaProductRepository.prismaToEntityDataMapper(updatedProduct);
     }
 
     async listSavedProducts(store_id: string): Promise<Product[]> {
-
-        const prismaSavedProducts = await prisma.product.findMany({
-            where:{
-                store_id: store_id,
-            },
-            orderBy: {
-                name: "asc" //ordem alfabetica
-            }
+        const prismaSavedProducts = await this.db.product.findMany({
+            where: { store_id: store_id },
+            orderBy: { name: "asc" }
         });
-
-        return prismaSavedProducts.map(prismaProduct => 
-            PrismaProductRepository.prismaToEntityDataMapper(prismaProduct)
-        );
+        return prismaSavedProducts.map(prismaProduct => PrismaProductRepository.prismaToEntityDataMapper(prismaProduct));
     }
 
     async deactivateSavedProductById(product_id: string, store_id: string): Promise<void> {
-
-        await prisma.product.update({
-            where:{
-                store_id_product_id:{
-                    store_id: store_id,
-                    product_id: product_id
-                }
-            },
-            data:{
-                active: false,
-            }
-        })
+        await this.db.product.update({
+            where: { store_id_product_id: { store_id, product_id } },
+            data: { active: false }
+        });
     }
 
     async activateSavedProductById(product_id: string, store_id: string): Promise<void> {
+        await this.db.product.update({
+            where: { store_id_product_id: { store_id, product_id } },
+            data: { active: true }
+        });
+    }
 
-        await prisma.product.update({
+    // NOVO: Cumpre a responsabilidade de alterar o estoque usando o túnel herdado (this.db)
+    async incrementProductStock(product_id: string, store_id: string, quantity_to_add: number): Promise<void> {
+        await this.db.product.update({
+            where: {
+                store_id_product_id: { store_id, product_id }
+            },
+            data: {
+                stock_quantity: { increment: quantity_to_add }
+            }
+        });
+    }
+
+    async decrementProductStock(store_id: string, product_id: string, quantity_to_decrement: number): Promise<void> {
+        await this.db.product.updateMany({
             where:{
-                store_id_product_id:{
-                    store_id: store_id,
-                    product_id: product_id
-                }
+                store_id: store_id,
+                product_id: product_id,
+                track_stock: true
             },
             data:{
-                active: true,
+                stock_quantity: {
+                    decrement: quantity_to_decrement
+                }
             }
         })
     }
-
-    async makeEntryStock(product_id: string, store_id: string, user_id: string, user_name: string, stock_quantity_to_add: number, unit_cost: Decimal, total_cost: Decimal): Promise<void>{
-        
-        await prisma.$transaction(async (tx) =>{
-
-            await tx.stockEntry.create({
-                data:{
-                    quantity: stock_quantity_to_add,
-                    unit_cost: unit_cost,
-                    total_cost: total_cost,
-                    store_id: store_id,
-                    product_id: product_id,
-                    user_id: user_id
-                }
-            })
-
-            await tx.product.update({
-                where:{
-                    store_id_product_id:{
-                        store_id,
-                        product_id,
-                    }
-                },
-                data:{
-                    stock_quantity:{
-                        increment: stock_quantity_to_add
-                    }
-                }
-            })
-
-        })
-    }
-
-    async listStockEntries(store_id: string, page: number, items_per_page: number, product_id?: string): Promise<{ entries: StockEntry[], total_count: number }> {
-    
-        const skip = (page - 1) * items_per_page;
-
-        //constoi o objeto Where dinamicamente ou deixamos o undefined agir
-        const whereClause = {
-            store_id: store_id,
-            ...(product_id && { product_id: product_id }) 
-        };
-
-        const [total_count, prismaEntries] = await Promise.all([
-            
-            //query 1: contaem (IMPORTANTE: Usar o mesmo whereClause)
-            prisma.stockEntry.count({
-                where: whereClause 
-            }),
-
-            //query 2: dados paginados
-            prisma.stockEntry.findMany({
-                where: whereClause, // <--- Usa o filtro aqui também
-                skip: skip,
-                take: items_per_page,
-                orderBy: { created_at: 'desc' },
-                include: {
-                    product: { select: { name: true, gtin_code: true } },
-                    user: { select: { username: true } }
-                }
-            })
-        ]);
-
-        const entries: StockEntry[] = prismaEntries.map(entry => PrismaProductRepository.prismaEntryToDomainMapper(entry));
-
-        return {
-            entries,
-            total_count
-        };
-    }
-    
-        
 }
