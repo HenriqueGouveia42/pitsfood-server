@@ -2,8 +2,6 @@ import type { Request, Response } from "express";
 import { MakeStockEntryUseCase } from "./MakeStockEntryUseCase.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { MakeStockEntryUseCaseResponseDTO } from "./MakeStockEntryUseCase.js"
-import type { Decimal } from "decimal.js";
-
 
 interface MakeStockEntryControllerRequestDTO{
     entry_stock_quantity: number,

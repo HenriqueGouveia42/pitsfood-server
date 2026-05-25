@@ -1,13 +1,14 @@
-import { Prisma } from '../../../../../generated/prisma/client.js';
+import { Prisma, PrismaClient } from '../../../../../generated/prisma/client.js';
 import { Sale } from '../../../entities/sale.js';
 import type { ISaleRepository } from '../../interfaces/sale.repository.interface.js';
-import { prisma } from "../../../../../shared/infra/prisma.js";
+import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
 import { Decimal } from "decimal.js"
 import type { SalesReportDTO } from '../../interfaces/sale.repository.interface.js';
 
 import type { Sale as PrismaSaleModel, SaleProduct as PrismaSaleProduct, SalePayment as PrismaSalePayment } from "../../../../../generated/prisma/client.js";
 import { SaleStatus, PaymentMethod, type SaleProp } from "../../../entities/sale.js";
 import type { UserRole } from '../../../../user/entities/user.js';
+
 
 type PrismaSaleWithRelations = PrismaSaleModel & {
     items?: PrismaSaleProduct[];
@@ -17,11 +18,13 @@ type PrismaSaleWithRelations = PrismaSaleModel & {
 
 export class PrismaSaleRepository implements ISaleRepository {
 
-    /**
-     * Mapper Estático: entityToPrismaDataMapper
-     * Responsável por converter a Entidade de Domínio (Sale) para o objeto de escrita do Prisma.
-     * Estrutura o objeto para realizar "Nested Writes" (Salvar Venda, Itens e Pagamentos de uma vez).
-     */
+   
+    private db: PrismaClient | Prisma.TransactionClient;
+
+    constructor(transactionClient?: Prisma.TransactionClient){
+        this.db = transactionClient ? transactionClient : globalPrisma
+    }
+
     private static entityToPrismaSaleDataMapper(sale: Sale): Prisma.SaleCreateInput {
         return {
             sale_id: sale.id,
@@ -120,70 +123,8 @@ export class PrismaSaleRepository implements ISaleRepository {
         
         const prismaData: Prisma.SaleCreateInput = PrismaSaleRepository.entityToPrismaSaleDataMapper(sale);
 
-        await prisma.sale.create({
+        await this.db.sale.create({
             data: prismaData
-        });
-    }
-
-    //salvar Venda + Fechar Comandas (Transação Atômica)
-    // salvar Venda + Fechar Comandas + Baixa de Estoque (Transação Atômica)
-    async createSaleAndCloseBills(sale: Sale, billCodesToClose: string[]): Promise<void> {
-        
-        // 1. Prepara os dados da venda para o Prisma
-        const prismaData: Prisma.SaleCreateInput = PrismaSaleRepository.entityToPrismaSaleDataMapper(sale);
-
-        // 2. Otimização: Agrupa as quantidades totais por produto para abater no estoque.
-        // Isso evita fazer 2 queries de decremento para o mesmo produto caso ele apareça 2x na venda.
-        const stockToDecrement = new Map<string, number>();
-        for (const item of sale.items) {
-            const currentQuantity = stockToDecrement.get(item.product_id) || 0;
-            stockToDecrement.set(item.product_id, currentQuantity + item.quantity);
-        }
-
-        // 3. Executa a Transação Atômica
-        await prisma.$transaction(async (tx) => {
-            
-            // Passo A: Persiste a Venda (Venda, Itens e Pagamentos)
-            await tx.sale.create({
-                data: prismaData
-            });
-
-            // Passo B: Fecha as Comandas Físicas
-            if (billCodesToClose.length > 0) {
-                const updateResult = await tx.bill.updateMany({
-                    where: {
-                        store_id: sale.store_id,
-                        bill_code_gtin: { in: billCodesToClose },
-                        status: 'ABERTA'
-                    },
-                    data: {
-                        status: 'FECHADA',
-                        updated_at: new Date()
-                    }
-                });
-
-                if (updateResult.count !== billCodesToClose.length) {
-                    throw new Error(`Erro de Concorrência: Uma ou mais comandas foram alteradas por outro usuário durante o processo. Operação cancelada.`);
-                }
-            }
-
-            // Passo C: Baixa de Estoque
-            for (const [productId, quantitySold] of stockToDecrement.entries()) {
-                
-                await tx.product.updateMany({
-                    where: {
-                        store_id: sale.store_id,
-                        product_id: productId,
-                        track_stock: true // O BANCO VAI IGNORAR A QUERY SE ISSO FOR FALSE
-                    },
-                    data: {
-                        stock_quantity: {
-                            decrement: quantitySold // Permite ficar negativo
-                        }
-                    }
-                });
-                
-            }
         });
     }
 
@@ -198,7 +139,7 @@ export class PrismaSaleRepository implements ISaleRepository {
     }
 
     async findByPeriod(startDate: Date, endDate: Date): Promise<Sale[]> {
-        const sales = await prisma.sale.findMany({
+        const sales = await this.db.sale.findMany({
             where: {
                 created_at: { 
                     gte: startDate, // gte = greater than or equal (maior ou igual)
@@ -229,7 +170,7 @@ export class PrismaSaleRepository implements ISaleRepository {
         const end = new Date(endDate);
 
         // 1. Métricas Gerais
-        const generalMetrics = await prisma.sale.aggregate({
+        const generalMetrics = await this.db.sale.aggregate({
             _sum: {total_price: true},
             _count: { sale_id: true },
             where: {
@@ -241,7 +182,7 @@ export class PrismaSaleRepository implements ISaleRepository {
 
         // 2. Agrupamento por Pagamento (Sequencial, poupando conexões)
         // Removemos os ::timestamp manuais e deixamos o Prisma lidar com as Datas de forma nativa
-        const paymentsRaw = await prisma.$queryRaw<any[]>`
+        const paymentsRaw = await this.db.$queryRaw<any[]>`
             SELECT
                 spm.method,
                 SUM(spm.amount) as total_amount
@@ -255,7 +196,7 @@ export class PrismaSaleRepository implements ISaleRepository {
         `;
 
         // 3. Agrupamento por Produtos
-        const productsRaw = await prisma.$queryRaw<any[]>`
+        const productsRaw = await this.db.$queryRaw<any[]>`
             SELECT
                 sp.product_name_snapshot as product_name,
                 sp.product_id,
@@ -273,7 +214,7 @@ export class PrismaSaleRepository implements ISaleRepository {
 
         // 4. Agrupamento por Hora do Dia
         // O timezone é convertido para string com ::text explicitamente para evitar falha no PG Parser
-        const hourlyRaw = await prisma.$queryRaw<any[]>`
+        const hourlyRaw = await this.db.$queryRaw<any[]>`
             SELECT
                 EXTRACT(HOUR FROM created_at AT TIME ZONE 'UTC' AT TIME ZONE ${timezone}::text)::int as sale_hour,
                 COUNT(sale_id)::int as sales_count,
@@ -324,7 +265,7 @@ export class PrismaSaleRepository implements ISaleRepository {
     async findPaginatedSales(store_id: string, skip: number, limit: number): Promise<Sale[]>{
         
         // Busca apenas as vendas. Zero COUNTs.
-        const prismaSales = await prisma.sale.findMany({
+        const prismaSales = await this.db.sale.findMany({
             where: { store_id: store_id },
             skip: skip,
             // TRUQUE DO N+1: Pedimos uma a mais do que o limite desejado

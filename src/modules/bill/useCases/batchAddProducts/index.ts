@@ -1,17 +1,18 @@
-import { PrismaBillRepository } from "../../repositories/implementations/prisma/bill.repository.prisma.js";
-import { PrismaProductRepository } from "../../../product/repositories/implementations/prisma/product.repository.prisma.js";
-
+import { PrismaUnitOfWork } from "../../../../shared/infra/uow/implementations/PrismaUnitOfWork.js";
+import { BillAdditionService } from "../../services/BillAdditionService.js";
 import { BatchAddItemsUseCase } from "./batchAddItemsUseCase.js";
 import { BatchAddItemsController } from "./batchAddItemsController.js";
 
-const billRepository = new PrismaBillRepository();
-const productRepository = new PrismaProductRepository();
+// 1. Instancia a Infraestrutura (A fábrica que controla o banco de dados)
+const prismaUnitOfWork: PrismaUnitOfWork = new PrismaUnitOfWork();
 
-const batchAddItemsUseCase = new BatchAddItemsUseCase(
-    billRepository,
-    productRepository,
-);
+// 2. Instancia o Serviço de Aplicação Orquestrador (Injetando o UoW)
+const billAdditionService: BillAdditionService = new BillAdditionService(prismaUnitOfWork);
 
-const batchAddItemsController = new BatchAddItemsController(batchAddItemsUseCase)
+// 3. Instancia o UseCase da borda (Injetando apenas o Serviço)
+const batchAddItemsUseCase: BatchAddItemsUseCase = new BatchAddItemsUseCase(billAdditionService);
 
-export { batchAddItemsController }
+// 4. Instancia o Controller (Fronteira HTTP)
+const batchAddItemsController: BatchAddItemsController = new BatchAddItemsController(batchAddItemsUseCase);
+
+export { batchAddItemsController };

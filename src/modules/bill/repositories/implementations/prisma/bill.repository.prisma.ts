@@ -1,11 +1,11 @@
-import { Prisma } from "../../../../../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js";
 import { Bill as EntityBill, billStates, type BillProps } from "../../../entities/bill.js";
 import type { Bill as PrismaBill } from "../../../../../generated/prisma/client.js";
 import type { BillProduct as PrismaBillProduct } from "../../../../../generated/prisma/client.js";
-import type { IBillRepository } from "../../bill.repository.interface.js";
+import type { IBillRepository } from "../../interfaces/bill.repository.interface.js";
 import { PhysicalBill as EntityPhysicalBill } from "../../../entities/physicalBIllCard.js";
 import type { PhysicalBillCard as PrismaPhysicalBillCard } from "../../../../../generated/prisma/client.js";
-import { prisma } from "../../../../../shared/infra/prisma.js";
+import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
 import { Decimal } from 'decimal.js';
 
 // Enum local para tipagem
@@ -19,6 +19,12 @@ export enum BillStatus {
 type PrismaBillWithItems = PrismaBill & { items?: PrismaBillProduct[] };
 
 export class PrismaBillRepository implements IBillRepository {
+
+    private db: PrismaClient | Prisma.TransactionClient;
+
+    constructor(transactionClient?: Prisma.TransactionClient){
+        this.db = transactionClient ? transactionClient : globalPrisma
+    }
 
     private static entityToPrismaBillDataMapper(bill: EntityBill): Prisma.BillUncheckedCreateInput {
         return {
@@ -103,7 +109,7 @@ export class PrismaBillRepository implements IBillRepository {
     }
 
     async getPhysicalBills(store_id: string): Promise<EntityPhysicalBill[] | null> {
-        const prismaPhysicalBills: PrismaPhysicalBillCard[] = await prisma.physicalBillCard.findMany({
+        const prismaPhysicalBills: PrismaPhysicalBillCard[] = await this.db.physicalBillCard.findMany({
             where: {
                 store_id: store_id
             }
@@ -117,7 +123,7 @@ export class PrismaBillRepository implements IBillRepository {
     }
 
     async physicalBillWithThisGtinCodeExists(gtin_code: string, store_id: string): Promise<boolean> {
-        const billCard: PrismaPhysicalBillCard | null = await prisma.physicalBillCard.findUnique({
+        const billCard: PrismaPhysicalBillCard | null = await this.db.physicalBillCard.findUnique({
             where: {
                 store_id_code: {
                     store_id: store_id,
@@ -129,11 +135,11 @@ export class PrismaBillRepository implements IBillRepository {
         return !!billCard;
     }
 
-    async getOpenBillByGtinCode(gtin_code: string, store_id: string): Promise<EntityBill[]> {
+    async getOpenBillByCode(gtin_code: string, store_id: string): Promise<EntityBill | null> {
 
-        const prismaBills: PrismaBillWithItems[] = await prisma.bill.findMany({
+        const prismaBill: PrismaBillWithItems | null = await this.db.bill.findFirst({
             where: {
-                store_id,
+                store_id: store_id,
                 bill_code_gtin: gtin_code,
                 status: BillStatus.ABERTA
             },
@@ -142,19 +148,14 @@ export class PrismaBillRepository implements IBillRepository {
             }
         });
 
-        if (prismaBills.length == 0) return []
+        if (!prismaBill) return null;
 
-        const entitieBills: EntityBill[] = prismaBills.map(b => (
-            PrismaBillRepository.prismaToEntityBillDataMapper(b)
-        ));
-
-        return entitieBills;
+        return PrismaBillRepository.prismaToEntityBillDataMapper(prismaBill);
     }
 
     async upsertBill(bill: EntityBill): Promise<void> {
         
-        //prepara os dados dos ITENS
-        //mapeamos para o formato exato que a tabela bill_products espera
+        // Prepara os dados dos ITENS
         const itemsData = bill.items.map(item => ({
             bill_item_id: item.bill_item_id,
             price_at_addition: item.price_at_addition.toNumber(),
@@ -168,45 +169,40 @@ export class PrismaBillRepository implements IBillRepository {
             bill_id: bill.bill_id
         }));
 
-   
-        await prisma.$transaction(async (tx) => {
-            
-            //garante que a Comanda (Bill) existe ou cria ela (SEM ITENS)
-            await tx.bill.upsert({
-                where: {
-                    store_id_bill_id: {
-                        store_id: bill.store_id,
-                        bill_id: bill.bill_id
-                    }
-                },
-                create: {
-                    bill_id: bill.bill_id,
-                    bill_code_gtin: bill.bill_code,
-                    status: bill.status,
-                    created_at: new Date(bill.createdAt),
-                    updated_at: new Date(bill.updatedAt),
-
-                    store: { connect: { store_id: bill.store_id } }
-                },
-                update: {
-                    status: bill.status,
-                    updated_at: new Date()
+        // 1. Atualiza ou cria a Comanda
+        await this.db.bill.upsert({
+            where: {
+                store_id_bill_id: {
+                    store_id: bill.store_id,
+                    bill_id: bill.bill_id
                 }
-            });
-
-            // insere os Itens (Bulk Insert)
-            if (itemsData.length > 0) {
-                await tx.billProduct.createMany({
-                    data: itemsData,
-                    skipDuplicates: true //ignora itens que já existem
-                });
+            },
+            create: {
+                bill_id: bill.bill_id,
+                bill_code_gtin: bill.bill_code,
+                status: bill.status,
+                created_at: new Date(bill.createdAt),
+                updated_at: new Date(bill.updatedAt),
+                store: { connect: { store_id: bill.store_id } }
+            },
+            update: {
+                status: bill.status,
+                updated_at: new Date()
             }
         });
+
+        // 2. Insere os Itens sequencialmente
+        if (itemsData.length > 0) {
+            await this.db.billProduct.createMany({
+                data: itemsData,
+                skipDuplicates: true // ignora itens que já existem
+            });
+        }
     }
 
     async findAllOpenBills(store_id: string): Promise<EntityBill[]> {
 
-        const prismaOpenBills: PrismaBillWithItems[] = await prisma.bill.findMany({
+        const prismaOpenBills: PrismaBillWithItems[] = await this.db.bill.findMany({
             where: {
                 store_id: store_id,
                 status: BillStatus.ABERTA
@@ -228,6 +224,27 @@ export class PrismaBillRepository implements IBillRepository {
         );
 
         return entityBills;
+    }
+
+    async closeBills(store_id: string, bill_codes: string[]): Promise<void> {
+        
+        if(bill_codes.length === 0) return;
+
+        const updateResult = await this.db.bill.updateMany({
+            where:{
+                store_id: store_id,
+                bill_code_gtin: { in: bill_codes },
+                status: 'ABERTA'
+            },
+            data: {
+                status: 'FECHADA',
+                updated_at: new Date()
+            }
+        })
+
+        if (updateResult.count !== bill_codes.length){
+            throw new Error(`Erro de Concorrência: Uma ou mais comandas foram alteradas por outro usuário durante o processo.`);        
+        }
     }
 
 }

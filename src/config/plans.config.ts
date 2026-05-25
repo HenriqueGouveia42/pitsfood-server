@@ -37,7 +37,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
         id: "basic_plan",
         title: "Plano Basic",
         description: "Ideal para food trucks, quiosques e comedorias em geral.",
-        price_in_cents: 12900,
+        price_in_cents: 13900,
         currency: "BRL",
         limits: {
             max_physical_bills: 40,

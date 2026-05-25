@@ -1,6 +1,6 @@
 import { AppError } from "../../../../shared/errors/AppError.js";
 import { UserRole } from "../../../user/entities/user.js"; //Enum
-import type { IProductRepository } from "../../repositories/product.repository.interface.js";
+import type { IStockEntryRepository } from "../../repositories/interfaces/stock-entry.repository.interface.js";
 import { StockEntry } from "../../entities/stock-entry.js";
 import type { number } from "zod";
 import { Product } from "../../entities/product.js";
@@ -32,7 +32,7 @@ type ResponseDTO = {
 
 export class ListStockEntriesUseCase {
     constructor(
-        private productRepository: IProductRepository,
+        private stockEntriesRepository: IStockEntryRepository,
     ){}
 
     public async execute({ store_id, user_role, page, items_per_page, product_id }: RequestDTO): Promise<ResponseDTO> {
@@ -45,7 +45,7 @@ export class ListStockEntriesUseCase {
             throw new AppError("ID da loja inválido no token", 401, "INVALID_TOKEN_DATA");
         }
 
-        const result = await this.productRepository.listStockEntries(store_id, page, items_per_page, product_id);
+        const result = await this.stockEntriesRepository.listStockEntries(store_id, page, items_per_page, product_id);
 
         const entries: StockEntry[] = result.entries;
         const total_count: number = result.total_count;
