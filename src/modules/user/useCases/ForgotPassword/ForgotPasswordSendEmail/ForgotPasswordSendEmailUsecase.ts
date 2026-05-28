@@ -67,6 +67,7 @@ export class ForgotPasswordSendEmailUsecase {
         //2. Validacao de usuario
         const user: User | null = await this.userRepository.findUserByEmail(input.email);
         if (!user) throw new AppError("E-mail inválido.", 404, "EMAIL_NOT_FOUND");
+        if (!user.paying_user) throw new AppError("Peça para o gestor da sua loja atualizar a sua senha");
         
         //3. Verifica se o token de reset já existe
         const existing_token: PasswordResetToken | null = await this.passwordResetRepository.findPasswordResetTokenByUserId(user.id);
