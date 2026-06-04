@@ -1,5 +1,5 @@
 import { DomainError } from "../../../shared/errors/DomainError.js";
-import { SubscriptionPlan } from "./store.js"; // Importando o Enum do arquivo store.ts
+import { SubscriptionPlan } from "./store.enums.js"; // Importando o Enum do arquivo store.ts
 
 export enum InvoiceStatus {
     PENDING = "PENDING",     // gerado, aguardando pagamento

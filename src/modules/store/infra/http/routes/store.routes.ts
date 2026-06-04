@@ -58,7 +58,7 @@ storeRouteBuilder.build({
 storeRouteBuilder.build({
     method: 'post',
     path: '/login-into-store',
-    security: 'REQUIRE_AUTH',
+    security: 'REQUIRE_AUTH_AUTHORIZED_DEVICE',
     roles: [UserRole.GESTOR],
     // schema: loginIntoStoreSchema, // Adicionar quando criar o schema
     handler: (request, response) => loginIntoStoreController.handle(request, response)

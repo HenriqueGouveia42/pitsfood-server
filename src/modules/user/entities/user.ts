@@ -29,7 +29,7 @@ export type UserProps = {
     readonly must_change_password: boolean,
     readonly paying_user: boolean,
 
-    readonly cpf_cnpj: string,
+    readonly cpf_cnpj: string | undefined,
     readonly phone: string | null
     readonly authorized_devices: AuthorizedDeviceProps[];
 }
@@ -61,6 +61,7 @@ export class User {
     private static validatePayingUser(user:User): void{
         if(user.paying_user && user.role != UserRole.GESTOR) throw new DomainError("O usuario pago necessariamente é um gestor");
         if(user.paying_user && user.storeId) throw new DomainError("Um usuario gestor pago nao pode possuir a propriedade 'store_id'");
+        if(user.paying_user && !user.cpf_cnpj) throw new DomainError("Um usuario pago deve sempre ter cpf ou cnpj");
     }
 
     private static formatUsername(username: string): string {

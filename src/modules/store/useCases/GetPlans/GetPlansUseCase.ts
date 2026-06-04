@@ -1,6 +1,6 @@
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
 import type { PlanConfig } from "../../../../config/plans.config.js";
-import { SubscriptionPlan } from "../../entities/store.js";
+import { SubscriptionPlan } from "../../entities/store.enums.js";
 
 export class GetPlansUseCase{
 

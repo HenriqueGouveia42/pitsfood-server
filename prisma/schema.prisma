@@ -182,7 +182,7 @@ model User {
   updated_at    DateTime @updatedAt
   active        Boolean @default(true)
 
-  cpf_cnpj      String //se for o dono, isso é obrigatorio para poder gerar as cobrancas no gateway de pagamentos
+  cpf_cnpj      String? //se for o dono, isso é obrigatorio para poder gerar as cobrancas no gateway de pagamentos
   phone         String?
 
   paying_user   Boolean @default(false)//isso indica se o gestor é o que paga, o que criou sua conta, etc, ou se é um gestor criado por um gestor pago

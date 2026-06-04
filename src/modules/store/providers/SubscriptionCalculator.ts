@@ -1,4 +1,4 @@
-import { SubscriptionPlan } from "../entities/store.js";
+import { SubscriptionPlan } from "../entities/store.enums.js";
 import { PLAN_LIMITS } from "../../../config/plans.config.js";
 import { AppError } from "../../../shared/errors/AppError.js";
 

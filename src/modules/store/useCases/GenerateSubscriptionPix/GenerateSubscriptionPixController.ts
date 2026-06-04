@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { GenerateSubscriptionPixUseCase } from "./GenerateSubscriptionPixUseCase.js";
+import { SubscriptionPlan } from "../../entities/store.enums.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
-import { SubscriptionPlan } from "../../entities/store.js";
 
 interface GeneratePixBodyRequest {
     plan: SubscriptionPlan
@@ -25,6 +25,10 @@ export class GenerateSubscriptionPixController {
 
         const user_id = req.user.id;
         const store_id = req.user.store_id;
+
+        if (!req.user || !req.user.id || !req.user.store_id) throw new AppError("Requisicao invalida", 500, "INVALID_TYPE");
+
+        if (typeof(store_id) !== 'string') throw new AppError("Tipo incorreto na requisicao", 500, "INVALID_TYPE")
 
         const result: GenereateSubscriptionPixUseCaseDTOResponse = await this.generateSubscriptionPixUseCase.execute({
             store_id,

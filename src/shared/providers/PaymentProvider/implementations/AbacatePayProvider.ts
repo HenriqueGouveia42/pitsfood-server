@@ -99,7 +99,7 @@ export class AbacatePayProvider implements IPaymentProvider {
 
             if (!customerId) throw new AppError("ID do cliente é obrigatório para gerar PIX", 400);
 
-            console.log(`[AbacatePay] Gerando Billing (Checkout) para Customer: ${customerId}, Valor: ${amount_in_cents}`);
+            //console.log(`[AbacatePay] Gerando Billing (Checkout) para Customer: ${customerId}, Valor: ${amount_in_cents}`);
 
             const response = await this.api.post("/billing/create", {
                 frequency: "ONE_TIME",

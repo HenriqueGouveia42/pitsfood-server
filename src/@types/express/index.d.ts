@@ -14,7 +14,8 @@ declare global {
         store_id: string | null | undefined;
         must_change_password: boolean;
         is_paying_user: true,
-        token_version: number
+        token_version: number,
+        authorized_devices_ids?: string[]
       };
       preAuthUserId?: string
     }

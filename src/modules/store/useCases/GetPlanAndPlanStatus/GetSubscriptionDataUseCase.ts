@@ -1,5 +1,5 @@
 import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
-import { SubscriptionPlan, SubscriptionStatus } from "../../entities/store.js";
+import { SubscriptionPlan, SubscriptionStatus } from "../../entities/store.enums.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import { Store } from "../../entities/store.js";
 

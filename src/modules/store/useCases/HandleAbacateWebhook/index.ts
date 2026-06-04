@@ -1,22 +1,27 @@
 import { HandleAbacateWebhookUseCase } from "./HandleAbacateWebhookUseCase.js";
 import { HandleAbacateWebhookController } from "./HandleAbacateWebhookController.js";
 
-// Repositórios necessários
-import { PrismaStoreRepository } from "../../repositories/implementations/prisma/store.repository.prisma.js";
 import { PrismaSubscriptionInvoiceRepository } from "../../repositories/implementations/prisma/subscriptionInvoice.repository.prisma.js";
+import { StoreActivationService } from "../../services/StoreActivationService.js";
+import { PrismaUnitOfWork } from "../../../../shared/infra/uow/implementations/PrismaUnitOfWork.js";
+import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
 
-// 1. Instanciar Repositórios
-const storeRepository = new PrismaStoreRepository();
-const invoiceRepository = new PrismaSubscriptionInvoiceRepository();
+const cacheProvider: RedisCacheProvider = new RedisCacheProvider();
 
-// 2. Injetar no UseCase
-// Esse UseCase usa o invoiceRepository para achar a fatura e o storeRepository para ativar a loja
-const handleAbacateWebhookUseCase = new HandleAbacateWebhookUseCase(
-    storeRepository,
-    invoiceRepository
+const uow: PrismaUnitOfWork = new PrismaUnitOfWork();
+
+const storeActivationService: StoreActivationService = new StoreActivationService(
+    uow,
+    cacheProvider
 );
 
-// 3. Injetar no Controller
+const invoiceRepository: PrismaSubscriptionInvoiceRepository = new PrismaSubscriptionInvoiceRepository();
+
+const handleAbacateWebhookUseCase: HandleAbacateWebhookUseCase = new HandleAbacateWebhookUseCase(
+    invoiceRepository,
+    storeActivationService
+);
+
 const handleAbacateWebhookController = new HandleAbacateWebhookController(
     handleAbacateWebhookUseCase
 );

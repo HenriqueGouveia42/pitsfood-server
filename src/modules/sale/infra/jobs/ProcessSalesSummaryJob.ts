@@ -9,7 +9,7 @@ const saleRepository = new PrismaSaleRepository();
 const cacheProvider = new RedisCacheProvider();
 
 export async function processSalesSummaryJob(job: Job) {
-    console.log(`[Worker] Iniciando processamento do Job ${job.id}...`);
+    //console.log(`[Worker] Iniciando processamento do Job ${job.id}...`);
 
     // 1. Extraímos os dados que a API mandou "na caixa"
     const { startDate, endDate, store_id, cache_key, cache_time_in_seconds } = job.data;
@@ -25,7 +25,7 @@ export async function processSalesSummaryJob(job: Job) {
         // 3. SALVA NO CACHE: Disponibiliza para a API (que está sendo "pollada" pelo front)
         await cacheProvider.save(cache_key, report, cache_time_in_seconds);
 
-        console.log(`[Worker] Job ${job.id} concluído com sucesso! Salvo no cache.`);
+        //console.log(`[Worker] Job ${job.id} concluído com sucesso! Salvo no cache.`);
         
         return report; // O BullMQ marca a tarefa como concluída
         
