@@ -13,7 +13,7 @@ import { validateCPF } from "../../../../shared/validators/valid.cpf.js";
 import { validCNPJ } from "../../../../shared/validators/valid.cnpj.js";
 
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
-import { SubscriptionPlan } from "../../../store/entities/store.js";
+import { SubscriptionPlan } from "../../../store/entities/store.enums.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import { uuid } from "zod";
 

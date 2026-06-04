@@ -10,18 +10,14 @@ import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js"
 import { AppError } from "../../../../../shared/errors/AppError.js";
 
 import type { Store as PrismaStoreModel } from "../../../../../generated/prisma/client.js";
-import type { User } from "../../../../user/entities/user.js";
-import { UserRole } from "../../../../../generated/prisma/client.js";
 
 import { SubscriptionPlan as PrismaPlan } from "../../../../../generated/prisma/client.js";
-import { SubscriptionStatus as PrismaSubscriptionStatus } from "../../../../../generated/prisma/client.js";
 
-import { SubscriptionPlan  as EntityPlan} from "../../../entities/store.js";
-import { SubscriptionStatus as EntitySubscriptionStatus } from "../../../entities/store.js";
+import { SubscriptionPlan  as EntityPlan} from "../../../entities/store.enums.js";
+import { SubscriptionStatus as EntitySubscriptionStatus } from "../../../entities/store.enums.js";
 
-import { SubscriptionStatus } from "../../../entities/store.js";
+import { SubscriptionStatus } from "../../../entities/store.enums.js";
 
-import { PLAN_LIMITS } from "../../../../../config/plans.config.js";
 
 export class PrismaStoreRepository implements IStoreRepository {
 

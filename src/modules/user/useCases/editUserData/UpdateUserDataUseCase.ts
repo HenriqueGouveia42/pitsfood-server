@@ -7,9 +7,8 @@ import type { IStoreRepository } from "../../../store/repositories/interfaces/st
 import { Store } from "../../../store/entities/store.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
-import { SubscriptionPlan } from "../../../store/entities/store.js";
+import { SubscriptionPlan } from "../../../store/entities/store.enums.js";
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
-import { string } from "zod";
 
 export interface IRequestUseCase {
     target_user_id: string;
@@ -32,11 +31,14 @@ export class UpdateUserDataUseCase {
         target_user_id,
         modifier_user_id,
         modifier_user_store_id,
+
+        //o que pode ser modificado
         name,
         password, 
         active, 
     }: IRequestUseCase): Promise<void> {
         
+        // VALIDACOES BÁSICAS DE INPUT - INÍCIO ---------------------------------------
         const user_target: User | null = await this.userRepository.findSavedUserById(target_user_id);
         if(!user_target) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
 
@@ -49,6 +51,7 @@ export class UpdateUserDataUseCase {
         if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
         if(store.ownerId != userTryingToUpdate.id) throw new AppError("Usuario precisa ser dessa mesma loja", 404, "USER_MISMATCH");
     
+        // VALIDACOES BÁSICAS DE INPUT - FIM ---------------------------------------
 
         const finalName: string = (name !== undefined) ? name : user_target.username;
         let finalActive: boolean = user_target.active;
@@ -90,19 +93,12 @@ export class UpdateUserDataUseCase {
             finalActive = user_target.active
         }
 
-
-
         let finalPasswordHash: string = user_target.passwordHash;
 
-
-
-
-
-
         // Flags de controle
-        let shouldInvalidateUserSession = false;  //derrubar sessão do usuario no redis
-        let shouldForcePasswordChange = false;   //setar flag no banco
-        let shouldInvalidateNameCache = false;   //obrigar o usuario a trocar de senha na proxima vez que for logar
+        let shouldInvalidateUserSession: boolean = false;  //derrubar sessão do usuario no redis
+        let shouldForcePasswordChange: boolean = false;   //setar flag no banco
+        let shouldInvalidateNameCache: boolean = false;   //obrigar o usuario a trocar de senha na proxima vez que for logar
 
 
         //SENHA FOI DEFINIDA

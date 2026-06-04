@@ -18,6 +18,9 @@ import { updateUserDataSchema } from "../zodSchemas/UpdateUserDataSchema.js";
 import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
 import { loginSchema } from "../zodSchemas/LoginSchema.js";
 import { confirmDeviceController } from "../../../useCases/ConfirmDevice/index.js";
+import { updateUserNameController } from "../../../useCases/UpdateUserName/index.js";
+import { updateUserPasswordController } from "../../../useCases/UpdateUserPassword/index.js";
+import { updateUserStatusController } from "../../../useCases/UpdateUserStatus/index.js";
 
 const userRouteBuilder = new SecureRouteBuilder();
 
@@ -98,14 +101,38 @@ userRouteBuilder.build({
     handler: (request, response) => setPermanentPasswordController.handle(request, response)
 });
 
-userRouteBuilder.build({
+/*userRouteBuilder.build({
     method: 'patch',
     path: '/update-user/:target_user_id',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
     roles: [UserRole.GESTOR],
     schema: updateUserDataSchema,
     handler: (request, response) => updateUserDataController.handle(request, response)
-});
+});*/
+
+userRouteBuilder.build({
+    method: 'patch',
+    path: '/update-name/:target_user_id',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    handler: (request, response) => updateUserNameController.handle(request, response)
+})
+
+userRouteBuilder.build({
+    method: 'patch',
+    path: '/update-password/:target_user_id',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    handler: (request, response) => updateUserPasswordController.handle(request, response)
+})
+
+userRouteBuilder.build({
+    method: 'patch',
+    path: '/update-status/:target_user_id',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    handler: (request, response) => updateUserStatusController.handle(request, response)
+})
 
 userRouteBuilder.build({
     method: 'post',

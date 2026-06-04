@@ -9,6 +9,7 @@ import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/
 import type { IMailProvider } from "../../../../shared/providers/EmailProvider/interface/IMailProvider.js";
 
 import { SYSTEM_NAME } from "../../../../config/system_data.js";
+import type { IDeviceAuthorizationChallengeService } from "../../services/interfaces/IDeviceAuthorizationChallengeService.js";
 
 export const TEN_MINUTES_IN_SECONDS: number = 60 * 10;
 
@@ -70,7 +71,7 @@ export class LoginUseCase {
         private tokenProvider: ITokenProvider,
         private hasheStringProvider: IHashedStringProvider,
         private cacheProvider: ICacheProvider,
-        private emailProvider: IMailProvider,
+        private deviceAuthorizationChallenge: IDeviceAuthorizationChallengeService
     ) {}
 
     async execute({ email, password, device_id }:IRequest): Promise<LoginResult>{
@@ -96,70 +97,7 @@ export class LoginUseCase {
         const isDeviceAuthorized: AuthorizedDeviceProps | undefined = user.authorized_devices.find((item) => item.device_id === device_id);
 
         if (!isDeviceAuthorized){
-
-            const cacheKey: string = CacheKeys.User.TEMPORARY_AUTHORIZE_DEVICE_CODE(user.id, device_id);
-            const existingAuthData: AuthorizedDeviceProps | null = await this.cacheProvider.get<AuthorizedDeviceProps>(cacheKey);
-            if (existingAuthData) {
-                // Já existe um código válido enviado há menos de 10 minutos!
-                // Não geramos um novo código e NÃO enviamos um novo e-mail.
-                // Apenas renovamos o crachá de acesso à rota de confirmação.
-                const preAuthToken: string = this.tokenProvider.generatePreAuthToken(user.id);
-                
-                return {
-                    status: "DEVICE_CONFIRMATION_REQUIRED",
-                    data: {
-                        pre_auth_token: preAuthToken
-                    }
-                }
-            }
-
-            //3.2 - Generate 'device_authorization_code'
-            const authorize_device_code: string = randomInt(100000, 1000000).toString();
-            
-            //3.3 - Generate an 'DeviceAuthorizationData' object
-            const deviceAuthorizationData: DeviceAuthorizationData = {
-                authorization_code: authorize_device_code,
-                device_id,
-                last_time_fetched_at: null,
-                failed_attemps: 0
-            }
-
-            //3.3.1 Generate an cacheKey to save the 'DeviceAuthorizationData' object in the cache
-
-            //3.4 - Save the 'DeviceAuthorizationData' object in the cache
-            await this.cacheProvider.save(
-                cacheKey,
-                deviceAuthorizationData,
-                TEN_MINUTES_IN_SECONDS
-            )
-
-            const emailTemplateWithDeviceAuthorizationCode: string = `
-                <div style="font-family: Arial, sans-serif; color: #333;">
-                    <h2>Bem-vindo à ${SYSTEM_NAME}!</h2>
-                    <p>Use o código abaixo para autorizar seu novo dispositivo:</p>
-                    <div style="background: #f4f4f4; padding: 15px; text-align: center; border-radius: 8px; width: fit-content;">
-                        <strong style="font-size: 24px; letter-spacing: 3px;">${authorize_device_code}</strong>
-                    </div>
-                    <p><small>Este código expira em ${TEN_MINUTES_IN_SECONDS/60} minutos.</small></p>
-                </div>
-            `;
-
-            //3.5 - Send email to the user with the 'authorization_code' from the 'DeviceAuthorizationData' object
-            await this.emailProvider.sendMail({
-                to: user.email,
-                subject: `Codigo para autorizacao de dispositivo válido por até ${TEN_MINUTES_IN_SECONDS/60} minutos`,
-                body: emailTemplateWithDeviceAuthorizationCode
-            });
-
-            //3.6 - Generate and return and JWT Token called 'pre_auth_token' to authorize the next route (/confirm-device'), that gonna be used to confirm the 'authorization_code' sent to email
-            const preAuthToken: string = this.tokenProvider.generatePreAuthToken(user.id);
-            return {
-                status: "DEVICE_CONFIRMATION_REQUIRED",
-                data:{
-                    pre_auth_token: preAuthToken
-                }
-            }
-            
+            return await this.deviceAuthorizationChallenge.execute(user, device_id)
         }
         
         ////////////////////////////////////////
@@ -198,7 +136,7 @@ export class LoginUseCase {
                     role: user.role,
                     must_change_password: user.mustChangePassword,
                     is_paying_user: user.paying_user,
-                    token_version: tokenVersion
+                    token_version: tokenVersion,
                 }
             }
         };

@@ -118,6 +118,8 @@ export class ConfirmDeviceUseCase {
         if (!user.active) throw new AppError("Usuário inativo. Contate o administrador do sistema.", 403, "USER_DISABLED");
 
         //7 - Update the 'user' entity to handle onde more authorized device
+        // Geramos o updated_user para forçar essas validações na Entidade, 
+        // mesmo que ele não seja persistido como um Aggregate completo abaixo.
         const updated_user: User = user.addAuthorizedDeviceId(deviceData.device_id, input.device_name, now);
 
         //8 - Persists 'user'
@@ -125,6 +127,9 @@ export class ConfirmDeviceUseCase {
 
         //9 - Invalidate 'DeviceAuthorizationData'
         await this.cacheProvider.invalidate(cache_key);
+
+        const authorizeDevicesCacheKey: string = CacheKeys.User.AUTHORIZED_DEVICES_IDS(user.id);
+        await this.cacheProvider.invalidate(authorizeDevicesCacheKey);
 
         //10 - Login
         const tokenVersion: number = Date.now();

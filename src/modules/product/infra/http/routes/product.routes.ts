@@ -31,7 +31,7 @@ productRouteBuilder.build({
     method: 'get',
     path: '/get-all-products',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
-    roles: 'PUBLIC', // Sem restrição de cargo, pois Caixa e Vendedor precisam ver o cardápio
+    roles: 'PUBLIC',
     handler: (request, response) => getAllProductsController.handle(request, response)
 });
 

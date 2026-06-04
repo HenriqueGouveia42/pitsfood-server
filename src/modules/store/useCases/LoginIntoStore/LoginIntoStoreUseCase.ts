@@ -4,7 +4,8 @@ import type { ITokenProvider } from "../../../user/providers/interfaces/token.pr
 
 import type { ILoginSucess } from "../../../user/useCases/login/loginUseCase.js";
 
-import { Store, SubscriptionStatus } from "../../entities/store.js";
+import { SubscriptionStatus } from "../../entities/store.enums.js";
+import { Store } from "../../entities/store.js";
 import { User, UserRole } from "../../../user/entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";

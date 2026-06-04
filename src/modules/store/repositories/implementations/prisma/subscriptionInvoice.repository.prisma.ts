@@ -1,5 +1,5 @@
 import { SubscriptionInvoice, InvoiceStatus as EntityInvoiceStatus } from "../../../entities/subscriptionInvoice.js";
-import { SubscriptionPlan as EntityPlan } from "../../../entities/store.js";
+import { SubscriptionPlan as EntityPlan } from "../../../entities/store.enums.js";
 import type { ISubscriptionInvoiceRepository } from "../../interfaces/subscriptionInvoice.repository.interface.js"; 
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
 

@@ -1,5 +1,6 @@
 import { AppError } from "../../../../shared/errors/AppError.js";
-import { Store, SubscriptionStatus, SubscriptionPlan } from "../../entities/store.js";
+import { SubscriptionStatus, SubscriptionPlan } from "../../entities/store.enums.js";
+import { Store } from "../../entities/store.js";
 import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
 import { SubscriptionCalculator } from "../../providers/SubscriptionCalculator.js";
 import type { IPaymentProvider } from "../../../../shared/providers/PaymentProvider/models/IPaymentProvider.js";

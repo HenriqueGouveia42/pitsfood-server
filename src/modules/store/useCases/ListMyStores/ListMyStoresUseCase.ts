@@ -7,7 +7,7 @@ type UseCaseRequestDTO = {
     is_paying_user: boolean
 }
 
-import { SubscriptionPlan, SubscriptionStatus} from "../../entities/store.js";
+import { SubscriptionPlan, SubscriptionStatus} from "../../entities/store.enums.js";
 
 export type UseCaseResponseDTO = {
     stores:{

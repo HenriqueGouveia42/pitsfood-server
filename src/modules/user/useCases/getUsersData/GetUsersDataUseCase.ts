@@ -2,6 +2,7 @@ import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 import { User } from "../../entities/user.js";
 import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js";
+import type { AuthorizedDeviceProps } from "../../entities/user.js";
 
 export interface GetUsersDataUseCaseResponse {
     name: string;
@@ -10,7 +11,8 @@ export interface GetUsersDataUseCaseResponse {
     active: boolean;
     email: string;
     cpf_cnpj: string,
-    phone: string | null
+    phone: string | null,
+    authorized_devices: AuthorizedDeviceProps[]
 }
 
 export class GetUsersDataUseCase {
@@ -40,7 +42,8 @@ export class GetUsersDataUseCase {
             active: user.active,
             email: user.email,
             cpf_cnpj: user.cpf_cnpj,
-            phone: user.phone ? user.phone : null
+            phone: user.phone ? user.phone : null,
+            authorized_devices: user.authorized_devices ? user.authorized_devices : []
         }));
 
         await this.cacheProvider.save(

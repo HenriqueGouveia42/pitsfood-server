@@ -40,7 +40,7 @@ export const validateSchema = (schema: ZodType<any, any, any>) =>
             return next(new AppError(`Dados inválidos na requisição -> ${errorMessages}`, 400, "INVALID_FORMAT"));
         }
 
-        console.error("🔥 ERRO FATAL NA VALIDAÇÃO DO SCHEMA:", error);
+        console.error("ERRO FATAL NA VALIDAÇÃO DO SCHEMA:", error);
         return next(new AppError("Erro interno durante a validação da requisição.", 500, "INTERNAL_VALIDATION_ERROR"));
     }
 }

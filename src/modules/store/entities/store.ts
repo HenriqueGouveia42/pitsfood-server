@@ -1,20 +1,9 @@
 import { validCNPJ } from "../../../shared/validators/valid.cnpj.js";
 import { DomainError } from "../../../shared/errors/DomainError.js";
+import { PLAN_LIMITS } from "../../../config/plans.config.js";
+import { UserRole } from "../../user/entities/user.js";
 
-export enum SubscriptionPlan {
-    NONE = "NONE",
-    BASIC = "BASIC",
-    EXTENDED = "EXTENDED",
-    PREMIUM = "PREMIUM",
-    PERSONALIZED = "PERSONALIZED"
-}
-
-export enum SubscriptionStatus {
-    NONE = "NONE",
-    ACTIVE = "ACTIVE",
-    PAST_DUE = "PAST_DUE",
-    CANCELED = "CANCELED"
-}
+import { SubscriptionPlan, SubscriptionStatus } from "./store.enums.js";
 
 export type SubscriptionPlanAndStatus = {
     plan: SubscriptionPlan,
@@ -207,6 +196,40 @@ export class Store {
             updated_at: new Date().toISOString()
         });
     }
+
+    public validateUserRoleLimit(role: UserRole, currentActiveCountForRole: number): void {
+        // Loja sem plano ativo não pode ativar funcionários
+        if (
+            this.props.plan === SubscriptionPlan.NONE || 
+            this.props.subscription_status !== SubscriptionStatus.ACTIVE
+        ) {
+            throw new DomainError(
+                "A loja precisa de uma assinatura ativa para gerenciar funcionários.", 
+                "INACTIVE_OR_NONE_SUBSCRIPTION"
+            );
+        }
+
+        // Busca os limites do plano atual
+        const planConfig = PLAN_LIMITS[this.props.plan];
+        const maxAllowed = planConfig?.limits?.max_users[role];
+
+        if (maxAllowed === undefined || maxAllowed === null) {
+            throw new DomainError(
+                `O plano ${this.props.plan} não possui configuração de limite para o cargo ${role}.`, 
+                "MISSING_PLAN_CONFIGURATION"
+            );
+        }
+
+        // Verifica se o limite já foi atingido
+        if (currentActiveCountForRole >= maxAllowed) {
+            throw new DomainError(
+                `Seu plano ${this.props.plan} só permite ter até ${maxAllowed} usuários ativos para o cargo ${role}.`, 
+                "MAX_ACTIVE_USER_REACHED"
+            );
+        }
+    }
+
+    
 
 
     get id() { return this.props.store_id; }

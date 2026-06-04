@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../../../errors/AppError.js";
-import { cacheProvider } from "../../../providers/CacheProvider/index.js"; // Supondo que você já tem o provider instanciado
+import { cacheProvider } from "../../../providers/CacheProvider/index.js";
 import { PrismaStoreRepository } from "../../../../modules/store/repositories/implementations/prisma/store.repository.prisma.js";
-import { SubscriptionStatus } from "../../../../modules/store/entities/store.js";
+import { SubscriptionStatus } from "../../../../modules/store/entities/store.enums.js";
 import { CacheKeys } from "../../../constants/cache-keys.js";
 import { Store } from "../../../../modules/store/entities/store.js";
 

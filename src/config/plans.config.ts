@@ -1,4 +1,4 @@
-import { SubscriptionPlan } from "../modules/store/entities/store.js";
+import { SubscriptionPlan } from "../modules/store/entities/store.enums.js";
 import { UserRole } from "../modules/user/entities/user.js";
 
 export interface PlanConfig {
