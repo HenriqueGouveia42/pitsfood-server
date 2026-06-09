@@ -79,7 +79,10 @@ export class GenerateSubscriptionPixUseCase {
         const { amount_in_cents, target_date } = this.calculator.calculateInvoice(plan, now);
 
         // 6 - Prepara dados do cliente para o Gateway
-        const rawTaxId: string = owner.cpf_cnpj;
+        const rawTaxId: string | undefined = owner.cpf_cnpj;
+
+        if(!rawTaxId) throw new AppError("Usuario que tenta gerar fatura obrigatoriamente possui um cpf/cnpj", 500, "INVALID_USER");
+
         const cleanTaxId = rawTaxId.replace(/\D/g, "");
 
         const gatewayCustomerId = await this.paymentProvider.createCustomer({

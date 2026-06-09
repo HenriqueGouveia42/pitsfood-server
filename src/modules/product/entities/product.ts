@@ -152,7 +152,6 @@ export class Product {
             finalGtin = Product.generateGtin13CodeForInternalProduct();
         }
 
-
         //REGRA 3: Se o GTIN foi passado (seja interno manual ou externo), usa ele.
         else {
             //o compilador TS sabe que gtin_code existe aqui por causa da Regra 1

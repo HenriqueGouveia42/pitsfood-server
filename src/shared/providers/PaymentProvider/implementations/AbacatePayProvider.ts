@@ -86,6 +86,7 @@ export class AbacatePayProvider implements IPaymentProvider {
             return response.data.data.id;
 
         } catch (error: any) {
+            console.log(error);
 
             const errorData = error.response?.data || error.message;
             console.error("Erro AbacatePay CreateCustomer:", JSON.stringify(errorData, null, 2));
