@@ -6,7 +6,8 @@ import type { IPaymentProvider } from "../../../../shared/providers/PaymentProvi
 import { SubscriptionCalculator } from "../../providers/SubscriptionCalculator.js";
 import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
-import { Store, SubscriptionStatus, SubscriptionPlan } from "../../entities/store.js";
+import { Store } from "../../entities/store.js";
+import { SubscriptionStatus, SubscriptionPlan } from "../../entities/store.enums.js";
 import type { User } from "../../../user/entities/user.js";
 
 export class GenerateRenewalInvoicesUseCase {
@@ -45,22 +46,28 @@ export class GenerateRenewalInvoicesUseCase {
                 const baseDate: Date = new Date(store.subscription_expires_at!);
                 const { amount_in_cents, target_date } = this.calculator.calculateInvoice(store.plan, baseDate);
 
+                if (!owner.cpf_cnpj){
+                    throw new AppError("Este usuário deveria ter um cpf/cnpj", 500, "MUST_HAVE_CPF_CNPJ")
+                }
+                
                 const cleanTaxId: string = owner.cpf_cnpj.replace(/\D/g, "");
-                const customerId: string = await this.paymentProvider.createCustomer({
-                    name: owner.username,
-                    email: owner.email,
-                    taxId: cleanTaxId,
-                    cellphone: owner.phone || "(00) 00000-0000"
-                });
 
-                // O PIX expira no dia exato do vencimento da loja
+
+                // O PIX expira no dia exato do vencimento da loja.
                 const pixDueDate: Date = new Date(store.subscription_expires_at!);
+                const expiresInSeconds = Math.floor((pixDueDate.getTime() - Date.now()) / 1000);
 
-                const paymentData = await this.paymentProvider.createPixPayment({
-                    customerId: customerId,
-                    amount_in_cents: amount_in_cents,
-                    description: `Renovação Mensal Pitstop - ${store.plan}`,
-                    dueDate: pixDueDate
+                // Novo fluxo da V2: Criar Checkout Transparente direto (engloba os dados do cliente no mesmo payload)
+                const paymentData = await this.paymentProvider.createTransparentPix({
+                    amount: amount_in_cents,
+                    description: `Renovação Mensal Pitsfood - ${store.plan}`,
+                    expiresIn: expiresInSeconds > 0 ? expiresInSeconds : 86400, // Fallback de segurança para 24h
+                    customer: {
+                        name: owner.username,
+                        email: owner.email,
+                        taxId: cleanTaxId,
+                        cellphone: owner.phone || "00000000000"
+                    }
                 });
 
                 const invoice = SubscriptionInvoice.buildInvoice({
@@ -69,11 +76,11 @@ export class GenerateRenewalInvoicesUseCase {
                     amount_in_cents,
                     store_id: store.id,
                     plan_tag: store.plan,
-                    period_end: target_date.toISOString(), // A data calculada pelo seu calculador
+                    period_end: target_date.toISOString(), 
                     gateway_data: {
-                        gateway_invoice_id: paymentData.payment_id,
-                        payment_url: paymentData.payment_url,
-                        pix_code: ""
+                        gateway_invoice_id: paymentData.id,
+                        payment_url: null, // V2 não depende de URL de redirecionamento
+                        pix_code: paymentData.brCode // O código PIX Copia e Cola real gerado pelo gateway
                     }
                 });
 

@@ -201,6 +201,7 @@ export class PrismaStoreRepository implements IStoreRepository {
 
         // Cria um array de promessas de atualização
         const updatePromises = stores.map((store) => {
+
             const storePrismaData = PrismaStoreRepository.entityToPrismaDataMapper(store);
             const { created_at, ...dataToUpdate } = storePrismaData;
 
@@ -210,8 +211,13 @@ export class PrismaStoreRepository implements IStoreRepository {
             });
         });
 
-        // Executa todas as atualizações dentro de uma única transação atômica
-        await Promise.all(updatePromises);    
+        if ('$transaction' in this.db) {
+            // PrismaClient global: inicia uma nova transação atômica
+            await this.db.$transaction(updatePromises);
+        } else {
+            // TransactionClient (Unit of Work): o Promise.all já está protegido pela transação pai
+            await Promise.all(updatePromises);
+        }
     }
 
     async findActiveStores(): Promise<Store[]> {
@@ -235,7 +241,7 @@ export class PrismaStoreRepository implements IStoreRepository {
         startOfDay.setHours(0, 0, 0, 0);
 
         const endOfDay: Date = new Date(targetDate);
-        endOfDay.setHours(0, 0, 0, 0);
+        endOfDay.setHours(23, 59, 59, 999);
 
         const prismaStores: PrismaStoreModel[] = await this.db.store.findMany({
             where:{

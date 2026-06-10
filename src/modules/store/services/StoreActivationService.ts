@@ -7,7 +7,8 @@ import { PLAN_LIMITS } from "../../../config/plans.config.js";
 import { PhysicalBill } from "../../bill/entities/physicalBIllCard.js";
 import { generateValid4DigitsPhysicalCodes } from "../../bill/functions/GenerateValidPhysicalBillCodes.js";
 import { CacheKeys } from "../../../shared/constants/cache-keys.js";
-import type { Store, SubscriptionPlan } from "../entities/store.js";
+import type { Store } from "../entities/store.js";
+import { SubscriptionPlan } from "../entities/store.enums.js";
 import type { SubscriptionInvoice } from "../entities/subscriptionInvoice.js";
 
 // Definimos exatamente quais repositórios esta transação precisa
