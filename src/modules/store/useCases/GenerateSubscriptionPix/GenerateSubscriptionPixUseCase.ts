@@ -9,6 +9,7 @@ import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
 import type { ISubscriptionInvoiceRepository } from "../../repositories/interfaces/subscriptionInvoice.repository.interface.js";
 import type { User } from "../../../user/entities/user.js";
 import type { BuildSubscriptionInvoiceProps } from "../../entities/subscriptionInvoice.js";
+import crypto from "crypto";
 
 interface IRequest {
     store_id: string;
@@ -16,8 +17,10 @@ interface IRequest {
     plan: SubscriptionPlan; 
 }
 
+// A interface foi atualizada para refletir a devolução direta do QR Code Transparente
 interface IResponse {
-    payment_url: string;
+    br_code: string;
+    br_code_base64: string;
     amount: number;
     invoice_id: string;
 }
@@ -32,7 +35,6 @@ export class GenerateSubscriptionPixUseCase {
     ) {}
 
     async execute({ store_id, user_id, plan }: IRequest): Promise<IResponse> {
-        
         
         if (plan === SubscriptionPlan.NONE) { throw new AppError("Plano inválido.", 400, "MUST_CHOOSE_PLAN"); }
         if (!Object.values(SubscriptionPlan).includes(plan as SubscriptionPlan)) { throw new AppError("Plano inválido.", 400, "INVALID_PLAN_TYPE"); }
@@ -56,12 +58,13 @@ export class GenerateSubscriptionPixUseCase {
         const pendingInvoice: SubscriptionInvoice | null = await this.invoiceRepository.findPendingByStoreId(store_id);
         
         if (pendingInvoice) {
-
-            if (!pendingInvoice.paymentUrl) throw new AppError("Erro grave de integração. Fatura existe no sistema mas sem payment url do gateway", 500, "INVOICE_WITHOUT_PAYMENT_URL");
+            // Alterado para checar se existe o código PIX
+            if (!pendingInvoice.pixCode) throw new AppError("Erro grave de integração. Fatura existe no sistema mas sem código PIX", 500, "INVOICE_WITHOUT_PIX_CODE");
 
             if (pendingInvoice.planTag === plan) {
                 return {
-                    payment_url: pendingInvoice.paymentUrl,
+                    br_code: pendingInvoice.pixCode,
+                    br_code_base64: pendingInvoice.paymentUrl || "", // Reutilizando o campo para devolver o base64
                     amount: pendingInvoice.amount,
                     invoice_id: pendingInvoice.id
                 };
@@ -74,42 +77,33 @@ export class GenerateSubscriptionPixUseCase {
             );
         }
 
-        // 5 - Cálculo da Fatura (Mês Cheio) usando a data atual como base
+        // 5 - Cálculo da Fatura
         const now = new Date();
         const { amount_in_cents, target_date } = this.calculator.calculateInvoice(plan, now);
 
-        // 6 - Prepara dados do cliente para o Gateway
-        const rawTaxId: string | undefined = owner.cpf_cnpj;
-
-        if(!rawTaxId) throw new AppError("Usuario que tenta gerar fatura obrigatoriamente possui um cpf/cnpj", 500, "INVALID_USER");
-
-        const cleanTaxId = rawTaxId.replace(/\D/g, "");
-
-        const gatewayCustomerId = await this.paymentProvider.createCustomer({
-            name: owner.username,
-            email: owner.email,
-            taxId: cleanTaxId,
-            cellphone: owner.phone ? owner.phone : "(00) 00000-0000"
-        });
-
-        // 7 - Vencimento do PIX (QR Code) - 24 horas
-        // O cliente tem 24h para pagar ESTE código Pix.
-        const pixDueDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-        // 8 - Cria o Pagamento no Gateway
-        const paymentData = await this.paymentProvider.createPixPayment({
-            customerId: gatewayCustomerId,
-            amount_in_cents: amount_in_cents,
-            description: `Assinatura ${plan} (1 Mês)`, //Descrição clara
-            dueDate: pixDueDate 
-        });
-
-        // 9 - Salva a fatura no nosso banco.
-        // Atenção: O dueDate da Fatura é o target_date do plano (ex: 1 mês à frente),
-        // pois é essa data que o Webhook usará para ativar a loja.
+        // 6 - Extração de Dados (Removida a criação separada de Customer)
+        const rawTaxId: string | undefined = owner.cpf_cnpj ? owner.cpf_cnpj : undefined;
+        if(!rawTaxId) throw new AppError("Usuario que tenta gerar fatura obrigatoriamente possui um cpf/cnpj", 400, "INVALID_USER");
 
         const invoice_id: string = crypto.randomUUID();
 
+        // 7 - Cria o Pagamento Transparente na V2
+        const paymentData = await this.paymentProvider.createTransparentPix({
+            amount: amount_in_cents,
+            description: `Assinatura ${plan} (1 Mês)`,
+            expiresIn: 86400, // 24 horas em segundos
+            customer: {
+                name: owner.username,
+                email: owner.email,
+                taxId: rawTaxId,
+                cellphone: owner.phone ? owner.phone : "(00) 00000-0000"
+            },
+            metadata: {
+                internal_invoice_id: invoice_id // Âncora para o webhook v2
+            }
+        });
+
+        // 8 - Salva a fatura no banco
         const build_invoice_props: BuildSubscriptionInvoiceProps = {
             now_date: now.toISOString(),
             invoice_id,
@@ -117,13 +111,12 @@ export class GenerateSubscriptionPixUseCase {
             store_id: store.id,
             plan_tag: plan,
             period_end: target_date.toISOString(),
-            gateway_data:{
-                gateway_invoice_id: paymentData.payment_id,
-                pix_code: "",
-                payment_url: paymentData.payment_url 
-            
+            gateway_data: {
+                gateway_invoice_id: paymentData.id,
+                pix_code: paymentData.brCode,
+                // Uma base64 string cabe perfeitamente na sua coluna String (Text no Postgres) payment_url
+                payment_url: paymentData.brCodeBase64 
             }
-
         }
 
         const invoice: SubscriptionInvoice = SubscriptionInvoice.buildInvoice(build_invoice_props);
@@ -131,7 +124,8 @@ export class GenerateSubscriptionPixUseCase {
         await this.invoiceRepository.save(invoice);
 
         return {
-            payment_url: paymentData.payment_url,
+            br_code: paymentData.brCode,
+            br_code_base64: paymentData.brCodeBase64,
             amount: amount_in_cents,
             invoice_id: invoice.id
         };

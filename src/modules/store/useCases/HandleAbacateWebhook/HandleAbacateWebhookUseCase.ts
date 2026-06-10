@@ -7,12 +7,13 @@ import { PLAN_LIMITS } from "../../../../config/plans.config.js";
 export interface IWebhookRequest {
     event: string;
     data: {
-        billing: {
+        transparent: {
             id: string;
             status: string;
             amount: number;
-        }
-    }
+            metadata?: Record<string, any>;
+        };
+    };
 }
 
 export class HandleAbacateWebhookUseCase { 
@@ -24,27 +25,54 @@ export class HandleAbacateWebhookUseCase {
 
     async execute({ event, data }: IWebhookRequest): Promise<void> {
 
-        const gatewayBillingId: string = data.billing?.id;
-        const gatewayBillingStatus: string = data.billing?.status;
+        // 1. Validações de Entrada baseadas na documentação oficial v2
+        if (event !== "transparent.completed") {
+            throw new AppError(`[Webhook] Ignorando evento ${event} (esperado: transparent.completed)`);
+        }
 
-        // 1. Validações de Entrada (Fronteira HTTP/Webhook)
-        if (event !== "billing.paid") throw new AppError(`[Webhook] Ignorando evento ${event} (esperado: billing.paid)`)
-        if (!gatewayBillingId) throw new AppError("[Webhook] ERRO CRÍTICO: ID da fatura (data.billing.id) não encontrado no payload!", 422, "INVOICE_ID_MISSING")
-        if (gatewayBillingStatus !== "PAID") throw new AppError(`[Webhook] Evento é billing.paid, mas status dentro do objeto é ${gatewayBillingStatus}. Investigar.`, 422, "EVENT_STATUS_MISMATCH");
+        const transaction = data?.transparent;
+
+        if (!transaction) {
+            throw new AppError("[Webhook] Objeto 'transparent' ausente no escopo do data.", 422, "TRANSACTION_OBJECT_MISSING");
+        }
+
+        const gatewayTransactionId: string = transaction.id;
+        const gatewayTransactionStatus: string = transaction.status;
+        const internalInvoiceId: string | undefined = transaction.metadata?.internal_invoice_id;
+
+        if (!gatewayTransactionId) {
+            throw new AppError("[Webhook] ERRO CRÍTICO: ID da transação não encontrado no payload!", 422, "TRANSACTION_ID_MISSING");
+        }
+        
+        // CORREÇÃO: Conforme a documentação do payload recebido, o status é "PAID"
+        if (gatewayTransactionStatus !== "PAID") {
+            throw new AppError(`[Webhook] Evento é transparent.completed, mas status dentro do objeto é ${gatewayTransactionStatus}. Investigar.`, 422, "EVENT_STATUS_MISMATCH");
+        }
            
         // 2. Busca e Validação de Regras de Negócio Iniciais
-        const entityInvoice: SubscriptionInvoice | null  = await this.invoiceRepository.findByGatewayId(gatewayBillingId);
+        const entityInvoice: SubscriptionInvoice | null = await this.invoiceRepository.findByGatewayId(gatewayTransactionId);
         
-        if (!entityInvoice) throw new AppError(`[Webhook] ERRO FATAL: Fatura ${gatewayBillingId} NÃO encontrada no banco de dados!`, 422, "INVOICE_MISSING")
-        if (entityInvoice.status === "PAID") throw new AppError(`[Webhook] A fatura ${gatewayBillingId} já consta como PAGA no banco. Ignorando.`, 422, "INVOICE_ALREADY_PAID")
-        if (!entityInvoice.periodEnd) throw new AppError(`[Webhook] ERRO CRÍTICO: A fatura ${entityInvoice.id} não possui data de vencimento (dueDate). Impossível calcular a expiração do plano.`, 500, "MISSING_INVOICE_TARGET_DATE")
+        if (!entityInvoice) {
+            console.error(`[Webhook - Falback] Fatura gatewayId ${gatewayTransactionId} não encontrada. Internal Invoice ID: ${internalInvoiceId}`);
+            throw new AppError(`[Webhook] ERRO FATAL: Fatura ${gatewayTransactionId} NÃO encontrada no banco de dados!`, 422, "INVOICE_MISSING");
+        }
+
+        if (entityInvoice.status === "PAID") {
+            throw new AppError(`[Webhook] A fatura ${gatewayTransactionId} já consta como PAGA no banco. Ignorando.`, 422, "INVOICE_ALREADY_PAID");
+        }
+
+        if (!entityInvoice.periodEnd) {
+            throw new AppError(`[Webhook] ERRO CRÍTICO: A fatura ${entityInvoice.id} não possui data de vencimento (dueDate). Impossível calcular a expiração do plano.`, 500, "MISSING_INVOICE_TARGET_DATE");
+        }
 
         const plan = entityInvoice.planTag;
-        if (!PLAN_LIMITS[plan]) throw new AppError(`Plano desconhecido ou inválido: ${plan}`, 500);
+        if (!PLAN_LIMITS[plan]) {
+            throw new AppError(`Plano desconhecido ou inválido: ${plan}`, 500);
+        }
 
-        const entity_invoice_expires_at: Date =  new Date(entityInvoice.periodEnd);
+        const entity_invoice_expires_at: Date = new Date(entityInvoice.periodEnd);
 
-        // 3. LÓGICA ATOMICA TRANSACIONAL
+        // 3. LÓGICA ATÔMICA TRANSACIONAL
         await this.storeActivationService.execute({
             storeId: entityInvoice.storeId,
             plan: plan,

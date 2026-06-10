@@ -21,6 +21,7 @@ import { createStoreSchema } from "../zodSchemas/CreateStoreSchema.js";
 import multer from "multer";
 import { uploadConfig } from "../../../../../config/uploads.js"; 
 import { renewSubscriptionController } from "../../../useCases/RenewSubscription/index.js";
+import { simulateSubscriptionPaymentController } from "../../../useCases/SimulateSubscriptionPayment/index.js";
 
 const upload = multer(uploadConfig);
 const storeRouteBuilder = new SecureRouteBuilder();
@@ -72,6 +73,14 @@ storeRouteBuilder.build({
     roles: [UserRole.GESTOR],
     handler: (request, response) => generateSubscriptionPixController.handle(request, response)
 });
+
+storeRouteBuilder.build({
+    method: 'post',
+    path:'/simulate-subscription-payment',
+    security: 'REQUIRE_STORE',
+    roles: [UserRole.GESTOR],
+    handler: (request, response) => simulateSubscriptionPaymentController.handle(request, response)
+})
 
 storeRouteBuilder.build({
     method: 'get',

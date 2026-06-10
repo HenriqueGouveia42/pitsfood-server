@@ -154,4 +154,5 @@ export class SubscriptionInvoice {
     get createdAt() { return this.props.created_at; }
     get paidAt() { return this.props.paid_at; }
     get periodEnd() { return this.props.period_end; }
+    get gatewayInvoiceId() { return this.props.gateway_invoice_id; }
 }
