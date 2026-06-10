@@ -105,18 +105,6 @@ export class PrismaSubscriptionInvoiceRepository implements ISubscriptionInvoice
 
     async findPendingByStoreId(store_id: string): Promise<SubscriptionInvoice | null> {
         
-        try {
-            
-            const columns = await this.db.$queryRaw`
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'subscription_invoices';
-            `;
-        } catch (err) {
-            console.log("Erro na query bruta:", err);
-        }
-        console.log("==========================================");
-
         const prismaData = await this.db.subscriptionInvoice.findFirst({
             where: { 
                 store_id: store_id,

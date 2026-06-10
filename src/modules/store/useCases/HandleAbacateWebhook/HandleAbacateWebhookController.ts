@@ -4,17 +4,21 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IWebhookRequest } from "./HandleAbacateWebhookUseCase.js";
 
 /*
-    export interface IWebhookRequest {
-        event: string;
-        data: {
-            billing: {s
-                id: string;
-                status: string;
-                amount: number;
+    Exemplo do Novo Payload de Webhook da v2 (transparent.completed):
+    {
+        "event": "transparent.completed",
+        "apiVersion": 2,
+        "data": {
+            "transparent": {
+                "id": "pix_char_abc123xyz",
+                "status": "COMPLETE",
+                "amount": 10000,
+                "metadata": {
+                    "internal_invoice_id": "uuid..."
+                }
             }
         }
     }
-
 */
 
 export class HandleAbacateWebhookController {
@@ -25,19 +29,20 @@ export class HandleAbacateWebhookController {
 
     async handle(req: Request, res: Response): Promise<Response> {
         
-        //console.log("[Webhook Payload Bruto]:", JSON.stringify(req.body, null, 2));
+        // console.log("[Webhook Payload Bruto]:", JSON.stringify(req.body, null, 2));
         const { 
             event, 
             data 
         }: IWebhookRequest = req.body;
 
-        if (!event || !data) throw new AppError("Erro de integracao com o gateway de pagamento", 400, "INTEGRATION_ERROR")
+        if (!event || !data) throw new AppError("Erro de integracao com o gateway de pagamento", 400, "INTEGRATION_ERROR");
            
         await this.useCase.execute({
             event,
             data
         });
 
+        // A AbacatePay exige um status HTTP 200 rápido para não tentar reenviar o evento (Backoff)
         return res.status(200).send();
     }
 }
