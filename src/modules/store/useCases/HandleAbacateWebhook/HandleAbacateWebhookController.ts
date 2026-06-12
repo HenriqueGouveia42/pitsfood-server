@@ -29,7 +29,6 @@ export class HandleAbacateWebhookController {
 
     async handle(req: Request, res: Response): Promise<Response> {
         
-        // console.log("[Webhook Payload Bruto]:", JSON.stringify(req.body, null, 2));
         const { 
             event, 
             data 

@@ -12,26 +12,24 @@ interface CheckPaymentStatusResponse {
     paid_at: string | null;
 }
 
+// O front-end faz "pooling" com esse "Usecase" para verificar se o primeiro qr-code pix gerado para comprar o plano foi pago
+
 export class CheckPaymentStatusUseCase {
     constructor(
         private invoiceRepository: ISubscriptionInvoiceRepository
     ) {}
 
+    //1 - Buscar a fatura pelo seu "id"
+    //2 - Verificar se o "invoice_id" é um id de fatura da mesma loja
+
     async execute({ invoice_id, store_id }: IRequest): Promise<CheckPaymentStatusResponse> {
         
-        // Buscamos a fatura pelo ID interno
+        // 1
         const invoice = await this.invoiceRepository.findById(invoice_id);
-
-        if (!invoice) {
-            throw new AppError("Fatura não encontrada", 404, "INVOICE_NOT_FOUND");
-        }
-
-        // TRAVA DE SEGURANÇA MULTI-TENANT:
-        // Garante que a fatura consultada pertence à loja de quem fez a requisição
-        if (invoice.storeId !== store_id) {
-            throw new AppError("Acesso negado. Esta fatura pertence a outra loja.", 403, "UNAUTHORIZED_ACCESS");
-        }
-
+        if (!invoice) throw new AppError("Fatura não encontrada", 404, "INVOICE_NOT_FOUND");
+        
+        if (invoice.storeId !== store_id) throw new AppError("Acesso negado. Esta fatura pertence a outra loja.", 403, "UNAUTHORIZED_ACCESS");
+        
         return {
             status: invoice.status,
             paid_at: invoice.paidAt
