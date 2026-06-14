@@ -1,14 +1,27 @@
 import { createClient } from 'redis';
 
-const redisClient = createClient({
-    url: process.env.REDIS_URL // ex: 'redis://localhost:6379'
-});
+const redisUrl = process.env.REDIS_URL; // ex: 'redis://localhost:6379'
+
+// client Padrão - get/set de cache
+const redisClient = createClient({ url: redisUrl });
+
+// client publicador
+const redisPublisher = redisClient.duplicate();
+
+// client ouvinte
+const redisSubscriber = redisClient.duplicate();
 
 redisClient.on('error', (err) => console.log('Redis Client Error', err));
+redisPublisher.on('error', (err) => console.log('Redis Publisher Error', err));
+redisSubscriber.on('error', (err) => console.log('Redis Subscriber Error', err));
 
-// Conecta ao iniciar a aplicação
-await redisClient.connect();
+// conecta todas as instâncias ao iniciar a aplicação
+await Promise.all([
+    redisClient.connect(),
+    redisPublisher.connect(),
+    redisSubscriber.connect()
+]);
 
-console.log(`Redis conectado com sucesso! Rodando em ${process.env.REDIS_URL || 'localhost:6379'}`);
+console.log(`Redis (Cache, Pub e Sub) conectado com sucesso! Rodando em ${redisUrl || 'localhost:6379'}`);
 
-export { redisClient };
+export { redisClient, redisPublisher, redisSubscriber };

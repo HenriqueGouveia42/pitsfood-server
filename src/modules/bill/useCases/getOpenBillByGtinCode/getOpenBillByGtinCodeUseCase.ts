@@ -1,8 +1,7 @@
 import { AppError } from "../../../../shared/errors/AppError.js";
-import { Bill } from "../../entities/bill.js";
-import type { IBillRepository } from "../../repositories/bill.repository.interface.js";
+import type { Bill } from "../../entities/bill.js";
+import type { IBillRepository } from "../../repositories/interfaces/bill.repository.interface.js";
 
-// DTO do Item (Formato para o JSON)
 export interface BillItemDTO {
     product_name: string;
     product_gtin_code: string;
@@ -11,7 +10,6 @@ export interface BillItemDTO {
     total: number;
 }
 
-// DTO da Resposta Completa (Geralmente retornamos os dados da comanda + itens)
 export interface GetOpenBillResponseDTO {
     bill_id: string;
     bill_code: string;
@@ -25,42 +23,50 @@ export class GetOpenBillByGtinCodeUseCase {
         private billRepository: IBillRepository
     ) {}
 
-    async execute(bill_code_gtin: string): Promise<GetOpenBillResponseDTO> {
+    async execute(bill_code_gtin: string, store_id: string): Promise<GetOpenBillResponseDTO> {
         
-        const openBill: Bill | null = await this.billRepository.findOpenBillByGtinCode(bill_code_gtin);
+        const openBill: Bill | null = await this.billRepository.getOpenBillByCode(bill_code_gtin, store_id);
 
         if (!openBill) {
-            // Verifica se a comanda existe mas está fechada/cancelada
-            const billExists: boolean = await this.billRepository.billWithThisGtinCodeExists(bill_code_gtin);
+            const billExists: boolean = await this.billRepository.physicalBillWithThisGtinCodeExists(bill_code_gtin, store_id);
 
             if (billExists) {
-                throw new AppError(`Comanda ${bill_code_gtin} existe, mas não está ABERTA!`, 409, "BILL_CONFLICT");
+                throw new AppError(`A comanda ${bill_code_gtin} existe, mas não está com o status ABERTA.`, 409, "BILL_CONFLICT");
             }
 
-            throw new AppError(`Comanda ${bill_code_gtin} não encontrada`, 404, "BILL_NOT_FOUND");
+            throw new AppError(`Comanda ${bill_code_gtin} não encontrada.`, 404, "BILL_NOT_FOUND");
         }
 
-        const itemsFormatted: BillItemDTO[] = openBill.items.map(item => {
-            
+        // como a entidade guarda cada bip como um registro separado, precisamos somar as quantidades.
+        const itemsMap = new Map<string, BillItemDTO>();
+
+        for (const item of openBill.items) {
             const unitPriceNumber = item.price_at_addition.toNumber();
-            const totalItemValue = item.price_at_addition.times(item.quantity).toNumber();
+            // chave composta para agrupar o mesmo produto com o mesmo preço
+            const groupKey = `${item.product_gtin_code}-${unitPriceNumber}`; 
 
-            return {
-               
-                product_name: item.product_name,
-                product_gtin_code: item.product_gtin_code,
-                unit_price: unitPriceNumber, 
-                quantity: item.quantity,
-                total: totalItemValue
-            };
-        });
+            if (itemsMap.has(groupKey)) {
+                const existingItem = itemsMap.get(groupKey)!;
+                existingItem.quantity += 1;
+                existingItem.total = Number((existingItem.unit_price * existingItem.quantity).toFixed(2));
+            } else {
+                itemsMap.set(groupKey, {
+                    product_name: item.product_name,
+                    product_gtin_code: item.product_gtin_code,
+                    unit_price: unitPriceNumber,
+                    quantity: 1,
+                    total: unitPriceNumber
+                });
+            }
+        }
 
-        // Retorna o objeto completo formatado
+        const itemsFormatted: BillItemDTO[] = Array.from(itemsMap.values());
+
+        // retorna o DTO Completo
         return {
             bill_id: openBill.bill_id,
             bill_code: openBill.bill_code,
-            // Calcula o total geral da comanda somando os itens formatados
-            total_bill: itemsFormatted.reduce((acc, item) => acc + item.total, 0),
+            total_bill: Number(itemsFormatted.reduce((acc, item) => acc + item.total, 0).toFixed(2)),
             items: itemsFormatted
         };
     }

@@ -1,3 +1,5 @@
+import { PubSubChannels } from "../../../shared/constants/pub-sub-channels.js";
+import { redisPublisher } from "../../../shared/infra/redis/index.js";
 import type { IUnitOfWork, ITransactionRepositories } from "../../../shared/infra/uow/interface/uow.interface.js";
 import type { Sale } from "../entities/sale.js";
 
@@ -49,5 +51,18 @@ export class CloseSaleService {
             await Promise.all(decrementPromises);
             
         });
+
+        if(billCodesToClose.length > 0){
+
+            const channel: string = PubSubChannels.Store.BILL_UPDATES(sale.store_id);
+            
+            const payload = JSON.stringify({
+                event: "BILLS_CLOSED",
+                bills_codes: billCodesToClose
+            })
+
+            await redisPublisher.publish(channel, payload);
+
+        }
     }
 }

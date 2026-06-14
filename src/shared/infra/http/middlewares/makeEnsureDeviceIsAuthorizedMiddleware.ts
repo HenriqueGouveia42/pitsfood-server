@@ -19,8 +19,8 @@ export function makeEnsureDeviceIsAuthorizedMiddleware(userRepository: IUserRepo
             throw new AppError("Erro interno: Usuário não autenticado no contexto.", 500, "INTERNAL_SERVER_ERROR");
         }
 
-        // 2. Captura o ID do dispositivo que agora vem em TODAS as requisições do front-end
-        const current_device_id = request.headers['x-device-id'] as string;
+        // 2. Captura o ID do dispositivo (Suporta Axios via Header E EventSource via Query Param)
+        const current_device_id = request.headers['x-device-id'] as string || (request.query.deviceId as string);
 
         if (!current_device_id) {
             throw new AppError("Identificação do dispositivo (x-device-id) ausente.", 400, "MISSING_DEVICE_ID");
