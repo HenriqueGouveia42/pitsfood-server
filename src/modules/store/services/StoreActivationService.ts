@@ -11,7 +11,7 @@ import type { Store } from "../entities/store.js";
 import { SubscriptionPlan } from "../entities/store.enums.js";
 import type { SubscriptionInvoice } from "../entities/subscriptionInvoice.js";
 
-// Definimos exatamente quais repositórios esta transação precisa
+// definimos exatamente quais repositórios esta transação precisa
 type ActivationRepos = Pick<ITransactionRepositories, 
     "storeRepository" | "invoiceRepository" | "physicalBillRepository"
 >;
@@ -20,7 +20,7 @@ export interface IActivateStoreRequest {
     storeId: string;
     plan: SubscriptionPlan;
     expirationDate: Date;
-    invoiceToMarkAsPaid?: SubscriptionInvoice; // Opcional, permite ativação manual sem fatura!!
+    invoiceToMarkAsPaid?: SubscriptionInvoice; // Opcional, permite ativação manual sem fatura
 }
 
 export class StoreActivationService {
@@ -36,25 +36,29 @@ export class StoreActivationService {
             const store = await repositories.storeRepository.findSavedStoreById(storeId);
             if (!store) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND");
 
-            const physical_bills_quantity: number= PLAN_LIMITS[plan].limits.max_physical_bills;
-            const codes: Set<string> = generateValid4DigitsPhysicalCodes(physical_bills_quantity);
-
+            // atualização da entidade principal
             const activatedStore: Store = store.activatePlan(plan, expirationDate);
-            const physical_bills: Set<PhysicalBill> = PhysicalBill.buildManyPhysicallBills(codes, storeId);
-            
-            // Persistência Atômica usando os repositórios injetados pela transação
-            // Ou tudo passa ou nada passa
             await repositories.storeRepository.updateSavedStore(activatedStore);
 
+            // atualização do status da fatura (se houver)
             if (invoiceToMarkAsPaid) {
                 const paidInvoice: SubscriptionInvoice = invoiceToMarkAsPaid.markAsPaid(new Date().toISOString());
                 await repositories.invoiceRepository.update(paidInvoice);
             }
 
-            await repositories.physicalBillRepository.saveMany(physical_bills); 
+            // bloco protegido: gerar comandas físicas estritamente para o primeiro ciclo
+            const alreadyHasBills = await repositories.physicalBillRepository.hasPhysicalBills(storeId);
+            
+            if (!alreadyHasBills) {
+                const physical_bills_quantity: number = PLAN_LIMITS[plan].limits.max_physical_bills;
+                const codes: Set<string> = generateValid4DigitsPhysicalCodes(physical_bills_quantity);
+                const physical_bills: Set<PhysicalBill> = PhysicalBill.buildManyPhysicallBills(codes, storeId);
+                
+                await repositories.physicalBillRepository.saveMany(physical_bills); 
+            }
         });
 
-        // Efeitos colaterais que não pertencem ao banco de dados rodam por fora - CACHE
+        // efeitos colaterais (invalidação de cache) rodam por fora da transação
         const cache_key = CacheKeys.Store.SUBSCRIPTION_STATUS(storeId);
         await this.cacheProvider.invalidate(cache_key);
     }

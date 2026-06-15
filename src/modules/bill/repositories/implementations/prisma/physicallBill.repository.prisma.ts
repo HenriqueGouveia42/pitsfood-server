@@ -88,4 +88,14 @@ export class PrismaPhysicalBillRepository implements IPhysicalBillRepository {
             data: dataToUpdate
         });
     }
+
+    async hasPhysicalBills(store_id: string): Promise<boolean> {
+    const count = await this.db.physicalBillCard.count({
+        where: {
+            store_id
+        }
+    });
+
+    return count > 0;
+}
 }

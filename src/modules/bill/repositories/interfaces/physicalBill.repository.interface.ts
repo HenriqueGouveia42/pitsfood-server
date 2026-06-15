@@ -5,4 +5,6 @@ export interface IPhysicalBillRepository {
     findByStoreId(store_id: string): Promise<PhysicalBill[]>;
     existsByCode(code: string, store_id: string): Promise<boolean>;
     update(physicalBill: PhysicalBill): Promise<void>; 
+    hasPhysicalBills(store_id: string): Promise<boolean>;
+
 }
