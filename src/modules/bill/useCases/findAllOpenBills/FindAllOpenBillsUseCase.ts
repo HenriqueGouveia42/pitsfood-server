@@ -1,4 +1,4 @@
-import type { IBillRepository } from "../../repositories/bill.repository.interface.js";
+import type { IBillRepository } from "../../repositories/interfaces/bill.repository.interface.js";
 import { type Bill, type billStates } from "../../entities/bill.js";
 
 // =============================================================================

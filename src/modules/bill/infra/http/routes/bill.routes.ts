@@ -12,6 +12,7 @@ import { getPhysicalBIllCodesController } from "../../../useCases/GetPhysicalBil
 import { batchAddItemsSchema } from "../zodSchemas/batchAddItemsSchema.js";
 import { billCodeExistsSchema } from "../zodSchemas/BillCodeExistsSchema.js";
 import { GetOpenBillByGtinCodeSchema } from "../zodSchemas/GetOpenBillByGtinCodeSchema.js"
+import { sseController } from "../../../useCases/listenBillEvents/SSEController.js";
 
 const billRouteBuilder = new SecureRouteBuilder();
 
@@ -62,5 +63,13 @@ billRouteBuilder.build({
     roles: [UserRole.CAIXA, UserRole.VENDEDOR, UserRole.GESTOR],
     handler: (request, response) => findAllOpenBillsController.handle(request, response)
 });
+
+billRouteBuilder.build({
+    method: 'get',
+    path:'/events/bills',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.CAIXA, UserRole.GESTOR],
+    handler: (request, response) => sseController.handle(request, response)
+})
 
 export const billRoutes = billRouteBuilder.getRouter();

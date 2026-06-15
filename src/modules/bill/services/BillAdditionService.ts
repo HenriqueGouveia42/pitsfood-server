@@ -4,6 +4,8 @@ import type { IUnitOfWork, ITransactionRepositories } from "../../../shared/infr
 import { Bill, type BuildBillProps } from "../entities/bill.js";
 import type { Product } from "../../product/entities/product.js";
 import type { PhysicalBill } from "../entities/physicalBIllCard.js";
+import { redisPublisher } from "../../../shared/infra/redis/index.js";
+import { PubSubChannels } from "../../../shared/constants/pub-sub-channels.js";
 
 type AdditionRepos = Pick<ITransactionRepositories, 
     "billRepository" | "physicalBillRepository" | "productRepository"
@@ -72,5 +74,15 @@ export class BillAdditionService {
 
             await repositories.billRepository.upsertBill(bill);
         });
+
+        const channel: string = PubSubChannels.Store.BILL_UPDATES(store_id);
+
+        // disparo do evento (Redis Pub/Sub)
+        const payload = JSON.stringify({
+            event: "BILL_UPDATED",
+            bill_code: bill_code_gtin
+        })
+
+        await redisPublisher.publish(channel, payload)
     }
 }
