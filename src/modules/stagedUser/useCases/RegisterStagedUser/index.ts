@@ -18,7 +18,6 @@ const bcryptjsHashedStringProvider: BcryptjsHashedStringProvider = new BcryptjsH
 const registerStagedUserUseCase: RegisterStagedUserUseCase = new RegisterStagedUserUseCase(
     prismaStagedUserRepository,
     prismaUserRepository,
-    //nodeMailerMailProvider,
     resendMailProvider,
     dnsEmailValidator,
     bcryptjsHashedStringProvider
