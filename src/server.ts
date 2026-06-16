@@ -30,17 +30,6 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 
-export function launchGuardMiddleware(req, res, next) {
-
-    if (process.env.PITSFOOD_LAUNCHED !== "true") {
-        throw new AppError("O sistema Pitsfood ainda não foi lançado ou está temporariamente indisponível.", 403);
-    }
-    
-    next();
-}
-
-app.use(launchGuardMiddleware);
-
 app.use(router);
 
 app.use(globalErrorMiddleware);
@@ -51,5 +40,5 @@ app.get("/", (req, res) =>{
 
 app.listen(PORT, () => {
     console.log(`Running at ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
 });

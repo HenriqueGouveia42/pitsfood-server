@@ -2,6 +2,7 @@ node_modules/
 test.test
 git_untracked_tests/
 .env
+.env.dev
 /src/generated/prisma
 CLAUDE.md
 dist
