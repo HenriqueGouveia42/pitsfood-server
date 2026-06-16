@@ -8,8 +8,6 @@ const app = express();
 
 const PORT = process.env.PORT ? process.env.PORT : 3000;
 
-const isProduction = process.env.NODE_ENV === "production";
-
 const allowedOrigins = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : [];
 
 app.use(cors({
@@ -32,10 +30,6 @@ app.use(cookieParser())
 app.use(router);
 
 app.use(globalErrorMiddleware);
-
-app.get("/", (req, res) =>{
-    res.json({status: "Server Working!"});
-});
 
 app.listen(PORT, () => {
     console.log(`Running at ${PORT}`);
