@@ -3,7 +3,6 @@ import { router } from "./shared/infra/http/routes/index.js"
 import { globalErrorMiddleware } from "./shared/infra/http/middlewares/globalErrorMiddleware.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { AppError } from "./shared/errors/AppError.js";
 
 const app = express();
 

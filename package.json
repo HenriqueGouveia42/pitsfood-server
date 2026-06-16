@@ -5,7 +5,8 @@
   "description": "",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "predev": "node -e \"const branch = require('child_process').execSync('git branch --show-current').toString().trim(); if (branch !== 'dev') { console.error('\\nERRO: Você não está na branch \\'dev\\'! Abortando a inicialização do servidor.\\n'); process.exit(1); }\"",
+    "dev": "tsx watch --env-file=.env.dev src/server.ts",
     "dev:worker": "tsx watch --env-file=.env.dev src/worker.ts",
     "test": "vitest",
     "build": "tsup src/server.ts src/worker.ts --format esm --clean --platform node",
