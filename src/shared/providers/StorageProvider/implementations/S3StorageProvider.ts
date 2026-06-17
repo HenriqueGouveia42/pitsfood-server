@@ -6,10 +6,16 @@ export class S3StorageProvider implements IStorageProvider {
     private client: S3Client;
 
     constructor() {
-        //capturar as variaveis do .env
-        const endpoint = process.env.AWS_BUCKET_ENDPOINT;
-        const accessKeyId = process.env.S3_ACCESS_KEY_ID;
-        const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+
+        const endpoint = process.env.STORAGE_ENDPOINT;
+        const accessKeyId = process.env.STORAGE_ACCESS_KEY_ID;
+        const secretAccessKey = process.env.STORAGE_SECRET_ACCESS_KEY;
+        const bucketName = process.env.STORAGE_BUCKET_NAME;
+
+        // validar se elas existem - failfast
+        if (!endpoint || !accessKeyId || !secretAccessKey || !bucketName) {
+            throw new Error("CRITICAL: Faltam variáveis de ambiente de Storage (ENDPOINT, ACCESS_KEY_ID, SECRET_ACCESS_KEY ou BUCKET_NAME).");
+        }
 
         //validar se elas existem - failfast
         if (!endpoint || !accessKeyId || !secretAccessKey) throw new Error("CRITICAL: Faltam variáveis de ambiente do R2/S3 (ENDPOINT, ACCESS_KEY_ID ou SECRET_ACCESS_KEY).");
@@ -28,7 +34,7 @@ export class S3StorageProvider implements IStorageProvider {
         try {
             await this.client.send(
                 new PutObjectCommand({
-                    Bucket: process.env.AWS_BUCKET_NAME, 
+                    Bucket: process.env.STORAGE_BUCKET_NAME, 
                     Key: file,       
                     Body: content,   
                     ContentType: contentType, 
