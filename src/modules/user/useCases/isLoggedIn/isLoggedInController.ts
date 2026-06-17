@@ -20,6 +20,8 @@ export class IsLoggedInController {
     handle = async(req: Request, res: Response): Promise<Response> =>{
 
         const  user_id = req.user.id;
+        const current_store_id = req.user?.store_id;
+
         const user: User | null = await this.userRepository.findSavedUserById(user_id);
 
         if (!user){
@@ -30,7 +32,7 @@ export class IsLoggedInController {
             id: user.id,
             username: user.username,
             role: user.role,
-            store_id: user.storeId,
+            store_id: current_store_id ? current_store_id : null,
             must_change_password: user.mustChangePassword
         }
 
