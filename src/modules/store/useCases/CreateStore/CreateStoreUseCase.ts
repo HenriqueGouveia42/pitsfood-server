@@ -3,7 +3,7 @@ import type { IStoreRepository } from "../../repositories/interfaces/store.repos
 import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 import { User } from "../../../user/entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
-import { UserRole } from "../../../../generated/prisma/enums.js";
+import { UserRole } from "../../../../generated/prisma/index.js";
 
 export interface ICreateStoreUseCase{
     name: string,
