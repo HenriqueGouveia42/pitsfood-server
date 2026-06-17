@@ -1,14 +1,14 @@
 import type { IStagedUserRepository } from "../../interfaces/staged_user.repository.interface.js"
 import { StagedUser } from "../../../entities/stagedUser.js"
-import type { StagedUser as PrismaStagedUser } from "../../../../../generated/prisma/client.js"
+import type { StagedUser as PrismaStagedUser } from "@prisma/client"
 
 import type { StagedUserProps } from "../../../entities/stagedUser.js"
 import { User, UserRole } from "../../../../user/entities/user.js"
-import type { User as PrismaUser } from "../../../../../generated/prisma/client.js"
+import type { User as PrismaUser } from "@prisma/client"
 import type { UserProps } from "../../../../user/entities/user.js"
 
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js"
-import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js"
+import { Prisma, PrismaClient } from "@prisma/client"
 
 export class PrismaStagedUserRepository implements IStagedUserRepository{
 

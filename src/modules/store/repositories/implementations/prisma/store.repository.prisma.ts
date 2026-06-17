@@ -3,15 +3,15 @@ import { Store } from "../../../entities/store.js";
 import type { IStoreRepository } from "../../interfaces/store.repository.interface.js";
 
 import { PhysicalBill as EntityPhysicalBill } from "../../../../bill/entities/physicalBIllCard.js";
-import type { PhysicalBillCard as PrismaPhysicalBill } from "../../../../../generated/prisma/client.js";
+import type { PhysicalBillCard as PrismaPhysicalBill } from "@prisma/client";
 
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
-import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { AppError } from "../../../../../shared/errors/AppError.js";
 
-import type { Store as PrismaStoreModel } from "../../../../../generated/prisma/client.js";
+import type { Store as PrismaStoreModel } from "@prisma/client";
 
-import { SubscriptionPlan as PrismaPlan } from "../../../../../generated/prisma/client.js";
+import { SubscriptionPlan as PrismaPlan } from "@prisma/client";
 
 import { SubscriptionPlan  as EntityPlan} from "../../../entities/store.enums.js";
 import { SubscriptionStatus as EntitySubscriptionStatus } from "../../../entities/store.enums.js";
