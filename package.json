@@ -10,8 +10,13 @@
     "predev:worker": "node -e \"const branch = require('child_process').execSync('git branch --show-current').toString().trim(); if (branch !== 'dev') { console.error('\\nERRO: Você não está na branch \\'dev\\'! Abortando a inicialização do servidor.\\n'); process.exit(1); }\"",
     "dev:worker": "tsx watch --env-file=.env.dev src/worker.ts",
     "test": "vitest",
-    "build": "npx prisma generate && tsup src/server.ts src/worker.ts --format esm --clean --platform node",    "start": "node dist/server.js",
-    "start:worker": "node dist/worker.js"
+    "build": "npx prisma generate && tsup src/server.ts src/worker.ts --format esm --clean --platform node",
+    
+    "start": "node dist/server.js",
+    "start:worker": "node dist/worker.js",
+    
+    "start:local": "node --env-file=.env.dev dist/server.js",
+    "start:worker:local": "node --env-file=.env.dev dist/worker.js"
   },
   "keywords": [],
   "author": "",

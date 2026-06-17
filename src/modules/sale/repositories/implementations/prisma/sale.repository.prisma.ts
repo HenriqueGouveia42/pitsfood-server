@@ -1,11 +1,11 @@
-import { Prisma, PrismaClient } from '../../../../../generated/prisma/client.js';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Sale } from '../../../entities/sale.js';
 import type { ISaleRepository } from '../../interfaces/sale.repository.interface.js';
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
 import { Decimal } from "decimal.js"
 import type { SalesReportDTO } from '../../interfaces/sale.repository.interface.js';
 
-import type { Sale as PrismaSaleModel, SaleProduct as PrismaSaleProduct, SalePayment as PrismaSalePayment } from "../../../../../generated/prisma/client.js";
+import type { Sale as PrismaSaleModel, SaleProduct as PrismaSaleProduct, SalePayment as PrismaSalePayment } from "@prisma/client";
 import { SaleStatus, PaymentMethod, type SaleProp } from "../../../entities/sale.js";
 import type { UserRole } from '../../../../user/entities/user.js';
 

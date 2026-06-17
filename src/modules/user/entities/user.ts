@@ -29,7 +29,7 @@ export type UserProps = {
     readonly must_change_password: boolean,
     readonly paying_user: boolean,
 
-    readonly cpf_cnpj: string | undefined,
+    readonly cpf_cnpj: string | null,
     readonly phone: string | null
     readonly authorized_devices: AuthorizedDeviceProps[];
 }

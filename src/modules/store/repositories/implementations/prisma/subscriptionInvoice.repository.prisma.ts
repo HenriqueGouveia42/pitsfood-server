@@ -3,11 +3,11 @@ import { SubscriptionPlan as EntityPlan } from "../../../entities/store.enums.js
 import type { ISubscriptionInvoiceRepository } from "../../interfaces/subscriptionInvoice.repository.interface.js"; 
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
 
-import { InvoiceStatus as PrismaInvoiceStatus } from "../../../../../generated/prisma/client.js";
-import { SubscriptionPlan as PrismaPlan } from "../../../../../generated/prisma/client.js";
-import type { SubscriptionInvoice as PrismaInvoice } from "../../../../../generated/prisma/client.js";
+import { InvoiceStatus as PrismaInvoiceStatus } from "@prisma/client";
+import { SubscriptionPlan as PrismaPlan } from "@prisma/client";
+import type { SubscriptionInvoice as PrismaInvoice } from "@prisma/client";
 
-import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 export class PrismaSubscriptionInvoiceRepository implements ISubscriptionInvoiceRepository {
 

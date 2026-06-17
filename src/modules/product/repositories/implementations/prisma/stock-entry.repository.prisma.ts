@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { StockEntry } from "../../../entities/stock-entry.js";
 import type { IStockEntryRepository } from "../../interfaces/stock-entry.repository.interface.js";
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";

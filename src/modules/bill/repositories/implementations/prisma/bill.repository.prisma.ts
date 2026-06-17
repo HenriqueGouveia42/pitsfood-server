@@ -1,10 +1,10 @@
-import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { Bill as EntityBill, billStates, type BillProps } from "../../../entities/bill.js";
-import type { Bill as PrismaBill } from "../../../../../generated/prisma/client.js";
-import type { BillProduct as PrismaBillProduct } from "../../../../../generated/prisma/client.js";
+import type { Bill as PrismaBill } from "@prisma/client";
+import type { BillProduct as PrismaBillProduct } from "@prisma/client";
 import type { IBillRepository } from "../../interfaces/bill.repository.interface.js";
 import { PhysicalBill as EntityPhysicalBill } from "../../../entities/physicalBIllCard.js";
-import type { PhysicalBillCard as PrismaPhysicalBillCard } from "../../../../../generated/prisma/client.js";
+import type { PhysicalBillCard as PrismaPhysicalBillCard } from "@prisma/client";
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
 import { Decimal } from 'decimal.js';
 

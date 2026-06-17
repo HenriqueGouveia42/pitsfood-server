@@ -1,7 +1,7 @@
 
-import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { PhysicalBill } from "../../../entities/physicalBIllCard.js";
-import type { PhysicalBillCard as PrismaPhysicalBillCard } from "../../../../../generated/prisma/client.js";
+import type { PhysicalBillCard as PrismaPhysicalBillCard } from "@prisma/client";
 import type { IPhysicalBillRepository } from "../../interfaces/physicalBill.repository.interface.js";
 
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js"; 

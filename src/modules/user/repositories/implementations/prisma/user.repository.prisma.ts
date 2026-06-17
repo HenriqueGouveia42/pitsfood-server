@@ -1,12 +1,10 @@
 import type { UserProps, UserRole } from "../../../entities/user.js";
 import { User } from "../../../entities/user.js";
 import { PasswordResetToken } from "../../../entities/passwordResetToken.js";
-import type { User as PrismaUser } from "../../../../../generated/prisma/client.js";
 import type { IUserRepository } from "../../interfaces/user.repository.interface.js";
 
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js"
-import { Prisma, PrismaClient } from "../../../../../generated/prisma/client.js";
-import type { UserUncheckedCreateInput } from "../../../../../generated/prisma/models.js";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { AppError } from "../../../../../shared/errors/AppError.js";
 
 type PrismaUsersWithDevices = Prisma.UserGetPayload<{
@@ -198,7 +196,7 @@ export class PrismaUserRepository implements IUserRepository {
         
         await this.db.$transaction(async (tx) =>{
 
-            const prismaUserData: UserUncheckedCreateInput = PrismaUserRepository.entityToPrismaDataMapper(updated_password_user);
+            const prismaUserData: Prisma.UserUncheckedCreateInput = PrismaUserRepository.entityToPrismaDataMapper(updated_password_user);
 
             const { user_id, store_id, created_at, authorized_devices, ...dataToUpdate } = prismaUserData;
 

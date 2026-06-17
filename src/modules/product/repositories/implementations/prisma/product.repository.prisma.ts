@@ -4,7 +4,7 @@ import type { IProductRepository } from '../../interfaces/product.repository.int
 
 import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
 import { AppError } from '../../../../../shared/errors/AppError.js';
-import { Prisma, PrismaClient } from '../../../../../generated/prisma/client.js';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 export class PrismaProductRepository implements IProductRepository {
 

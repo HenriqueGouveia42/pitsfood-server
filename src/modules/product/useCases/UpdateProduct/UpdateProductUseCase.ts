@@ -4,7 +4,7 @@ import type { IUserRepository } from '../../../user/repositories/interfaces/user
 import { User } from '../../../user/entities/user.js';
 import { AppError } from '../../../../shared/errors/AppError.js';
 import type { Product } from '../../entities/product.js';
-import { UserRole } from '../../../../generated/prisma/index.js';
+import { UserRole } from '@prisma/client';
 import type { ICacheProvider } from '../../../../shared/providers/CacheProvider/models/ICacheProvider.js';
 import { CacheKeys } from '../../../../shared/constants/cache-keys.js';
 import type { IStoreRepository } from '../../../store/repositories/interfaces/store.repository.interface.js';
