@@ -7,6 +7,7 @@
   "scripts": {
     "predev": "node -e \"const branch = require('child_process').execSync('git branch --show-current').toString().trim(); if (branch !== 'dev') { console.error('\\nERRO: Você não está na branch \\'dev\\'! Abortando a inicialização do servidor.\\n'); process.exit(1); }\"",
     "dev": "tsx watch --env-file=.env.dev src/server.ts",
+    "predev:worker": "node -e \"const branch = require('child_process').execSync('git branch --show-current').toString().trim(); if (branch !== 'dev') { console.error('\\nERRO: Você não está na branch \\'dev\\'! Abortando a inicialização do servidor.\\n'); process.exit(1); }\"",
     "dev:worker": "tsx watch --env-file=.env.dev src/worker.ts",
     "test": "vitest",
     "build": "npx prisma generate && tsup src/server.ts src/worker.ts --format esm --clean --platform node",    "start": "node dist/server.js",
