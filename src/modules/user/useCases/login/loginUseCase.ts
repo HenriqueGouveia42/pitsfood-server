@@ -4,12 +4,9 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import type { IHashedStringProvider } from "../../../../shared/providers/HashedStringProvider/models/IHashedStringProvider.js";
-import { randomInt } from 'node:crypto';
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
-import type { IMailProvider } from "../../../../shared/providers/EmailProvider/interface/IMailProvider.js";
 
-import { SYSTEM_NAME } from "../../../../config/system_data.js";
-import type { IDeviceAuthorizationChallengeService } from "../../services/interfaces/IDeviceAuthorizationChallengeService.js";
+import { DeviceAuthorizationChallengeService } from "../../services/DeviceAuthorizationChallengeService.js";
 
 export const TEN_MINUTES_IN_SECONDS: number = 60 * 10;
 
@@ -71,7 +68,7 @@ export class LoginUseCase {
         private tokenProvider: ITokenProvider,
         private hasheStringProvider: IHashedStringProvider,
         private cacheProvider: ICacheProvider,
-        private deviceAuthorizationChallenge: IDeviceAuthorizationChallengeService
+        private deviceAuthorizationChallenge: DeviceAuthorizationChallengeService
     ) {}
 
     async execute({ email, password, device_id }:IRequest): Promise<LoginResult>{

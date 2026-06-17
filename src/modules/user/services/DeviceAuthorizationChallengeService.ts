@@ -1,15 +1,14 @@
 // DeviceAuthorizationChallengeService.ts
 import { randomInt } from 'node:crypto';
-import type { IDeviceAuthorizationChallengeService } from '../interfaces/IDeviceAuthorizationChallengeService.js';
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
-import type { IMailProvider } from "../../../../shared/providers/EmailProvider/interface/IMailProvider.js";
-import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
-import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
-import { SYSTEM_NAME } from "../../../../config/system_data.js";
-import { User, type AuthorizedDeviceProps } from "../../entities/user.js";
-import { type LoginResult, type DeviceAuthorizationData, TEN_MINUTES_IN_SECONDS } from "../../useCases/login/loginUseCase.js"; // Ajuste os imports
+import type { ICacheProvider } from "../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { IMailProvider } from "../../../shared/providers/EmailProvider/interface/IMailProvider.js";
+import type { ITokenProvider } from "../providers/interfaces/token.provider.interface.js";
+import { CacheKeys } from "../../../shared/constants/cache-keys.js";
+import { SYSTEM_NAME } from "../../../config/system_data.js";
+import { User, type AuthorizedDeviceProps } from "../entities/user.js";
+import { type LoginResult, type DeviceAuthorizationData, TEN_MINUTES_IN_SECONDS } from "../useCases/login/loginUseCase.js"; // Ajuste os imports
 
-export class DeviceAuthorizationChallengeService implements IDeviceAuthorizationChallengeService {
+export class DeviceAuthorizationChallengeService {
     constructor(
         private cacheProvider: ICacheProvider,
         private emailProvider: IMailProvider,
@@ -17,6 +16,7 @@ export class DeviceAuthorizationChallengeService implements IDeviceAuthorization
     ) {}
 
     async execute(user: User, device_id: string): Promise<LoginResult> {
+
         const cacheKey: string = CacheKeys.User.TEMPORARY_AUTHORIZE_DEVICE_CODE(user.id, device_id);
         const existingAuthData: AuthorizedDeviceProps | null = await this.cacheProvider.get<AuthorizedDeviceProps>(cacheKey);
         
