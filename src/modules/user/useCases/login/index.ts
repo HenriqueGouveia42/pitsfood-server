@@ -5,7 +5,7 @@ import {  JwtTokenProvider } from "../../providers/implementations/jwt/token.pro
 import { BcryptjsHashedStringProvider } from "../../../../shared/providers/HashedStringProvider/implementations/BcryptjsHashedStringProvider.js";
 import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
 import { ResendMailProvider } from "../../../../shared/providers/EmailProvider/implementations/ResendMailProvider.js";
-import { DeviceAuthorizationChallengeService } from "../../services/implementations/DeviceAuthorizationChallengeService.js";
+import { DeviceAuthorizationChallengeService } from "../../services/DeviceAuthorizationChallengeService.js";
 
 const userRepository = new PrismaUserRepository();
 const jwtProvider = new JwtTokenProvider();
