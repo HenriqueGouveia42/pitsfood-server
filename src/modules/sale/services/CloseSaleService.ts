@@ -1,9 +1,9 @@
+// src/modules/sale/services/CloseSaleService.ts
 import { PubSubChannels } from "../../../shared/constants/pub-sub-channels.js";
 import { redisPublisher } from "../../../shared/infra/redis/index.js";
 import type { IUnitOfWork, ITransactionRepositories } from "../../../shared/infra/uow/interface/uow.interface.js";
 import type { Sale } from "../entities/sale.js";
 
-// Restringe o UoW apenas aos três repositórios necessários para esta transação
 type CloseSaleRepos = Pick<ITransactionRepositories, "saleRepository" | "billRepository" | "productRepository">;
 
 export interface ICloseSaleRequest {
@@ -27,10 +27,10 @@ export class CloseSaleService {
         // 2. Abre o Túnel Transacional Atômico
         await this.uow.transaction<void, CloseSaleRepos>(async (repositories) => {
             
-            // Passo A: Persiste a Venda (Venda, Itens e Pagamentos)
+            // Passo A: Persiste a Venda (Único INSERT via createMany)
             await repositories.saleRepository.makeSale(sale);
 
-            // Passo B: Fecha as Comandas Lógicas (se houver)
+            // Passo B: Fecha as Comandas Lógicas (Único UPDATE via IN)
             if (billCodesToClose.length > 0) {
                 await repositories.billRepository.closeBills(
                     sale.store_id, 
@@ -38,31 +38,28 @@ export class CloseSaleService {
                 );
             }
 
-            // Passo C: Baixa de Estoque
-            const decrementPromises = Array.from(stockToDecrement.entries()).map(([productId, quantitySold]) => {
-                return repositories.productRepository.decrementProductStock(
-                    sale.store_id,
-                    productId,
-                    quantitySold
-                );
-            });
+            // Passo C: Baixa de Estoque em Lote (Único UPDATE via RAW SQL CASE)
+            const decrementsArray = Array.from(stockToDecrement.entries()).map(([product_id, quantity]) => ({
+                product_id,
+                quantity
+            }));
 
-            // Dispara todas as requisições de atualização de estoque de uma só vez
-            await Promise.all(decrementPromises);
+            if (decrementsArray.length > 0) {
+                await repositories.productRepository.bulkDecrementProductStock(
+                    sale.store_id,
+                    decrementsArray
+                );
+            }
             
         });
 
         if(billCodesToClose.length > 0){
-
             const channel: string = PubSubChannels.Store.BILL_UPDATES(sale.store_id);
-            
             const payload = JSON.stringify({
                 event: "BILLS_CLOSED",
                 bills_codes: billCodesToClose
-            })
-
+            });
             await redisPublisher.publish(channel, payload);
-
         }
     }
 }

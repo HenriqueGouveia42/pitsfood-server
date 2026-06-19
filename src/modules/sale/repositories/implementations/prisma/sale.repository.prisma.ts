@@ -25,7 +25,7 @@ export class PrismaSaleRepository implements ISaleRepository {
         this.db = transactionClient ? transactionClient : globalPrisma
     }
 
-    private static entityToPrismaSaleDataMapper(sale: Sale): Prisma.SaleCreateInput {
+   private static entityToPrismaSaleDataMapper(sale: Sale): Prisma.SaleCreateInput {
         return {
             sale_id: sale.id,
             total_price: sale.total.toNumber(),
@@ -37,39 +37,44 @@ export class PrismaSaleRepository implements ISaleRepository {
             created_at: new Date(sale.createdAt),
             updated_at: new Date(sale.updatedAt),
 
-            // Relacionamentos Fortes (Resolvendo o "Unknown argument")
+            // O Prisma vai usar esse store_id e esse user_id para construir o Pai 
+            // e vai injetar esse store_id automaticamente nos filhos (items e payments)
             store: { connect: { store_id: sale.store_id } },
-            user: { connect: { user_id: sale.userId, store_id: sale.store_id } }, // Usando chave composta baseada no seu schema
+            user: { connect: { user_id: sale.userId, store_id: sale.store_id } }, 
             
-            // Mapeamento dos ITENS (Nested Write com Connect)
+            // Mapeamento dos ITENS
             items: { 
-                create: sale.items.map(item => ({
-                    sale_product_id: item.sale_product_id,
-                    quantity: item.quantity,
+                createMany: {
+                    data: sale.items.map(item => ({
+                        sale_product_id: item.sale_product_id,
+                        quantity: item.quantity,
 
-                    unit_price_snapshot: item.unit_price_snapshot.toNumber(),
-                    product_name_snapshot: item.product_name_snapshot,
-                    product_gtin_snapshot: item.product_gtin_snapshot,
+                        unit_price_snapshot: item.unit_price_snapshot.toNumber(),
+                        product_name_snapshot: item.product_name_snapshot,
+                        product_gtin_snapshot: item.product_gtin_snapshot,
 
-                    // Conexões relacionais para os itens
-                    store: { connect: { store_id: item.store_id } },
-                    product: { connect: { product_id: item.product_id, store_id: item.store_id } },
-                    
-                    // Condicional elegante para a comanda de origem
-                    ...(item.origin_bill_id 
-                        ? { origin_bill: { connect: { bill_id: item.origin_bill_id, store_id: item.store_id } } } 
-                        : {})
-                }))
+                        // REMOVA O store_id AQUI (O Prisma injeta sozinho por causa do Nested Write)
+                        // store_id: item.store_id, <--- APAGAR
+                        
+                        // Mantenha apenas as chaves estrangeiras para tabelas EXTERNAS à venda
+                        product_id: item.product_id,
+                        origin_bill_id: item.origin_bill_id ?? null
+                    }))
+                }
             },
 
-            // Mapeamento dos PAGAMENTOS (Nested Write com Connect)
+            // Mapeamento dos PAGAMENTOS
             payments: {
-                create: sale.payments.map(pay => ({
-                    sale_payment_id: pay.sale_payment_id,
-                    amount: pay.amount.toNumber(),
-                    method: pay.method,
-                    store: { connect: { store_id: sale.store_id } }
-                }))
+                createMany: {
+                    data: sale.payments.map(pay => ({
+                        sale_payment_id: pay.sale_payment_id,
+                        amount: pay.amount.toNumber(),
+                        method: pay.method
+                        
+                        // REMOVA O store_id AQUI TAMBÉM
+                        // store_id: sale.store_id <--- APAGAR
+                    }))
+                }
             }
         };
     }

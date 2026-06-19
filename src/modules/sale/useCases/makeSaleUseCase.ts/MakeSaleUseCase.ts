@@ -55,41 +55,48 @@ export class MakeSaleUseCase {
         const sale_id: string = crypto.randomUUID();
         const saleProducts: SaleProductProp[] = [];
 
+        const uniqueBillCodes = Array.from(new Set(bill_physical_codes));
+
         // * * * PROCESSAR COMANDAS * * *
-        for (const code of bill_physical_codes) {
-            
-            
-            const bill: Bill | null = await this.billRepository.getOpenBillByCode(code, store_id);
+        if(uniqueBillCodes.length > 0){
 
-            // Se retornou null, a comanda não existe ou já está fechada
-            if (!bill) {
-                throw new AppError(`A comanda ${code} não foi encontrada ou já está fechada`, 404, "BILL_NOT_FOUND_OR_CLOSED");
+            const openBills: Bill[] = await this.billRepository.getManyOpenBillsByCodes(uniqueBillCodes, store_id);
+
+            if(openBills.length !== uniqueBillCodes.length) {
+                const foundCodes = openBills.map(b => b.bill_code);
+                const missingCodes = uniqueBillCodes.filter(code => !foundCodes.includes(code));
+                throw new AppError(`As seguintes comandas não foram encontradas ou já estão fechadas: ${missingCodes.join(', ')}`, 404, "BILL_NOT_FOUND_OR_CLOSED");
             }
 
-            const billItemsMap = new Map<string, SaleProductProp>();
+            for (const bill of openBills) {
 
-            for (const item of bill.items) {
-                const groupKey: string = `${item.product_id}-${item.price_at_addition.toNumber()}`;
+                const billItemsMap = new Map<string, SaleProductProp>();
 
-                if (billItemsMap.has(groupKey)){ 
-                    const existing = billItemsMap.get(groupKey)!;
-                    billItemsMap.set(groupKey, { ...existing, quantity: existing.quantity + 1 });
-                } else { 
-                    billItemsMap.set(groupKey, {
-                        sale_product_id: crypto.randomUUID(),
-                        quantity: 1,
-                        unit_price_snapshot: item.price_at_addition,
-                        product_name_snapshot: item.product_name,
-                        product_gtin_snapshot: item.product_gtin_code,
-                        store_id,
-                        sale_id,
-                        product_id: item.product_id,
-                        origin_bill_id: bill.bill_id
-                    });
+                for (const item of bill.items) {
+
+                    const groupKey: string = `${item.product_id}-${item.price_at_addition.toNumber()}`;
+
+                    if(billItemsMap.has(groupKey)){
+                        const existing = billItemsMap.get(groupKey)!;
+                        billItemsMap.set(groupKey, { ...existing, quantity: existing.quantity + 1 });
+
+                    } else {
+                        billItemsMap.set(groupKey, {
+                            sale_product_id: crypto.randomUUID(),
+                            quantity: 1,
+                            unit_price_snapshot: item.price_at_addition,
+                            product_name_snapshot: item.product_name,
+                            product_gtin_snapshot: item.product_gtin_code,
+                            store_id,
+                            sale_id,
+                            product_id: item.product_id,
+                            origin_bill_id: bill.bill_id
+                        })
+                    }
+
                 }
+                saleProducts.push(...Array.from(billItemsMap.values()));
             }
-
-            saleProducts.push(...Array.from(billItemsMap.values()));
         }
 
         // * * * PROCESSAR PRODUTOS AVULSOS * * *
@@ -151,7 +158,7 @@ export class MakeSaleUseCase {
         // DELEGAÇÃO PARA A TRANSAÇÃO ATÔMICA
         await this.closeSaleService.execute({
             sale: sale,
-            billCodesToClose: bill_physical_codes
+            billCodesToClose: uniqueBillCodes
         });
 
         return sale;
