@@ -1,5 +1,5 @@
 import { prisma } from "../../prisma.js";
-import type { Prisma } from "../../../../generated/prisma/client.js";
+import { Prisma } from "@prisma/client";
 import type { IUnitOfWork, ITransactionRepositories } from "../interface/uow.interface.js";
 
 // Importações de todas as IMPLEMENTAÇÕES concretas do Prisma
@@ -13,6 +13,7 @@ import { PrismaSubscriptionInvoiceRepository } from "../../../../modules/store/r
 import { PrismaUserRepository } from "../../../../modules/user/repositories/implementations/prisma/user.repository.prisma.js";
 import { PrismaPhysicalBillRepository } from "../../../../modules/bill/repositories/implementations/prisma/physicallBill.repository.prisma.js";
 import { PrismaStockEntryRepository } from "../../../../modules/product/repositories/implementations/prisma/stock-entry.repository.prisma.js";
+import { PrismaResetPassword } from "../../../../modules/user/repositories/implementations/prisma/password.reset.repository.prisma.js";
 
 export class PrismaUnitOfWork implements IUnitOfWork {
     
@@ -33,6 +34,7 @@ export class PrismaUnitOfWork implements IUnitOfWork {
             let userRepo: PrismaUserRepository;
             let physicalBillRepo: PrismaPhysicalBillRepository;
             let stockEntryRepository: PrismaStockEntryRepository;
+            let resetPasswordRepository: PrismaResetPassword;
 
             // 2. Objeto Proxy (Lazy Loading) - Mapeia estritamente as chaves da interface ITransactionRepositories
             const lazyRepositories: ITransactionRepositories = {
@@ -85,6 +87,11 @@ export class PrismaUnitOfWork implements IUnitOfWork {
                 get stockEntryRepository() {
                     if(!stockEntryRepository) stockEntryRepository = new PrismaStockEntryRepository(tx);
                     return stockEntryRepository
+                },
+
+                get resetPasswordRepository() {
+                    if(!resetPasswordRepository) resetPasswordRepository = new PrismaResetPassword();
+                    return resetPasswordRepository
                 }
             };
 

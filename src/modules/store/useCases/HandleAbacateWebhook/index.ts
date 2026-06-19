@@ -2,7 +2,7 @@ import { HandleAbacateWebhookUseCase } from "./HandleAbacateWebhookUseCase.js";
 import { HandleAbacateWebhookController } from "./HandleAbacateWebhookController.js";
 
 import { PrismaSubscriptionInvoiceRepository } from "../../repositories/implementations/prisma/subscriptionInvoice.repository.prisma.js";
-import { StoreActivationService } from "../../services/StoreActivationService.js";
+import { StoreActivationService } from "../../services/uow/StoreActivationService.js";
 import { PrismaUnitOfWork } from "../../../../shared/infra/uow/implementations/PrismaUnitOfWork.js";
 import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
 

@@ -1,6 +1,6 @@
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ISubscriptionInvoiceRepository } from "../../repositories/interfaces/subscriptionInvoice.repository.interface.js";
-import type { StoreActivationService } from "../../services/StoreActivationService.js";
+import type { StoreActivationService } from "../../services/uow/StoreActivationService.js";
 import { SubscriptionInvoice } from "../../entities/subscriptionInvoice.js";
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
 import { SubscriptionPlan } from "../../entities/store.enums.js";

@@ -15,53 +15,42 @@ interface IPayLoad {
     is_paying_user: boolean
 }
 
+// Middleware principal de autenticação e autorização das rotas
+
+// 1. Validação no cache - WhiteList
+// 2. Se for um usuário com senha provisória - que precisa ser trocada - permite somente o acesso a rota de troca de senha
+// 3. Anexa dados no objeto do tipo 'Request' - que serão utilizados por outros middlewares, controllers, usecases e services
+
 export async function authMiddleware( //agora é um funcao assincrona, pois faz a consulta no redis
     request: Request,
     response: Response,
     next: NextFunction
 ){
-    //buscar o token nos cookies
     const token = request.cookies['token'];
 
     if(!token) return response.status(401).json({message: "Token missing"});
 
     try{
 
-        //variaveis de ambiente sao interpretadas pelo typescript como "string | undefined",
-        //mas o metodo 'verify' aceita apenas estritamente 'string', por isso devemos "forcar"
-        //atraves de '... as string'
         const { sub, role, store_id, must_change_password, token_version, is_paying_user } = jwt.verify(
             token,
             process.env.JWT_SECRET as string
         ) as IPayLoad;
 
-
-        // -------------------------------------------------------------
-        // VALIDAÇÃO VIA REDIS (WHITELIST) - INICIO
-        // -------------------------------------------------------------
-
+        // 1.
         const cacheKey: string = CacheKeys.User.TOKEN_VERSION(sub);
-
         const currentCacheVersion: number | null = await cacheProvider.get<number>(cacheKey);
 
         if (currentCacheVersion === null || Number(currentCacheVersion) !== token_version){
 
             response.clearCookie('token');
-
             return response.status(401).json({message: "Sessão expirada ou inválida (Revogada). Faça login novamente"})
         }
 
-        // -------------------------------------------------------------
-        // VALIDAÇÃO VIA REDIS (WHITELIST) - FIM
-        // -------------------------------------------------------------
-
-
-        //HORA DE BLOQUEAR SE FOR UM USUARIO COM SENHA PROVISORIA, OU SEJA, ENTIDADE USER QUE TEM O CAMPO "must_change_password" como true
-        /////////////////////////////////////////////////////
-        /////////////////////////////////////////////////////
+        // 2.
         if(must_change_password === true){
 
-            const allowedRouteSuffix = "/change-my-password";
+            const allowedRouteSuffix: string = "/change-my-password";
 
             const isTargetingChangePassword: boolean = request.originalUrl.endsWith(allowedRouteSuffix);
 
@@ -75,7 +64,7 @@ export async function authMiddleware( //agora é um funcao assincrona, pois faz 
             }
         }
 
-        
+        // 3.
         request.user = {
             id: sub,
             role: role,

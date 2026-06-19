@@ -5,6 +5,17 @@ import { PrismaUserRepository } from "../../../repositories/implementations/pris
 import { PrismaResetPassword } from "../../../repositories/implementations/prisma/password.reset.repository.prisma.js";
 import { BcryptjsHashedStringProvider } from "../../../../../shared/providers/HashedStringProvider/implementations/BcryptjsHashedStringProvider.js";
 
+import { UpdateForgottenPasswordAndConsumeTokenService } from "../../../services/uow/UpdateForgottenPasswordAndConsumeTokenService.js";
+
+import { PrismaUnitOfWork } from "../../../../../shared/infra/uow/implementations/PrismaUnitOfWork.js";
+
+const unitOfWork: PrismaUnitOfWork = new PrismaUnitOfWork();
+
+const updateForgottenPasswordAndConsumeTokenService: UpdateForgottenPasswordAndConsumeTokenService = 
+    new UpdateForgottenPasswordAndConsumeTokenService(
+        unitOfWork
+    )
+
 const userRepository: PrismaUserRepository = new PrismaUserRepository();
 const resetPasswordRepository: PrismaResetPassword = new PrismaResetPassword();
 const hashedStringProvider: BcryptjsHashedStringProvider = new BcryptjsHashedStringProvider();
@@ -12,7 +23,8 @@ const hashedStringProvider: BcryptjsHashedStringProvider = new BcryptjsHashedStr
 const forgotPasswordVerifyResetPasswordTokenUseCase: ForgotPasswordVerifyResetPasswordTokenUseCase = new ForgotPasswordVerifyResetPasswordTokenUseCase(
     userRepository,
     resetPasswordRepository,
-    hashedStringProvider
+    hashedStringProvider,
+    updateForgottenPasswordAndConsumeTokenService
 );
 
 

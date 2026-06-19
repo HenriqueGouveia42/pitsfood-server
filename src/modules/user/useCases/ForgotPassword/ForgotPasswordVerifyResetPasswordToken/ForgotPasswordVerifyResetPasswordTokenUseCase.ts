@@ -6,6 +6,7 @@ import { AppError } from "../../../../../shared/errors/AppError.js";
 import type { IPasswordResetRepository } from "../../../repositories/interfaces/password.reset.repository.interface.js";
 import { MAX_FAILED_ATTEMPTS } from "../../../entities/passwordResetToken.js";
 import { UserRole } from "../../../entities/user.js";
+import type { UpdateForgottenPasswordAndConsumeTokenService } from "../../../services/uow/UpdateForgottenPasswordAndConsumeTokenService.js";
 
 export type InputDTO = {
     email: string,
@@ -20,7 +21,8 @@ export class ForgotPasswordVerifyResetPasswordTokenUseCase{
     constructor(
         private userRepository: IUserRepository,
         private passwordResetRepository: IPasswordResetRepository,
-        private hashedStringProvider: IHashedStringProvider
+        private hashedStringProvider: IHashedStringProvider,
+        private updateForgottenPasswordAndConsumeTokenService: UpdateForgottenPasswordAndConsumeTokenService
         
     ){}
 
@@ -58,11 +60,12 @@ export class ForgotPasswordVerifyResetPasswordTokenUseCase{
         const hashed_password: string = await this.hashedStringProvider.hashString(input.new_password);
         const user_updated_password: User = user.setNewPassword(hashed_password);
         
-        //await this.userRepository.updateSavedUser(user_updated_password);
-        //await this.passwordResetRepository.deletePasswordResetToken(password_reset_token.id);
+        //await this.userRepository.updateForgottenPasswordAndConsumeToken(user_updated_password, password_reset_token);
 
-        await this.userRepository.updateForgottenPasswordAndConsumeToken(user_updated_password, password_reset_token);
-
+        await this.updateForgottenPasswordAndConsumeTokenService.execute({
+            updated_password_user: user_updated_password,
+            password_reset_token: password_reset_token
+        })
 
     }
 
