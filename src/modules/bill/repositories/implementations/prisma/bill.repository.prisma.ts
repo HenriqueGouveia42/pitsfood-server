@@ -247,4 +247,25 @@ export class PrismaBillRepository implements IBillRepository {
         }
     }
 
+    async getManyOpenBillsByCodes(codes: string[], store_id: string): Promise<EntityBill[]> {
+        
+
+        if(codes.length === 0) return [];
+
+        const prismaBills: PrismaBillWithItems[] = await this.db.bill.findMany({
+            where:{
+                store_id: store_id,
+                bill_code_gtin: { in: codes },
+                status: BillStatus.ABERTA
+            },
+            include: {
+                items: true
+            }
+        })
+
+        return prismaBills.map(prismaBill => 
+            PrismaBillRepository.prismaToEntityBillDataMapper(prismaBill)
+        )
+    }
+
 }

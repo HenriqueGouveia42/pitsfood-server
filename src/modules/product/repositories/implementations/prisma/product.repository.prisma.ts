@@ -6,6 +6,8 @@ import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
 import { AppError } from '../../../../../shared/errors/AppError.js';
 import { Prisma, PrismaClient } from '@prisma/client';
 
+import type { BulkDecrementItem } from '../../interfaces/product.repository.interface.js';
+
 export class PrismaProductRepository implements IProductRepository {
 
     private db: PrismaClient | Prisma.TransactionClient;
@@ -145,5 +147,36 @@ export class PrismaProductRepository implements IProductRepository {
                 }
             }
         })
+    }
+
+    async bulkDecrementProductStock(store_id: string, decrements: BulkDecrementItem[]): Promise<void> {
+        if (decrements.length === 0) return;
+
+        // Monta a instrução CASE dinamicamente
+        const caseStatements = decrements
+            .map(d => `WHEN product_id = '${d.product_id}' THEN ${d.quantity}`)
+            .join(' ');
+        
+        // Isola os IDs para a cláusula IN
+        const idsList = decrements
+            .map(d => `'${d.product_id}'`)
+            .join(', ');
+
+        // Constrói a Query SQL crua, delegando o processamento em lote para o motor em C/C++ do PostgreSQL
+        const query = `
+            UPDATE products 
+            SET stock_quantity = stock_quantity - (
+                CASE 
+                    ${caseStatements}
+                    ELSE 0 
+                END
+            )
+            WHERE store_id = '${store_id}' 
+            AND track_stock = true 
+            AND product_id IN (${idsList});
+        `;
+
+        // Executa usando o túnel transacional injetado (this.db)
+        await this.db.$executeRawUnsafe(query);
     }
 }
