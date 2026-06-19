@@ -23,14 +23,33 @@ export const registerEmployeeSchema = z.object({
             .min(6, { message: "A senha deve ter no mínimo 6 caracteres" }),
 
         email: z
-            .email({message: "Email é obrigatorio"}),
-        cpf_cnpj : z
-            .string( { message: "Precisa ser string" })
-            .min(11, { message: "Precisa ter no minimo 11 digitos"}),
+            .string({ message: "Email é obrigatorio" })
+            .email({ message: "Formato de email inválido" }),
         
+        // Deixamos a base opcional/nullable para passar pelo Zod inicialmente
+        cpf_cnpj: z
+            .string({ message: "Precisa ser string" })
+            .min(11, { message: "Precisa ter no minimo 11 digitos" })
+            .nullable()
+            .optional(),
+        
+        // Ajustei para nullable/optional para refletir o contrato do Controller (string | null)
         phone: z
-            .string( { message: "Precisa ser string" })
+            .string({ message: "Precisa ser string" })
             .max(20, { message: "Maximo de 20 caracteres" })
+            .nullable()
+            .optional()
     })
     .strict()
+    // Regra de negócio condicional
+    .superRefine((data, ctx) => {
+        // Verifica se é Gestor e se o CPF está ausente ou vazio
+        if (data.role === UserRole.GESTOR && (!data.cpf_cnpj || data.cpf_cnpj.trim() === '')) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "O CPF/CNPJ é obrigatório para o cargo de Gestor",
+                path: ["cpf_cnpj"], // Anexa o erro diretamente ao path do cpf_cnpj
+            });
+        }
+    })
 });
