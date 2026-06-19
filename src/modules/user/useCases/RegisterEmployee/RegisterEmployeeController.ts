@@ -10,7 +10,7 @@ interface RegisterEmployeeControllerRequest{
     plain_text_password: string,
     email: string,
     store_id: string | null,
-    cpf_cnpj: string,
+    cpf_cnpj: string | null | undefined,
     phone: string | null
 }
 
@@ -28,7 +28,7 @@ export class RegisterEmployeeController{
         const userId = req.user?.id;
         const store_id = req.user?.store_id;
         
-        if(!name || !role || !plain_text_password || !email || !userId || !cpf_cnpj){
+        if(!name || !role || !plain_text_password || !email || !userId ){
             throw new AppError("Algum dado para criar um usuario está faltando", 400, "INVALID_USER_DATA_SENT")
         }
 

@@ -23,7 +23,7 @@ interface RegisterEmployeeUseCaseRequest{
     plain_text_password: string,
     userId: string,
     email: string,
-    cpf_cnpj: string,
+    cpf_cnpj: string | null | undefined,
     phone: string | null,
     target_store_id: string | null | undefined
 }
@@ -83,14 +83,16 @@ export class RegisterEmployeeUseCase{
 
         const hashed_password: string = await bcrypt.hash(plain_text_password, 8);
 
-        const isCPFValid: boolean = validateCPF(cpf_cnpj);
-        const isCNPJValid: boolean = validCNPJ(cpf_cnpj);
+        if (cpf_cnpj){
+            const isCPFValid: boolean = validateCPF(cpf_cnpj);
+            const isCNPJValid: boolean = validCNPJ(cpf_cnpj);
+            if (!isCPFValid && !isCNPJValid) throw new AppError("CPF/CNPJ invalido", 400, "CPF_CNPJ_MUST_BE_VALID");
 
-        if (!isCPFValid && !isCNPJValid) throw new AppError("CPF/CNPJ invalido", 400, "CPF_CNPJ_MUST_BE_VALID");
-
-        const cpf_cnpj_user: User | null = await this.userRepository.findUserByCPFCNPJ(cpf_cnpj);
-        if (cpf_cnpj_user) throw new AppError("Usario com esse CPF/CNPJ ja existe no sistema", 403, "CPF_CNPJ_USER_ALREADY_EXISTS");
-
+            const cpf_cnpj_user: User | null = await this.userRepository.findUserByCPFCNPJ(cpf_cnpj);
+            if (cpf_cnpj_user) throw new AppError("Usario com esse CPF/CNPJ ja existe no sistema", 403, "CPF_CNPJ_USER_ALREADY_EXISTS");
+        }
+        
+        
         const new_employee_user_id: string = crypto.randomUUID()
 
         const now_date: string = new Date().toISOString();
@@ -105,7 +107,7 @@ export class RegisterEmployeeUseCase{
             store_id: store.id,
             must_change_password: true,
             is_paying_user: false,
-            cpf_cnpj: cpf_cnpj,
+            cpf_cnpj: cpf_cnpj ? cpf_cnpj : null,
             phone: phone ? phone : null
         }
         const user: User = User.buildUser(build_props);

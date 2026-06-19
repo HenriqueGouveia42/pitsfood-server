@@ -48,6 +48,8 @@ export class ForgotPasswordSendEmailUsecase {
         return randomInt(100000, 1000000).toString();
     }
 
+    //USE CASE PARA UM GESTOR TROCAR A PROPRIA SENHA ESQUECIDA
+
     //1. Validação de email
     //2. Validação de usuario
     //3. Verifica se token de reset já existe

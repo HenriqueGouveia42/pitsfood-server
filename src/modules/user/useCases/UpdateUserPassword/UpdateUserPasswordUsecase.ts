@@ -20,6 +20,8 @@ export class UpdateUserPasswordUseCase {
         private cacheProvider: ICacheProvider,
     ) {}
 
+    //USECASE ONDE UM GESTOR ALTERA A SENHA DE UM FUNCIONARIO
+
     async execute({ target_user_id, modifier_user_id, modifier_user_store_id, password }: IUpdatePasswordRequest): Promise<void> {
         
         const user_target = await this.userRepository.findSavedUserById(target_user_id);
