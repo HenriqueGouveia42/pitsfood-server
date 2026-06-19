@@ -44,7 +44,7 @@ export type BuildUserProps = {
     store_id: string | null,
     must_change_password: boolean,
     is_paying_user: boolean,
-    cpf_cnpj: string,
+    cpf_cnpj: string | null,
     phone: string | null,
 }
 
@@ -85,10 +85,17 @@ export class User {
 
         //ou ele enviou um CPF ou ele enviou um CNPJ
 
-        const is_valid_cpf: boolean = validateCPF(props.cpf_cnpj);
-        const is_valid_cnpj: boolean = validCNPJ(props.cpf_cnpj);
+        if (props.cpf_cnpj){
 
-        if ((!is_valid_cnpj)&&(!is_valid_cpf)) throw new DomainError("Precisa de um CPF ou CNPJ valido");
+            const is_valid_cpf: boolean = validateCPF(props.cpf_cnpj);
+            const is_valid_cnpj: boolean = validCNPJ(props.cpf_cnpj);
+
+            if ((!is_valid_cnpj)&&(!is_valid_cpf)) throw new DomainError("Precisa de um CPF ou CNPJ valido");
+        }
+
+        if (props.cpf_cnpj && props.role !== UserRole.GESTOR){
+            throw new DomainError("Um gestor necessariamente precisa de um CPF/CNPJ")
+        }
 
         const user:User = new User({
             user_id: props.user_id,
