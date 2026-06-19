@@ -79,7 +79,7 @@ export class UpdateProductUseCase{
         
         await this.productRepository.updateSavedProduct(updated_product, store_id);
 
-        const cacheKey: string = CacheKeys.Store.SUMMARY(store_id);
+        const cacheKey: string = CacheKeys.Product.LIST(store_id);
 
         await this.cacheProvider.invalidate(cacheKey);
     }
