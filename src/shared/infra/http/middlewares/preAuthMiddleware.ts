@@ -5,14 +5,24 @@ interface IPreAuthPayload {
     userId: string;
 }
 
+// Middleware utilizado para autorizar um novo dispositivo
+
+// 1. Busca o token JWT Http-only 'pre_auth_token' enviado pelo client - loginController -  logo após o client ter feito
+//  login utilizando email e senha corretos, mas por um dispositivo nao autorizado
+
+// 2. Verifica se o token é válido
+
+// 3. Injeta no objeto 'request', do tipo 'Request'
+
 export function preAuthMiddleware(
     request: Request,
     response: Response,
     next: NextFunction
 ) {
-    // Busca o token temporário plantado pelo LoginController
+    // 1.
     const token = request.cookies['pre_auth_token'];
 
+    // 2.
     if (!token) {
         return response.status(401).json({ 
             message: "Sessão de autorização expirada ou não iniciada.", 
@@ -21,12 +31,13 @@ export function preAuthMiddleware(
     }
 
     try {
+
         const { userId } = jwt.verify(
             token,
             process.env.JWT_SECRET as string
         ) as IPreAuthPayload;
 
-        // Injeta na tipagem que atualizamos no seu Express.Request
+        // 3.
         request.preAuthUserId = userId;
 
         return next();

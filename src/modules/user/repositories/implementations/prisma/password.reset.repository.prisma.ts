@@ -1,6 +1,6 @@
 import type { IPasswordResetRepository } from "../../interfaces/password.reset.repository.interface.js";
 
-import type { PasswordResetToken as PrismaPasswordResetToken } from "../../../../../generated/prisma/client.js";
+import type { PasswordResetToken as PrismaPasswordResetToken } from "@prisma/client";
 import { PasswordResetToken as EntityPasswordResetToken, PasswordResetToken  } from "../../../entities/passwordResetToken.js";
 import type { PasswordResetTokenProps } from "../../../entities/passwordResetToken.js";
 

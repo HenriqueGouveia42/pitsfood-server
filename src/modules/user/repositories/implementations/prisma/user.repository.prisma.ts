@@ -192,32 +192,6 @@ export class PrismaUserRepository implements IUserRepository {
 
     }
 
-    async updateForgottenPasswordAndConsumeToken(updated_password_user: User, password_reset_token: PasswordResetToken){
-        
-        await this.db.$transaction(async (tx) =>{
-
-            const prismaUserData: Prisma.UserUncheckedCreateInput = PrismaUserRepository.entityToPrismaDataMapper(updated_password_user);
-
-            const { user_id, store_id, created_at, authorized_devices, ...dataToUpdate } = prismaUserData;
-
-            await tx.user.update({
-                where:{
-                    user_id: updated_password_user.id
-                },
-                data:{
-                    ...dataToUpdate,
-                    updated_at: new Date()
-                }
-            })
-
-            await tx.passwordResetToken.delete({
-                where: {id: password_reset_token.id}
-            })
-
-        })
-
-    }
-
     async addAuthorizedDevice(user_id: string, device_id: string, device_name: string): Promise<void> {
         
         await this.db.authorizedDevice.create({

@@ -10,6 +10,7 @@ import type { ISubscriptionInvoiceRepository } from "../../../../modules/store/r
 import type { IUserRepository } from "../../../../modules/user/repositories/interfaces/user.repository.interface.js";
 import type { IPhysicalBillRepository } from "../../../../modules/bill/repositories/interfaces/physicalBill.repository.interface.js";
 import type { IStockEntryRepository } from "../../../../modules/product/repositories/interfaces/stock-entry.repository.interface.js";
+import type { IPasswordResetRepository } from "../../../../modules/user/repositories/interfaces/password.reset.repository.interface.js";
 
 /**
     Catálogo global de todos os repositórios do sistema capazes de rodar sob transação.
@@ -25,7 +26,8 @@ export interface ITransactionRepositories {
     invoiceRepository: ISubscriptionInvoiceRepository;
     userRepository: IUserRepository,
     physicalBillRepository: IPhysicalBillRepository;
-    stockEntryRepository: IStockEntryRepository
+    stockEntryRepository: IStockEntryRepository;
+    resetPasswordRepository: IPasswordResetRepository
 }
 
 /**
