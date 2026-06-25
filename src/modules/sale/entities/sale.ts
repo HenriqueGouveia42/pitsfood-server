@@ -24,7 +24,6 @@ export type SalePaymentProp = { //representa um pagamento de uma determinada ven
 
 export type SaleProductProp = { //representa um produto numa venda fechada
     readonly sale_product_id: string,
-    readonly quantity: number,
 
     readonly unit_price_snapshot: Decimal,
     readonly product_name_snapshot: string,
@@ -34,6 +33,9 @@ export type SaleProductProp = { //representa um produto numa venda fechada
     readonly sale_id: string,
     readonly product_id: string,
     readonly origin_bill_id: string | null //opcional pois o item da venda pode ter sido feito direto no balcao, ou seja, sem comanda
+    
+    readonly quantity: number,
+
 }
 
 export type SaleProp = { //representa uma venda fechada
