@@ -76,13 +76,17 @@ export class PrismaProductRepository implements IProductRepository {
     }
 
     async findManySavedProductsByGtinCodes(gtin_codes: string[], store_id: string): Promise<Product[] | []>{
+
         if (gtin_codes.length == 0) return [];
+
         const prisma_products: any[] = await this.db.product.findMany({
             where: {
                 store_id: store_id,
                 gtin_code: { in: gtin_codes },
+                active: true
             }
         });
+
         return prisma_products.map(p => PrismaProductRepository.prismaToEntityDataMapper(p));
     }
 
