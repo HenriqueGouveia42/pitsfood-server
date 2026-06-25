@@ -31,6 +31,10 @@ export class UpdateUserPasswordUseCase {
         if (!userTryingToUpdate) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
         if (userTryingToUpdate.role !== UserRole.GESTOR) throw new AppError("USUARIO NAO É GESTOR", 403, "USER_MUST_BE_GESTOR");
 
+        if(userTryingToUpdate.id === user_target.id){
+            throw new AppError("Um gestor não pode atualizar a prória senha por aqui. Vá para a tela de login e clique em 'Esqueci a minha senha'");
+        }
+
         const store = await this.storeRepository.findSavedStoreById(modifier_user_store_id);
         if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
         if (store.ownerId !== userTryingToUpdate.id) throw new AppError("Apenas o Dono da Loja tem permissão para isso", 403, "MUST_BE_STORE_OWNER");
