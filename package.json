@@ -5,6 +5,10 @@
   "description": "",
   "main": "dist/server.js",
   "scripts": {
+
+    "db": "node scripts/prisma.js",
+    "prisma": "node scripts/block-prisma.js",
+
     "check-branch": "node -e \"const branch = require('child_process').execSync('git branch --show-current').toString().trim(); if (branch !== 'dev') { console.error('\\nERRO: Você não está na branch \\'dev\\'! Abortando.\\n'); process.exit(1); }\"",
     
     "dev:api": "tsx watch --env-file=.env.dev src/server.ts",
@@ -22,6 +26,7 @@
     
     "start:local": "node --env-file=.env.dev dist/server.js",
     "start:worker:local": "node --env-file=.env.dev dist/worker.js"
+
   },
   "keywords": [],
   "author": "",
