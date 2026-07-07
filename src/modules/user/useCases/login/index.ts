@@ -6,6 +6,7 @@ import { BcryptjsHashedStringProvider } from "../../../../shared/providers/Hashe
 import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
 import { ResendMailProvider } from "../../../../shared/providers/EmailProvider/implementations/ResendMailProvider.js";
 import { DeviceAuthorizationChallengeService } from "../../services/DeviceAuthorizationChallengeService.js";
+import { WhiteListViaAuthTokenVersionService } from "../../services/WhiteListViaAuthTokenVersionService.js";
 
 const userRepository = new PrismaUserRepository();
 const jwtProvider = new JwtTokenProvider();
@@ -19,12 +20,16 @@ const deviceAuthorizationChallenge: DeviceAuthorizationChallengeService = new De
     jwtProvider
 );
 
+const whiteListCache: WhiteListViaAuthTokenVersionService = new WhiteListViaAuthTokenVersionService(
+    cacheProvider
+)
+
 const loginUseCase = new LoginUseCase(
     userRepository,
     jwtProvider,
     hashedStringProvider,
-    cacheProvider,
-    deviceAuthorizationChallenge
+    deviceAuthorizationChallenge,
+    whiteListCache
 );
 
 const loginController = new LoginController(loginUseCase)

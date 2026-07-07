@@ -2,11 +2,10 @@ import { User, type AuthorizedDeviceProps } from "../../entities/user.js"
 import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
-import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import type { IHashedStringProvider } from "../../../../shared/providers/HashedStringProvider/models/IHashedStringProvider.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
 
 import { DeviceAuthorizationChallengeService } from "../../services/DeviceAuthorizationChallengeService.js";
+import type { outputDTO, WhiteListViaAuthTokenVersionService } from "../../services/WhiteListViaAuthTokenVersionService.js";
 
 export const TEN_MINUTES_IN_SECONDS: number = 60 * 10;
 
@@ -48,71 +47,64 @@ export type LoginResult =
         }
 
 
-//1 - Find user by email
-//2 - Verify if password matches
-//3 - Verify if the device is authorized
-        //3.1 - Generate 'device_id'
-        //3.2 - Generate 'device_authorization_code'
-        //3.3 - Generate an 'DeviceAuthorizationData' object
-            //3.3.1 Generate an cacheKey to save the 'DeviceAuthorizationData' object in the cache
-        //3.4 - Save the 'DeviceAuthorizationData' object in the cache
-        //3.5 - Send email to the user with the 'authorization_code' from the 'DeviceAuthorizationData' object
-        //3.6 - Generate and return and JWT Token called 'pre_auth_token' to authorize the next route (/confirm-device'), that gonna be used to confirm the 'authorization_code' sent to email
-//4 - Return an 'ILoginSucess' object
-
-
 export class LoginUseCase {
 
     constructor(
         private userRepository: IUserRepository,
         private tokenProvider: ITokenProvider,
         private hasheStringProvider: IHashedStringProvider,
-        private cacheProvider: ICacheProvider,
-        private deviceAuthorizationChallenge: DeviceAuthorizationChallengeService
+        private deviceAuthorizationChallenge: DeviceAuthorizationChallengeService,
+        private whiteListCache: WhiteListViaAuthTokenVersionService
     ) {}
+
+    /* 
+        1. Buscar o usuario no banco de dados
+            1.1 Realizar as devidas validações. Algumas são redundantes, pois já são validadas na criação na entidade, mas tudo bem, é a vida
+
+        2. Verificar se a senha está correta
+
+        3. Verificar se o login está sendo feito de um dispositivo autorizado
+            3.1. Se não estiver, executar o usecase de autorizacao de 
+            
+        4. Executar a lógica de WhiteList no redis, que validará todas as requisições futuras atravpes do middleware "authMiddleware"
+
+        5. Gerar o que de fato vai ser o token de login
+    */
+
+
 
     async execute({ email, password, device_id }:IRequest): Promise<LoginResult>{
 
-        if (!email || !password) {
-            throw new AppError("'email' e 'senha' são obrigatórios.", 400, "INVALID_CREDENTIALS");
+        if (!email || !password || typeof(device_id) !== 'string') {
+            throw new AppError("Algum dado está incorreto", 400, "INVALID_CREDENTIALS");
         }
 
-        if (typeof(device_id) !== 'string'){
-            throw new AppError("Id do dispositivo invalido", 400, "INVALID_DEVICE_ID");
-        }
-
-        //1 - Find user by email
+        // 1.
         const user: User | null = await this.userRepository.findUserByEmail(email);
+
+        // 1.1.
         if(!user) throw new AppError("Email ou senha incorretos", 404, "INVALID_CREDENTIALS");
         if (!user.active) throw new AppError("Usuário inativo. Contate o administrador do sistema", 403, "USER_DISABLED");
-        if (user.paying_user && user.storeId) throw new AppError("Um usuario ")
+        if (user.paying_user && user.storeId) throw new AppError("Um usuario pago não pode ter a propriedade 'storeId'", 422, "INVALID_ENTITY");
 
-        //2 - Verify if password matches
+        // 2.
         const passwordMatch: boolean = await this.hasheStringProvider.compare(password, user.passwordHash);
         if (!passwordMatch) throw new AppError("Usuario ou senha incorretos", 404, "INVALID_CREDENTIALS");
 
+        // 3.
         const isDeviceAuthorized: AuthorizedDeviceProps | undefined = user.authorized_devices.find((item) => item.device_id === device_id);
 
+        // 3.1.
         if (!isDeviceAuthorized){
             return await this.deviceAuthorizationChallenge.execute(user, device_id)
         }
-        
-        ////////////////////////////////////////
-        //WHITELSIT -> CACHE NO REDIS - INICIO
+       
+        // 4.
+        const { tokenVersion }: outputDTO = await this.whiteListCache.execute({
+            user_id: user.id
+        })
 
-        const tokenVersion: number = Date.now();
-
-        const cacheKey: string = CacheKeys.User.TOKEN_VERSION(user.id);
-
-        await this.cacheProvider.save(
-            cacheKey,
-            tokenVersion.toString(),
-            86400 //um dia
-        )
-
-        ////////////////////////////////////////
-        //WHITELSIT -> CACHE NO REDIS - FIM
-
+        // 5.
         const token: string = this.tokenProvider.generateToken(
             user.id,
             user.role,
@@ -137,6 +129,5 @@ export class LoginUseCase {
                 }
             }
         };
-
     }
 }

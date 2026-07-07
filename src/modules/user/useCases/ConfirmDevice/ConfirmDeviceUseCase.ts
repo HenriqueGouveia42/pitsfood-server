@@ -2,6 +2,7 @@ import { AppError } from "../../../../shared/errors/AppError.js"
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js"
 import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js"
 import type { DeviceAuthorizationData, ILoginSucess } from "../login/loginUseCase.js" // Importando o contrato de resposta
+import { Store } from "../../../store/entities/store.js"
 
 /*export type DeviceAuthorizationData = {
     authorization_code: string,
@@ -14,11 +15,12 @@ import type { DeviceAuthorizationData, ILoginSucess } from "../login/loginUseCas
 import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js"
 import { User } from "../../entities/user.js"
 import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js"
+import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js"
 
 export type inputDTO = {
-    device_id: string //sent from front-end
-    authorize_device_code: string, //sent from front-end
-    device_name: string, //sent form front-end
+    device_id: string,
+    authorize_device_code: string,
+    device_name: string,
     user_id: string //anexed by 'pre_auth_token'
 }
 
@@ -44,14 +46,15 @@ export class ConfirmDeviceUseCase {
     constructor(
         private cacheProvider: ICacheProvider,
         private userRepository: IUserRepository,
-        private tokenProvider: ITokenProvider // Precisamos disso para gerar o token final
+        private tokenProvider: ITokenProvider, // Precisamos disso para gerar o token final
+        private storeRepository: IStoreRepository
     ){}
 
     async execute(input: inputDTO): Promise<ILoginSucess> {
 
         const now: Date = new Date();
 
-        //1 - First verifications
+        //1
         if (!input.device_id) throw new AppError("device_id ausente ou inválido", 400, "INVALID_DEVICE_ID");
         if (!input.authorize_device_code) throw new AppError("Código de confirmacao ausente ou invalido", 400, "INVALID_CONFIRMATION_CODE");
         if (!input.user_id) throw new AppError("Id do usuario inexistente ou invalido", 400, "INVALID_USER_ID");
@@ -85,7 +88,6 @@ export class ConfirmDeviceUseCase {
             }
         }
         
-
         //5 - Verify if the property 'authorization_code' matches 
         if(input.authorize_device_code !== deviceData.authorization_code){
             
@@ -130,6 +132,35 @@ export class ConfirmDeviceUseCase {
 
         const authorizeDevicesCacheKey: string = CacheKeys.User.AUTHORIZED_DEVICES_IDS(user.id);
         await this.cacheProvider.invalidate(authorizeDevicesCacheKey);
+
+        // Invalidar todas as chaves de cache dos dados dos usuários de todas as lojas relacionadas ao usuário em questão
+
+        console.log(updated_user)
+        
+        let stores_ids: string[] = []
+
+        if(updated_user.paying_user){ // Precisamos de todos os id's de todas as lojas desse usuario
+
+
+            const ids: string[] = await this.storeRepository.findAllStoresIdsOwnedByUserId(updated_user.id);
+
+            stores_ids.push(...ids);
+
+        } else {
+
+            if (!updated_user.storeId){
+                throw new AppError("Erro gravissimo de consistencia: esse usuario nao pago deveria ter a propriedade 'store_id'", 500, "INVALID_USER");
+            }
+
+            stores_ids.push(updated_user.storeId)
+    
+        }
+
+        const storeUsersCacheKeys: string[] = stores_ids.map(store_id => (
+            CacheKeys.User.USERS_DATA(store_id)
+        ))
+
+        await this.cacheProvider.invalidate(storeUsersCacheKeys);
 
         //10 - Login
         const tokenVersion: number = Date.now();

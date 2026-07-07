@@ -10,7 +10,7 @@ export interface GetUsersDataUseCaseResponse {
     role: string;
     active: boolean;
     email: string;
-    cpf_cnpj: string,
+    cpf_cnpj: string | null,
     phone: string | null,
     authorized_devices: AuthorizedDeviceProps[]
 }

@@ -5,7 +5,6 @@ import { UserRole } from "../../../entities/user.js";
 import { loginController } from "../../../useCases/login/index.js";
 import { isLoggedInController } from "../../../useCases/isLoggedIn/index.js";
 import { logoutController } from "../../../useCases/logout/index.js";
-import { updateUserDataController } from "../../../useCases/editUserData/index.js";
 import { getUsersDataController } from "../../../useCases/getUsersData/index.js";
 import { registerEmployeeController } from "../../../useCases/RegisterEmployee/index.js";
 import { setPermanentPasswordController } from "../../../useCases/SetPermanentPassword/index.js";
@@ -14,13 +13,13 @@ import { forgotPasswordVerifyResetPasswordTokenController } from "../../../useCa
 
 // Schemas
 import { registerEmployeeSchema } from "../zodSchemas/RegisterEmployeeSchema.js";
-import { updateUserDataSchema } from "../zodSchemas/UpdateUserDataSchema.js";
 import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
 import { loginSchema } from "../zodSchemas/LoginSchema.js";
 import { confirmDeviceController } from "../../../useCases/ConfirmDevice/index.js";
 import { updateUserNameController } from "../../../useCases/UpdateUserName/index.js";
 import { updateUserPasswordController } from "../../../useCases/UpdateUserPassword/index.js";
 import { updateUserStatusController } from "../../../useCases/UpdateUserStatus/index.js";
+import { unauthorizeDeviceController } from "../../../useCases/UnauthorizeDevice/index.js";
 
 const userRouteBuilder = new SecureRouteBuilder();
 
@@ -142,6 +141,14 @@ userRouteBuilder.build({
     schema: registerEmployeeSchema,
     handler: (request, response) => registerEmployeeController.handle(request, response)
 });
+
+userRouteBuilder.build({
+    method: 'delete',
+    path: `/unauthorize-device/:user_id_target/:device_id`,
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    handler: (request, response) => unauthorizeDeviceController.handle(request, response)
+})
 
 // Exportação limpa e direta
 export const userRoutes = userRouteBuilder.getRouter();

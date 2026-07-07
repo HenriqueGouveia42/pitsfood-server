@@ -104,7 +104,7 @@ export class PrismaUserRepository implements IUserRepository {
 
         const prismaData = PrismaUserRepository.entityToPrismaDataMapper(user);
 
-        const { user_id, store_id, created_at, authorized_devices, ...dataToUpdate } = prismaData;
+        const { user_id, store_id, created_at, ...dataToUpdate } = prismaData;
 
         await this.db.user.update({
             where:{
@@ -204,5 +204,13 @@ export class PrismaUserRepository implements IUserRepository {
 
     }
 
+    async removeAuthorizedDevice(user_id: string, device_id: string): Promise<void> {
 
+        await this.db.authorizedDevice.deleteMany({
+            where: {
+                user_id: user_id,
+                device_id: device_id
+            }
+        });
+    }
 }

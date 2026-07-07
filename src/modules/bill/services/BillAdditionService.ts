@@ -38,10 +38,9 @@ export class BillAdditionService {
             if (!physicalBillCardExists) throw new AppError(`Não existe uma comanda física de número ${bill_code_gtin} no sistema`);
 
             const billArray: Bill | null = await repositories.billRepository.getOpenBillByCode(bill_code_gtin, store_id);
-            let bill: Bill
             const now_string = new Date().toISOString();
 
-            
+            let bill: Bill
             if (!billArray) { // Se for null
                 const bill_id = crypto.randomUUID();
                 const build_props: BuildBillProps = {
@@ -52,23 +51,23 @@ export class BillAdditionService {
                 };
                 bill = Bill.buildOpenedBill(build_props);
             } else {
-                bill = billArray; // Já é a entidade
+                bill = billArray;
             }
 
-            const gtinsToFetch = products_gtins_quantities.map(item => item.product_gtin);
-            const productsArray = await repositories.productRepository.findManySavedProductsByGtinCodes(gtinsToFetch, store_id);
+            const gtinsToFetch: string[] = products_gtins_quantities.map(item => item.product_gtin);
+            const productsArray: Product[] = await repositories.productRepository.findManySavedProductsByGtinCodes(gtinsToFetch, store_id);
             
             if (gtinsToFetch.length !== productsArray.length) 
                 throw new AppError("Algum produto solicitado não existe ou está indisponível", 400, "PRODUCT_NOT_FOUND");
 
-            const productsMap = new Map<string, Product>();
+            const productsMap: Map<string, Product> = new Map<string, Product>();
             for (const p of productsArray) productsMap.set(p.gtin, p);
 
             for (const item of products_gtins_quantities) {
-                const product = productsMap.get(item.product_gtin);
+                const product: Product | undefined = productsMap.get(item.product_gtin);
                 if (!product) throw new DomainError(`O produto com GTIN ${item.product_gtin} não foi encontrado no Map.`);
 
-                const random_ids = Array.from({ length: item.quantity }, () => crypto.randomUUID());
+                const random_ids: string[] = Array.from({ length: item.quantity }, () => crypto.randomUUID());
                 bill = bill.addProduct(product, item.quantity, store_id, user_id, now_string, random_ids);
             }
 

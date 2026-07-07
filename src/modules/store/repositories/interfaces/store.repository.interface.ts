@@ -9,5 +9,6 @@ export interface IStoreRepository{
     findActiveAndExpiredStores(currentDate: Date): Promise<Store[]>;
     updateManyStores(stores: Store[]): Promise<void>;
     findActiveStores(): Promise<Store[]>;
-    findStoresExpiringOn(targetDate: Date): Promise<Store[]> 
+    findStoresExpiringOn(targetDate: Date): Promise<Store[]>;
+    findAllStoresIdsOwnedByUserId(user_id: string): Promise<string[]>;
 }
