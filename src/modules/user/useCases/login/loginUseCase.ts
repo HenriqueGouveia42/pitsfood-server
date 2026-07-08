@@ -57,54 +57,38 @@ export class LoginUseCase {
         private whiteListCache: WhiteListViaAuthTokenVersionService
     ) {}
 
-    /* 
-        1. Buscar o usuario no banco de dados
-            1.1 Realizar as devidas validações. Algumas são redundantes, pois já são validadas na criação na entidade, mas tudo bem, é a vida
-
-        2. Verificar se a senha está correta
-
-        3. Verificar se o login está sendo feito de um dispositivo autorizado
-            3.1. Se não estiver, executar o usecase de autorizacao de 
-            
-        4. Executar a lógica de WhiteList no redis, que validará todas as requisições futuras atravpes do middleware "authMiddleware"
-
-        5. Gerar o que de fato vai ser o token de login
-    */
-
-
-
     async execute({ email, password, device_id }:IRequest): Promise<LoginResult>{
 
         if (!email || !password || typeof(device_id) !== 'string') {
             throw new AppError("Algum dado está incorreto", 400, "INVALID_CREDENTIALS");
         }
 
-        // 1.
+        // 1. Buscar o usuario no banco de dados
         const user: User | null = await this.userRepository.findUserByEmail(email);
 
-        // 1.1.
+        // 1.1. Realizar as devidas validações. Algumas são redundantes, pois já são validadas na criação na entidade, mas tudo bem, é a vida
         if(!user) throw new AppError("Email ou senha incorretos", 404, "INVALID_CREDENTIALS");
         if (!user.active) throw new AppError("Usuário inativo. Contate o administrador do sistema", 403, "USER_DISABLED");
         if (user.paying_user && user.storeId) throw new AppError("Um usuario pago não pode ter a propriedade 'storeId'", 422, "INVALID_ENTITY");
 
-        // 2.
+        // 2. Verificar se a senha está correta
         const passwordMatch: boolean = await this.hasheStringProvider.compare(password, user.passwordHash);
         if (!passwordMatch) throw new AppError("Usuario ou senha incorretos", 404, "INVALID_CREDENTIALS");
 
-        // 3.
+        // 3. Verificar se o login está sendo feito de um dispositivo autorizado
         const isDeviceAuthorized: AuthorizedDeviceProps | undefined = user.authorized_devices.find((item) => item.device_id === device_id);
 
-        // 3.1.
+        // 3.1. Se não estiver, executar o usecase de autorizacao de dispositivo
         if (!isDeviceAuthorized){
             return await this.deviceAuthorizationChallenge.execute(user, device_id)
         }
        
-        // 4.
+        // 4. Executar a lógica de WhiteList no redis, que validará todas as requisições futuras atravpes do middleware "authMiddleware"
         const { tokenVersion }: outputDTO = await this.whiteListCache.execute({
             user_id: user.id
         })
 
-        // 5.
+        // 5. Gerar o que de fato vai ser o token de login
         const token: string = this.tokenProvider.generateToken(
             user.id,
             user.role,
