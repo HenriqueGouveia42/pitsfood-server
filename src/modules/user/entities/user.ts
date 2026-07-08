@@ -188,7 +188,7 @@ export class User {
 
     public addAuthorizedDeviceId(device_id: string, name: string, now: Date): User{
 
-        if (this.authorized_devices.length > MAX_QUANTITY_AUTHORIZED_DEVICES){
+        if (this.authorized_devices.length + 1 > MAX_QUANTITY_AUTHORIZED_DEVICES){
             throw new DomainError("Usuario atingiu a quantidade máxima de dispositivos autorizados", "ID_TOO_LONG");
         }
 

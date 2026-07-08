@@ -8,5 +8,6 @@ export interface IUserRepository {
     listAllSavedUsers(store_id: string, active?: boolean | undefined): Promise<User[]>;
     findUserByEmail(email: string): Promise<User | null>;
     findUserByCPFCNPJ(cpf_cnpj: string): Promise<User | null>;
-    addAuthorizedDevice(user_id: string, device_id: string, device_name: string): Promise<void>
+    addAuthorizedDevice(user_id: string, device_id: string, device_name: string): Promise<void>;
+    removeAuthorizedDevice(user_id: string, device_id: string): Promise<void>;
 }

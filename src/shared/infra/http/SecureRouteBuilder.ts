@@ -9,13 +9,13 @@ import type { ZodType } from "zod";
 
 // Contrato estrito do que uma rota precisa ter
 interface RouteConfig {
-    method: 'get' | 'post' | 'put' | 'patch' | 'delete';
-    path: string;
-    security: SecurityLevel; // OBRIGATÓRIO: O TS vai reclamar se não passar isso
-    roles: UserRole[] | 'PUBLIC'; // OBRIGATÓRIO: Força a pensar em quem pode acessar
-    schema?: ZodType<any, any, any>; // OPCIONAL: Validação de corpo/query
-    middlewares?: RequestHandler[]; // OPCIONAL: Middlewares extras (ex: multer)
-    handler: RequestHandler; // OBRIGATÓRIO: O Controller
+    method: 'get' | 'post' | 'put' | 'patch' | 'delete'; // Obrigatoróio: O TS vai reclamar se não passar isso
+    path: string; // Obrigatoróio: O TS vai reclamar se não passar isso
+    security: SecurityLevel; // Obrigatoróio: O TS vai reclamar se não passar isso
+    roles: UserRole[] | 'PUBLIC'; // Opcionaldo: Força a pensar em quem pode acessar
+    schema?: ZodType<any, any, any>; // Opcional: Validação de corpo/query
+    middlewares?: RequestHandler[]; // Opcional: Middlewares extras (ex: multer)
+    handler: RequestHandler; // Controller
 }
 
 export class SecureRouteBuilder {

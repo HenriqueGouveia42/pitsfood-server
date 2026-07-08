@@ -32,7 +32,12 @@ export class RedisCacheProvider implements ICacheProvider {
         return parsedData;
     }
 
-    public async invalidate(key: string): Promise<void> {
+    public async invalidate(key: string | string[]): Promise<void> {
+
+        if (Array.isArray(key) && key.length === 0) {
+            return;
+        }
+
         await redisClient.del(key);
     }
 

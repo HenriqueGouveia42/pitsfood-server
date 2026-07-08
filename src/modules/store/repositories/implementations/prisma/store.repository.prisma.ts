@@ -259,4 +259,24 @@ export class PrismaStoreRepository implements IStoreRepository {
         return prismaStores.map(s => PrismaStoreRepository.prismaToEntityDataMapper(s));
     }
 
+    async findAllStoresIdsOwnedByUserId(user_id: string): Promise<string[]> {
+
+        const stores = await this.db.store.findMany({
+
+            select:{
+                store_id: true
+            },
+            where:{
+                owner_id: user_id
+            }
+        })
+
+        if(stores.length === 0) return []
+
+        const store_ids: string[] = stores.map(s => s.store_id);
+
+        return store_ids
+
+    }
+
 }
