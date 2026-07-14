@@ -1,4 +1,4 @@
-import { LogoutController } from "./logoutController.js";
+import { LogoutController } from "./LogoutController.js";
 
 
 const logoutController: LogoutController = new LogoutController();

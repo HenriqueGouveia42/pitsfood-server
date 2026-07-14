@@ -1,5 +1,5 @@
-import { GetOpenBillByGtinCodeUseCase } from "./getOpenBillByGtinCodeUseCase.js";
-import { GetOpenBillByGtinCodeController } from "./getOpenBillByGtinCodeController.js";
+import { GetOpenBillByGtinCodeUseCase } from "./GetOpenBillByGtinCodeUseCase.js";
+import { GetOpenBillByGtinCodeController } from "./GetOpenBillByGtinCodeController.js";
 import { PrismaBillRepository } from "../../repositories/implementations/prisma/bill.repository.prisma.js";
 
 const billRepository: PrismaBillRepository  = new PrismaBillRepository();

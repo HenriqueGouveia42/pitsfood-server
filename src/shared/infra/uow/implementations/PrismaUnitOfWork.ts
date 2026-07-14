@@ -90,7 +90,7 @@ export class PrismaUnitOfWork implements IUnitOfWork {
                 },
 
                 get resetPasswordRepository() {
-                    if(!resetPasswordRepository) resetPasswordRepository = new PrismaResetPassword();
+                    if(!resetPasswordRepository) resetPasswordRepository = new PrismaResetPassword(tx);
                     return resetPasswordRepository
                 }
             };

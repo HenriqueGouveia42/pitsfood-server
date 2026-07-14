@@ -37,7 +37,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
         id: "basic_plan",
         title: "Plano Basic",
         description: "Ideal para food trucks, quiosques e comedorias em geral.",
-        price_in_cents: 100,
+        price_in_cents: 5900,
         currency: "BRL",
         limits: {
             max_physical_bills: 40,
@@ -53,7 +53,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
         id: "extended_plan",
         title: "Plano Extended",
         description: "Para restaurantes, bares e comedorias em crescimento.",
-        price_in_cents: 19900,
+        price_in_cents: 9900,
         currency: "BRL",
         limits: {
             max_physical_bills: 80,
@@ -69,7 +69,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
         id: "premium_plan",
         title: "Plano Premium",
         description: "Potência total para operações robustas",
-        price_in_cents: 30000,
+        price_in_cents: 19900,
         currency: "BRL",
         limits: {
             max_physical_bills: 200,

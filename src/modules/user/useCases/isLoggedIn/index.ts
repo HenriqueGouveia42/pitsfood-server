@@ -1,4 +1,4 @@
-import { IsLoggedInController } from "./isLoggedInController.js";
+import { IsLoggedInController } from "./IsLoggedInController.js";
 import { PrismaUserRepository } from "../../repositories/implementations/prisma/user.repository.prisma.js";
 
 const userRepository: PrismaUserRepository = new PrismaUserRepository();

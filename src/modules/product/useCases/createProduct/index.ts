@@ -1,6 +1,6 @@
 import { PrismaProductRepository } from "../../repositories/implementations/prisma/product.repository.prisma.js";
-import { CreateProductUseCase } from "./createProductUseCase.js"
-import { CreateProductController } from "./createProductController.js";
+import { CreateProductUseCase } from "./CreateProductUseCase.js"
+import { CreateProductController } from "./CreateProductController.js";
 import { PrismaUserRepository } from "../../../user/repositories/implementations/prisma/user.repository.prisma.js";
 import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
 import { PrismaStoreRepository } from "../../../store/repositories/implementations/prisma/store.repository.prisma.js";

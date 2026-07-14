@@ -4,10 +4,19 @@ import type { PasswordResetToken as PrismaPasswordResetToken } from "@prisma/cli
 import { PasswordResetToken as EntityPasswordResetToken, PasswordResetToken  } from "../../../entities/passwordResetToken.js";
 import type { PasswordResetTokenProps } from "../../../entities/passwordResetToken.js";
 
-import { prisma } from "../../../../../shared/infra/prisma.js";
+import { prisma as globalPrisma } from "../../../../../shared/infra/prisma.js";
+
+import { Prisma, PrismaClient } from "@prisma/client";
 
 export class PrismaResetPassword implements IPasswordResetRepository {
 
+    
+    private db: PrismaClient | Prisma.TransactionClient;
+
+    constructor(transactionClient?: Prisma.TransactionClient){
+        this.db = transactionClient ? transactionClient : globalPrisma
+    }
+    
     private static prismaToEntityDataMapper(prismaData: PrismaPasswordResetToken): EntityPasswordResetToken{
 
         const props: PasswordResetTokenProps = {
@@ -43,7 +52,7 @@ export class PrismaResetPassword implements IPasswordResetRepository {
 
         
 
-        await prisma.passwordResetToken.upsert({
+        await this.db.passwordResetToken.upsert({
             where:{
                 user_id: password_reset_token.user_id
             },
@@ -55,7 +64,7 @@ export class PrismaResetPassword implements IPasswordResetRepository {
 
     async findPasswordResetTokenById(password_reset_token_id: string): Promise<PasswordResetToken | null> {
 
-        const prismaData: PrismaPasswordResetToken | null= await prisma.passwordResetToken.findUnique({
+        const prismaData: PrismaPasswordResetToken | null= await this.db.passwordResetToken.findUnique({
             where:{
                 id: password_reset_token_id
             }
@@ -68,7 +77,7 @@ export class PrismaResetPassword implements IPasswordResetRepository {
     }
 
     async findPasswordResetTokenByUserId(user_id: string): Promise<PasswordResetToken | null> {
-        const prismaData = await prisma.passwordResetToken.findFirst({
+        const prismaData = await this.db.passwordResetToken.findFirst({
             where: { user_id: user_id }
         });
 
@@ -77,7 +86,7 @@ export class PrismaResetPassword implements IPasswordResetRepository {
     }
 
     async deletePasswordResetToken(password_reset_token_id: string): Promise<void> {
-        await prisma.passwordResetToken.delete({
+        await this.db.passwordResetToken.delete({
             where: { id: password_reset_token_id }
         });
     }

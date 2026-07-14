@@ -6,20 +6,20 @@ import { loginController } from "../../../useCases/login/index.js";
 import { isLoggedInController } from "../../../useCases/isLoggedIn/index.js";
 import { logoutController } from "../../../useCases/logout/index.js";
 import { getUsersDataController } from "../../../useCases/getUsersData/index.js";
-import { registerEmployeeController } from "../../../useCases/RegisterEmployee/index.js";
-import { setPermanentPasswordController } from "../../../useCases/SetPermanentPassword/index.js";
-import { forgotPasswordSendEmailController } from "../../../useCases/ForgotPassword/ForgotPasswordSendEmail/index.js";
-import { forgotPasswordVerifyResetPasswordTokenController } from "../../../useCases/ForgotPassword/ForgotPasswordVerifyResetPasswordToken/index.js";
+import { registerEmployeeController } from "../../../useCases/registerEmployee/index.js";
+import { setPermanentPasswordController } from "../../../useCases/setPermanentPassword/index.js";
+import { forgotPasswordSendEmailController } from "../../../useCases/forgotPassword/forgotPasswordSendEmail/index.js";
+import { forgotPasswordVerifyResetPasswordTokenController } from "../../../useCases/forgotPassword/forgotPasswordVerifyResetPasswordToken/index.js";
 
 // Schemas
 import { registerEmployeeSchema } from "../zodSchemas/RegisterEmployeeSchema.js";
 import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
 import { loginSchema } from "../zodSchemas/LoginSchema.js";
-import { confirmDeviceController } from "../../../useCases/ConfirmDevice/index.js";
-import { updateUserNameController } from "../../../useCases/UpdateUserName/index.js";
-import { updateUserPasswordController } from "../../../useCases/UpdateUserPassword/index.js";
-import { updateUserStatusController } from "../../../useCases/UpdateUserStatus/index.js";
-import { unauthorizeDeviceController } from "../../../useCases/UnauthorizeDevice/index.js";
+import { confirmDeviceController } from "../../../useCases/deviceUseCases/confirmDevice/index.js";
+import { updateUserNameController } from "../../../useCases/updateUserName/index.js";
+import { updateUserPasswordController } from "../../../useCases/updateUserPassword/index.js";
+import { updateUserStatusController } from "../../../useCases/udateUserStatus/index.js";
+import { unauthorizeDeviceController } from "../../../useCases/deviceUseCases/unauthorizeDevice/index.js";
 
 const userRouteBuilder = new SecureRouteBuilder();
 

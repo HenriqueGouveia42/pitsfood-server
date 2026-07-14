@@ -1,6 +1,6 @@
 import { PrismaUserRepository } from "../../repositories/implementations/prisma/user.repository.prisma.js";
-import { LoginUseCase } from "./loginUseCase.js";
-import { LoginController } from "./loginController.js";
+import { LoginUseCase } from "./LoginUseCase.js";
+import { LoginController } from "./LoginController.js";
 import {  JwtTokenProvider } from "../../providers/implementations/jwt/token.provider.jwt.js"
 import { BcryptjsHashedStringProvider } from "../../../../shared/providers/HashedStringProvider/implementations/BcryptjsHashedStringProvider.js";
 import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
