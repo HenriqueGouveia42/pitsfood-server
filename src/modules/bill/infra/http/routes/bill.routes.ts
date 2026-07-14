@@ -6,7 +6,7 @@ import { batchAddItemsController } from "../../../useCases/batchAddProducts/inde
 import { getOpenBillByGtinCodeController } from "../../../useCases/getOpenBillByGtinCode/index.js"
 import { findAllOpenBillsController } from "../../../useCases/findAllOpenBills/index.js"
 import { billCodeExistsController } from "../../../useCases/checkIfBillCodeExists/index.js";
-import { getPhysicalBIllCodesController } from "../../../useCases/GetPhysicalBilllCodes/index.js";
+import { getPhysicalBIllCodesController } from "../../../useCases/getPhysicalBilllCodes/index.js";
 
 // Schemas
 import { batchAddItemsSchema } from "../zodSchemas/batchAddItemsSchema.js";
@@ -42,7 +42,7 @@ billRouteBuilder.build({
     method: 'get',
     path: '/bill-code-exists/:bill_code_gtin',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
-    roles: [UserRole.CAIXA, UserRole.VENDEDOR],
+    roles: [UserRole.CAIXA, UserRole.VENDEDOR, UserRole.GESTOR],
     schema: billCodeExistsSchema,
     handler: (request, response) => billCodeExistsController.handle(request, response)
 });

@@ -224,7 +224,10 @@ export class PrismaStoreRepository implements IStoreRepository {
         
         const prismaStores = await this.db.store.findMany({
             where:{
-                active: true
+                active: true,
+                plan: {
+                    not: "NONE"
+                }
             }
         })
 
@@ -246,6 +249,9 @@ export class PrismaStoreRepository implements IStoreRepository {
         const prismaStores: PrismaStoreModel[] = await this.db.store.findMany({
             where:{
                 active: true,
+                plan:{
+                    not: "NONE"
+                },
                 subscription_status: SubscriptionStatus.ACTIVE,
                 subscription_expires_at:{
                     gte: startOfDay,

@@ -6,7 +6,7 @@ import type { ITokenProvider } from "../providers/interfaces/token.provider.inte
 import { CacheKeys } from "../../../shared/constants/cache-keys.js";
 import { SYSTEM_NAME } from "../../../config/system_data.js";
 import { User, type AuthorizedDeviceProps } from "../entities/user.js";
-import { type LoginResult, type DeviceAuthorizationData, TEN_MINUTES_IN_SECONDS } from "../useCases/login/loginUseCase.js"; // Ajuste os imports
+import { type LoginResult, type DeviceAuthorizationData, TEN_MINUTES_IN_SECONDS } from "../useCases/login/LoginUseCase.js"; // Ajuste os imports
 
 export class DeviceAuthorizationChallengeService {
     constructor(

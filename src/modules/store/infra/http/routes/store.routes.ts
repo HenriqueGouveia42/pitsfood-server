@@ -2,17 +2,17 @@ import { User, UserRole } from "../../../../user/entities/user.js";
 import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
 
 // Controllers
-import { createStoreController } from "../../../useCases/CreateStore/index.js";
-import { getStoreDataController } from "../../../useCases/GetStoreData/index.js";
-import { listMyStoresController } from "../../../useCases/ListMyStores/index.js";
-import { loginIntoStoreController } from "../../../useCases/LoginIntoStore/index.js";
-import { generateSubscriptionPixController } from "../../../useCases/GenerateSubscriptionPix/index.js";
-import { handleAbacateWebhookController } from "../../../useCases/HandleAbacateWebhook/index.js";
-import { checkPaymentStatusController } from "../../../useCases/CheckPaymentStatus/index.js";
-import { getSubscriptionDataController } from "../../../useCases/GetPlanAndPlanStatus/index.js";
-import { getPlansController } from "../../../useCases/GetPlans/index.js";
-import { updateStoreIconController } from "../../../useCases/UpdateStoreIcon/index.js";
-import { updateStoreDataController } from "../../../useCases/UpdateStoreData/index.js";
+import { createStoreController } from "../../../useCases/createStore/index.js";
+import { getStoreDataController } from "../../../useCases/getStoreData/index.js";
+import { listMyStoresController } from "../../../useCases/listMyStores/index.js";
+import { loginIntoStoreController } from "../../../useCases/loginIntoStore/index.js";
+import { generateSubscriptionPixController } from "../../../useCases/subscriptions/generateSubscriptionPix/index.js";
+import { handleAbacateWebhookController } from "../../../useCases/subscriptions/handleAbacateWebhook/index.js";
+import { checkPaymentStatusController } from "../../../useCases/subscriptions/checkPaymentStatus/index.js";
+import { getSubscriptionDataController } from "../../../useCases/getPlanAndPlanStatus/index.js";
+import { getPlansController } from "../../../useCases/getPlans/index.js";
+import { updateStoreIconController } from "../../../useCases/updateStoreIcon/index.js";
+import { updateStoreDataController } from "../../../useCases/updateStoreData/index.js";
 
 // Schemas
 import { createStoreSchema } from "../zodSchemas/CreateStoreSchema.js";
@@ -20,8 +20,8 @@ import { createStoreSchema } from "../zodSchemas/CreateStoreSchema.js";
 // Uploads
 import multer from "multer";
 import { uploadConfig } from "../../../../../config/uploads.js"; 
-import { renewSubscriptionController } from "../../../useCases/RenewSubscription/index.js";
-import { simulateSubscriptionPaymentController } from "../../../useCases/SimulateSubscriptionPayment/index.js";
+import { renewSubscriptionController } from "../../../useCases/subscriptions/renewSubscription/index.js";
+import { simulateSubscriptionPaymentController } from "../../../useCases/subscriptions/simulateSubscriptionPayment/index.js";
 
 const upload = multer(uploadConfig);
 const storeRouteBuilder = new SecureRouteBuilder();

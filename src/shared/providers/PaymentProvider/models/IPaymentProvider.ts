@@ -1,22 +1,22 @@
 export interface ICreateTransparentPixDTO {
-    amount: number; // Valor em centavos
+    amount: number; 
     description: string;
-    expiresIn: number; // Tempo de expiração em segundos (ex: 86400 para 24h)
+    expiresIn: number; 
     customer: {
         name: string;
         email: string;
-        taxId: string; // CPF ou CNPJ
+        taxId: string;
         cellphone: string;
     };
-    metadata?: Record<string, any>; // Usaremos para injetar o seu invoice_id
+    metadata?: Record<string, any>; 
 }
 
 export interface ITransparentPixResponse {
-    id: string; // ID da transação no gateway (ex: pix_char_abc123)
+    id: string;
     amount: number;
     status: string;
-    brCode: string; // O famoso "Copia e Cola"
-    brCodeBase64: string; // Imagem do QR Code para o front-end
+    brCode: string;
+    brCodeBase64: string;
     expiresAt: string;
 }
 

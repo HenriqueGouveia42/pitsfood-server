@@ -1,7 +1,7 @@
 import { PrismaUnitOfWork } from "../../../../shared/infra/uow/implementations/PrismaUnitOfWork.js";
 import { BillAdditionService } from "../../services/BillAdditionService.js";
-import { BatchAddItemsUseCase } from "./batchAddItemsUseCase.js";
-import { BatchAddItemsController } from "./batchAddItemsController.js";
+import { BatchAddItemsUseCase } from "./BatchAddItemsUseCase.js";
+import { BatchAddItemsController } from "./BatchAddItemsController.js";
 
 // 1. Instancia a Infraestrutura (A fábrica que controla o banco de dados)
 const prismaUnitOfWork: PrismaUnitOfWork = new PrismaUnitOfWork();

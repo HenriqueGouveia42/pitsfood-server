@@ -53,6 +53,7 @@ export class PrismaProductRepository implements IProductRepository {
 
     async saveProduct(product: Product, store_id: string): Promise<void> {
         if (product.store_id !== store_id){
+            console.log(`store_id do produto:${product.store_id} - store_id da loja:${store_id}`)
             throw new AppError("Tentativa de violação de segurança: O produto não pertence a essa loja", 403, "STORE_MISMATCH");
         }
         const entityToPrismaDataMapped = PrismaProductRepository.entityToPrismaDataMapper(product);
@@ -92,6 +93,7 @@ export class PrismaProductRepository implements IProductRepository {
 
     async updateSavedProduct(product: Product, store_id: string): Promise<Product> {
         if (product.store_id != store_id){
+            console.log(`store_id do produto:${product.store_id} - store_id da loja:${store_id}`)
             throw new AppError("Tentativa de violação de segurança: O produto não pertence a essa loja", 403, "STORE_MISMATCH");
         }
         const mappedToPrisma = PrismaProductRepository.entityToPrismaDataMapper(product);

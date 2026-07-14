@@ -25,7 +25,7 @@ export class PrismaSaleRepository implements ISaleRepository {
         this.db = transactionClient ? transactionClient : globalPrisma
     }
 
-   private static entityToPrismaSaleDataMapper(sale: Sale): Prisma.SaleCreateInput {
+    private static entityToPrismaSaleDataMapper(sale: Sale): Prisma.SaleCreateInput {
         return {
             sale_id: sale.id,
             total_price: sale.total.toNumber(),
@@ -37,12 +37,10 @@ export class PrismaSaleRepository implements ISaleRepository {
             created_at: new Date(sale.createdAt),
             updated_at: new Date(sale.updatedAt),
 
-            // O Prisma vai usar esse store_id e esse user_id para construir o Pai 
-            // e vai injetar esse store_id automaticamente nos filhos (items e payments)
             store: { connect: { store_id: sale.store_id } },
-            user: { connect: { user_id: sale.userId, store_id: sale.store_id } }, 
             
-            // Mapeamento dos ITENS
+            user: { connect: { user_id: sale.userId } },
+
             items: { 
                 createMany: {
                     data: sale.items.map(item => ({
@@ -52,11 +50,6 @@ export class PrismaSaleRepository implements ISaleRepository {
                         unit_price_snapshot: item.unit_price_snapshot.toNumber(),
                         product_name_snapshot: item.product_name_snapshot,
                         product_gtin_snapshot: item.product_gtin_snapshot,
-
-                        // REMOVA O store_id AQUI (O Prisma injeta sozinho por causa do Nested Write)
-                        // store_id: item.store_id, <--- APAGAR
-                        
-                        // Mantenha apenas as chaves estrangeiras para tabelas EXTERNAS à venda
                         product_id: item.product_id,
                         origin_bill_id: item.origin_bill_id ?? null
                     }))

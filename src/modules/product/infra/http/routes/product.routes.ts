@@ -4,9 +4,9 @@ import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRoute
 // Controllers
 import { createProductController } from "../../../useCases/createProduct/index.js";
 import { getAllProductsController } from "../../../useCases/getAllProducts/index.js";
-import { updateProductController } from "../../../useCases/UpdateProduct/index.js";
-import { makeStockEntryController } from "../../../useCases/MakeStockEntry/index.js";
-import { listStockEntriesController } from "../../../useCases/ListStockEntries/index.js";
+import { updateProductController } from "../../../useCases/updateProduct/index.js";
+import { makeStockEntryController } from "../../../useCases/makeStockEntry/index.js";
+import { listStockEntriesController } from "../../../useCases/listStockEntries/index.js";
 
 // Schemas
 import { CreateProductSchema } from "../zodSchemas/CreateProductSchema.js";
