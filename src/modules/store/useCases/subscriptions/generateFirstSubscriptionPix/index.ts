@@ -1,5 +1,5 @@
-import { GenerateSubscriptionPixUseCase } from "./GenerateSubscriptionPixUseCase.js";
-import { GenerateSubscriptionPixController } from "./GenerateSubscriptionPixController.js";
+import { GenerateFirstSubscriptionPixUseCase } from "./GenerateFirstSubscriptionPixUseCase.js";
+import { GenerateFirstSubscriptionPixController } from "./GenerateFirstSubscriptionPixController.js";
 
 //repos
 import { PrismaStoreRepository } from "../../../repositories/implementations/prisma/store.repository.prisma.js";
@@ -16,7 +16,7 @@ const invoiceRepository = new PrismaSubscriptionInvoiceRepository(); // O novo r
 const paymentProvider = new AbacatePayProvider(); // O provider que fala com o Abacate
 const calculator: SubscriptionCalculator = new SubscriptionCalculator();
 
-const generateSubscriptionPixUseCase = new GenerateSubscriptionPixUseCase(
+const generateSubscriptionPixUseCase = new GenerateFirstSubscriptionPixUseCase(
     storeRepository,
     userRepository,
     paymentProvider,
@@ -24,6 +24,6 @@ const generateSubscriptionPixUseCase = new GenerateSubscriptionPixUseCase(
     calculator
 );
 
-const generateSubscriptionPixController = new GenerateSubscriptionPixController(generateSubscriptionPixUseCase);
+const generateFirstSubscriptionPixController = new GenerateFirstSubscriptionPixController(generateSubscriptionPixUseCase);
 
-export { generateSubscriptionPixController };
+export { generateFirstSubscriptionPixController };

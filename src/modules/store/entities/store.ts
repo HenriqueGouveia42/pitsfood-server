@@ -43,6 +43,7 @@ export class Store {
     // Assim, o buildStore, o restore e qualquer setter passarão por essa peneira.
     private constructor(private readonly props: StoreProps) {
         this.validateSubscriptionState();
+        this.validateCnpj(this.cnpj);
     }
 
     public get getProps(): StoreProps {
@@ -101,7 +102,7 @@ export class Store {
         }
     }
 
-    private static validateCnpj(cnpj: string | null): void {
+    private validateCnpj(cnpj: string | null): void {
         if (cnpj !== null) {
             const isCNPJValid: boolean = validCNPJ(cnpj);
             if (!isCNPJValid) throw new DomainError("CNPJ invalido", "INVALID_CNPJ");
@@ -111,12 +112,9 @@ export class Store {
 
     public static buildStore(build_props: BuildStoreProps): Store {
         
-        Store.validateNameLength(build_props.name);
         const formattedName = Store.formatNameTitleCase(build_props.name);
+        Store.validateNameLength(formattedName);
         
-        Store.validateIconUrl(build_props.store_icon_url);
-        Store.validateCnpj(build_props.cnpj);
-
         return new Store({
             store_id: build_props.store_id,
             name: formattedName,
@@ -195,6 +193,14 @@ export class Store {
             subscription_status: SubscriptionStatus.PAST_DUE,
             updated_at: new Date().toISOString()
         });
+    }
+
+    public updateSubscriptionExpiresAt(date: Date): Store {
+        return new Store({
+            ...this.props,
+            subscription_expires_at: date.toISOString(),
+            updated_at: new Date().toISOString()
+        })
     }
 
     public validateUserRoleLimit(role: UserRole, currentActiveCountForRole: number): void {

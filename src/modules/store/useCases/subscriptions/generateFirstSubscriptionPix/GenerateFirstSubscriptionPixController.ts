@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { GenerateSubscriptionPixUseCase } from "./GenerateSubscriptionPixUseCase.js";
+import { GenerateFirstSubscriptionPixUseCase } from "./GenerateFirstSubscriptionPixUseCase.js";
 import { SubscriptionPlan } from "../../../entities/store.enums.js";
 import { AppError } from "../../../../../shared/errors/AppError.js";
 
@@ -14,10 +14,10 @@ interface GenerateSubscriptionPixUseCaseDTOResponse {
     invoice_id: string;
 }
 
-export class GenerateSubscriptionPixController {
+export class GenerateFirstSubscriptionPixController {
 
     constructor(
-        private generateSubscriptionPixUseCase: GenerateSubscriptionPixUseCase
+        private generateFirstSubscriptionPixUseCase: GenerateFirstSubscriptionPixUseCase
     ) {}
 
     public async handle(req: Request, res: Response): Promise<Response> {
@@ -31,7 +31,7 @@ export class GenerateSubscriptionPixController {
 
         if (typeof(store_id) !== 'string') throw new AppError("Tipo incorreto na requisicao", 500, "INVALID_TYPE")
 
-        const result: GenerateSubscriptionPixUseCaseDTOResponse = await this.generateSubscriptionPixUseCase.execute({
+        const result: GenerateSubscriptionPixUseCaseDTOResponse = await this.generateFirstSubscriptionPixUseCase.execute({
             store_id,
             user_id,
             plan

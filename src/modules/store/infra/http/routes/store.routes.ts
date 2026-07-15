@@ -6,7 +6,7 @@ import { createStoreController } from "../../../useCases/createStore/index.js";
 import { getStoreDataController } from "../../../useCases/getStoreData/index.js";
 import { listMyStoresController } from "../../../useCases/listMyStores/index.js";
 import { loginIntoStoreController } from "../../../useCases/loginIntoStore/index.js";
-import { generateSubscriptionPixController } from "../../../useCases/subscriptions/generateSubscriptionPix/index.js";
+import { generateFirstSubscriptionPixController } from "../../../useCases/subscriptions/generateFirstSubscriptionPix/index.js";
 import { handleAbacateWebhookController } from "../../../useCases/subscriptions/handleAbacateWebhook/index.js";
 import { checkPaymentStatusController } from "../../../useCases/subscriptions/checkPaymentStatus/index.js";
 import { getSubscriptionDataController } from "../../../useCases/getPlanAndPlanStatus/index.js";
@@ -68,10 +68,10 @@ storeRouteBuilder.build({
 // NÍVEL 2: REQUER LOJA SELECIONADA NA SESSÃO
 storeRouteBuilder.build({
     method: 'post',
-    path: '/generate-subscription-pix',
+    path: '/generate-first-subscription-pix',
     security: 'REQUIRE_STORE',
     roles: [UserRole.GESTOR],
-    handler: (request, response) => generateSubscriptionPixController.handle(request, response)
+    handler: (request, response) => generateFirstSubscriptionPixController.handle(request, response)
 });
 
 storeRouteBuilder.build({
@@ -141,5 +141,13 @@ storeRouteBuilder.build({
     // schema: updateStoreNameSchema, // Adicionar quando criar o schema
     handler: (request, response) => updateStoreDataController.handle(request, response)
 });
+
+storeRouteBuilder.build({
+    method: 'post',
+    path: '/renew-subscription',
+    security: 'REQUIRE_STORE',
+    roles: [UserRole.GESTOR],
+    handler: (request, response) => renewSubscriptionController.handle(request, response)
+})
 
 export const storeRoutes = storeRouteBuilder.getRouter();

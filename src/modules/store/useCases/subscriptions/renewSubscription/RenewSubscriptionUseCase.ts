@@ -1,25 +1,20 @@
 import { AppError } from "../../../../../shared/errors/AppError.js";
-import { SubscriptionStatus, SubscriptionPlan } from "../../../entities/store.enums.js";
-import { Store } from "../../../entities/store.js";
+import { SubscriptionPlan } from "../../../entities/store.enums.js";
 import type { IStoreRepository } from "../../../repositories/interfaces/store.repository.interface.js";
 import { SubscriptionCalculator } from "../../../providers/SubscriptionCalculator.js";
 import type { IPaymentProvider } from "../../../../../shared/providers/PaymentProvider/models/IPaymentProvider.js";
-import { User, UserRole } from "../../../../user/entities/user.js";
+import { UserRole } from "../../../../user/entities/user.js";
 import type { IUserRepository } from "../../../../user/repositories/interfaces/user.repository.interface.js";
 import { SubscriptionInvoice } from "../../../entities/subscriptionInvoice.js";
 import type { ISubscriptionInvoiceRepository } from "../../../repositories/interfaces/subscriptionInvoice.repository.interface.js";
 import type { BuildSubscriptionInvoiceProps } from "../../../entities/subscriptionInvoice.js";
+import type { IGenerateFirstSubscriptionPixUseCaseResponse as IGenerateRenewSubscriptionPixUseCaseResponse } from "../generateFirstSubscriptionPix/GenerateFirstSubscriptionPixUseCase.js";
+
 import crypto from "crypto";
 
 interface IRenewSubscriptionUseCaseRequest {
     store_id: string;
     user_id: string;
-}
-
-interface IResponse {
-    payment_url: string;
-    amount: number;
-    invoice_id: string;
 }
 
 export class RenewSubscriptionUseCase {
@@ -32,91 +27,106 @@ export class RenewSubscriptionUseCase {
         private paymentProvider: IPaymentProvider
     ) {}
 
-    async execute({ store_id, user_id }: IRenewSubscriptionUseCaseRequest): Promise<IResponse> {
+    async execute({ store_id, user_id }: IRenewSubscriptionUseCaseRequest): Promise<IGenerateRenewSubscriptionPixUseCaseResponse> {
 
-        const store: Store | null = await this.storeRepository.findSavedStoreById(store_id);
-        if (!store) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND");
-
-        const owner: User | null = await this.userRepository.findSavedUserById(user_id);
-        if (!owner) throw new AppError("Usuario nao encontrado", 404, "USER_NOT_FOUND");
-        if (owner.role !== UserRole.GESTOR) throw new AppError("Acesso negado: Apenas o gestor pode renovar a assinatura.", 401, "ROLE_UNAUTHORIZED");
-        if (store.ownerId !== user_id) throw new AppError("Usuario não é o proprietario da loja", 401, "MUST_BE_THE_STORE_OWNER");
+        // 1 - Buscar loja e dono
+        const store = await this.storeRepository.findSavedStoreById(store_id);
+        if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
         if (store.plan === SubscriptionPlan.NONE) throw new AppError("Esta loja não possui um plano base para renovar.", 400, "NO_PLAN_TO_RENEW");
+
+        const owner = await this.userRepository.findSavedUserById(user_id);
+        if (!owner) throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
+        if (owner.role !== UserRole.GESTOR) throw new AppError("Acesso negado: Apenas o gestor pode renovar a assinatura.", 401, "ROLE_UNAUTHORIZED");
+        if (store.ownerId !== owner.id) throw new AppError("Usuário não é o proprietário da loja", 401, "MUST_BE_THE_STORE_OWNER");
         
-        let targetInvoice: SubscriptionInvoice | null = await this.invoiceRepository.findPendingByStoreId(store.id);
-        const now: Date = new Date();
+        const rawTaxId = owner.cpf_cnpj;
+        if (!rawTaxId) throw new AppError("Usuário precisa de um CPF/CNPJ para gerar cobranças.", 400, "MISSING_TAX_ID");
 
-        // Se a fatura existe e já possui PIX gerado, retornamos ela (Idempotência)
-        if (targetInvoice && targetInvoice.gatewayInvoiceId) {
-            return {
-                payment_url: targetInvoice.paymentUrl || "",
-                amount: targetInvoice.amount,
-                invoice_id: targetInvoice.id
-            };
+        if (!store.subscription_expires_at) throw new AppError("Erro grave de integração. Loja sem data de expiração", 500, "MISSING_EXPIRATION_DATE");
+
+        // 2 - Validação da regra dos 5 dias (Matemática de Datas Segura)
+        const now = new Date();
+        const store_expires_at = new Date(store.subscription_expires_at);
+
+        // Diferença normal. Se for positivo, a loja AINDA VAI VENCER. Se negativo, JÁ VENCEU.
+        const diffMs = store_expires_at.getTime() - now.getTime();
+        const diasFaltantes = diffMs / (1000 * 60 * 60 * 24);
+
+        if (diasFaltantes > 5) {
+            const dataRenovacao = new Date(store_expires_at);
+            dataRenovacao.setDate(dataRenovacao.getDate() - 5);
+            
+            // Formatado considerando o fuso horário correto para a UI do cliente
+            const dataFormatada = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo' }).format(dataRenovacao);
+            
+            throw new AppError(`Renovação antecipada não permitida. Volte a partir do dia ${dataFormatada}.`, 403, "EARLY_RENEWAL_NOT_ALLOWED");
         }
 
-        let amount_in_cents = 0;
-        let invoice_id = "";
+        // 3 - Verificação de Idempotência
+        const pendingInvoice = await this.invoiceRepository.findPendingByStoreId(store_id);
 
-        // se a fatura existe mas não tem PIX (veio do Cron), vamos atualizá-la
-        if (targetInvoice && !targetInvoice.gatewayInvoiceId) {
-            amount_in_cents = targetInvoice.amount;
-            invoice_id = targetInvoice.id;
-        } 
-        // fallback: Se o Cron falhou e a fatura não existe, criamos uma do zero
-        else {
-            let baseDateForCalculation = (store.subscription_status === SubscriptionStatus.PAST_DUE || store.subscription_status === SubscriptionStatus.CANCELED) 
-                ? now 
-                : new Date(store.subscription_expires_at!);
+        if (pendingInvoice) {
+            if (!pendingInvoice.pixCode) throw new AppError("Erro grave: Fatura pendente sem PIX Code", 500, "INVOICE_WITHOUT_PIX_CODE");
 
-            const calculation = this.subscriptionCalculator.calculateInvoice(store.plan, baseDateForCalculation);
-            amount_in_cents = calculation.amount_in_cents;
-            invoice_id = crypto.randomUUID().toString();
-            
-            const build_props: BuildSubscriptionInvoiceProps = {
-                now_date: now.toISOString(),
-                invoice_id,
-                amount_in_cents,
-                store_id: store.id,
-                plan_tag: store.plan,
-                period_end: calculation.target_date.toISOString()
-            };
-            
-            targetInvoice = SubscriptionInvoice.buildInvoice(build_props);
-            await this.invoiceRepository.save(targetInvoice);
+            // Assumimos que a renovação mantém o plano atual da loja
+            if (pendingInvoice.planTag === store.plan) {
+                return {
+                    br_code: pendingInvoice.pixCode,
+                    br_code_base64: pendingInvoice.paymentUrl || "",
+                    amount: pendingInvoice.amount,
+                    invoice_id: pendingInvoice.id
+                };
+            }
+
+            throw new AppError("Você já possui uma fatura pendente com divergência de plano. Aguarde sua expiração.", 409, "PENDING_INVOICE_EXISTS");
         }
 
-        const cleanTaxId = owner.cpf_cnpj ? owner.cpf_cnpj.replace(/\D/g, "") : "";
+        // 4 - Lógica de Base Date (O coração da renovação)
+        // Se já venceu (diffMs <= 0), inicia hoje. Se não venceu (diffMs > 0), inicia no vencimento original.
+        const baseDate: Date = diffMs <= 0 ? now : store_expires_at;
 
-        // chama o gateway V2 usando o Checkout Transparente
+        const { amount_in_cents, target_date } = this.subscriptionCalculator.calculateInvoice(store.plan, baseDate);
+
+        // 5 - Criação no Gateway (Abacate Pay)
+        const invoice_id = crypto.randomUUID();
         const paymentData = await this.paymentProvider.createTransparentPix({
             amount: amount_in_cents,
-            description: `Renovação de Assinatura - Plano ${store.plan}`,
-            expiresIn: 86400, // 24 horas cravadas a partir do clique do usuário
+            description: `Renovação ${store.plan} (1 Mês)`,
+            expiresIn: 86400,
             customer: {
                 name: owner.username,
                 email: owner.email,
-                taxId: cleanTaxId,
-                cellphone: owner.phone || "(00) 00000-0000"
+                taxId: rawTaxId,
+                cellphone: owner.phone ? owner.phone : "(00) 00000-0000"
             },
             metadata: {
                 internal_invoice_id: invoice_id
             }
         });
 
-        // adiciona os dados reais de cobrança à fatura lógica e atualiza no banco
-        const updatedInvoice = targetInvoice.addGatewayDetails(
-            paymentData.id,
-            paymentData.brCode,
-            paymentData.brCodeBase64
-        );
+        // 6 - Salvando no Banco de Dados
+        const build_invoice_props: BuildSubscriptionInvoiceProps = {
+            now_date: now.toISOString(),
+            invoice_id,
+            amount_in_cents,
+            store_id: store.id,
+            plan_tag: store.plan,
+            period_end: target_date.toISOString(),
+            gateway_data: {
+                gateway_invoice_id: paymentData.id,
+                pix_code: paymentData.brCode,
+                payment_url: paymentData.brCodeBase64 
+            }
+        };
 
-        await this.invoiceRepository.update(updatedInvoice);
+        const invoice = SubscriptionInvoice.buildInvoice(build_invoice_props);
+        await this.invoiceRepository.save(invoice);
 
         return {
-            payment_url: paymentData.brCodeBase64, // O front pode usar isso para renderizar o QR Code
+            br_code: paymentData.brCode,
+            br_code_base64: paymentData.brCodeBase64,
             amount: amount_in_cents,
-            invoice_id: invoice_id
+            invoice_id: invoice.id
         };
     }
 }

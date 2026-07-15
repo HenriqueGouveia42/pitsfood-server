@@ -14,9 +14,6 @@ export class ProcessOverdueSubscriptionsUseCase {
     // 3. Atualiza o banco de dados em lote passando as entidades completas
     // 4 - Limpeza do Cache (Redis)
 
-
-
-
     public async execute(): Promise<void> {
         
         const now = new Date();

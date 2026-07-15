@@ -1,6 +1,6 @@
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { Bill } from "../../entities/bill.js";
-import type { IBillRepository } from "../../repositories/bill.repository.interface.js";
+import type { IBillRepository } from "../../repositories/interfaces/bill.repository.interface.js";
 
 type RequestDTO = {
     store_id: string,
