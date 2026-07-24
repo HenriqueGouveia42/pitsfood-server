@@ -21,6 +21,7 @@ export class ConfirmDeviceController {
     handle = async (req: Request, res: Response): Promise<Response> => {
         
         const user_id = req.preAuthUserId;
+        const isMobileClient: boolean = req.headers['x-client-type'] === 'mobile';
         
         if (!user_id) {
             throw new AppError("Acesso negado. Token de pré-autorização ausente.", 401, "PRE_AUTH_MISSING");
@@ -49,9 +50,15 @@ export class ConfirmDeviceController {
         // Planta o cookie definitivo
         res.cookie('token', token, this.getCookieOptions(1000 * 60 * 60 * 24)); // 1 dia
 
-        return res.status(200).json({
+        const responsePayload: any = {
             message: "Dispositivo autorizado e login realizado com sucesso",
             user: user
-        });
+        }
+
+        if(isMobileClient){
+            responsePayload.token = token
+        }
+        
+        return res.status(200).json(responsePayload);
     }
 }

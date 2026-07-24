@@ -2,7 +2,8 @@ export const CacheKeys = {
     Store: {
         SUMMARY: (storeId: string) => `store-summary:${storeId}`,
         PHYSICAL_BILLS_CODES: (storeId: string) => `store-physical-bills-codes:${storeId}`,
-        SUBSCRIPTION_STATUS: (storeId: string) => `store-subscription-status:${storeId}`
+        SUBSCRIPTION_STATUS: (storeId: string) => `store-subscription-status:${storeId}`,
+        PENDING_DEVICES: (storeId: string) => `store-pending-devices:${storeId}`
     },
     User: {
         TOKEN_VERSION: (userId: string) => `user-token-version:${userId}`,

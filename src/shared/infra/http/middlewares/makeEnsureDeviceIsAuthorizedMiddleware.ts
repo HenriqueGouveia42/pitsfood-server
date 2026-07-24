@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../../../errors/AppError.js";
 import { User } from "../../../../modules/user/entities/user.js";
 import { CacheKeys } from "../../../constants/cache-keys.js";
-import { cacheProvider } from "../../../providers/CacheProvider/index.js";
+import { cacheProvider } from "../../providers/implementations/cacheProvider/index.js";
 import type { IUserRepository } from "../../../../modules/user/repositories/interfaces/user.repository.interface.js";
 
 

@@ -4,7 +4,7 @@ import { Decimal } from "decimal.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
 import type { User } from "../../../user/entities/user.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import type { BuildProductProps } from "../../entities/product.js";
 import type { Store } from "../../../store/entities/store.js";

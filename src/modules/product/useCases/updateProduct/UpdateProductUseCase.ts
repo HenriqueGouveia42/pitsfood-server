@@ -5,7 +5,7 @@ import { User } from '../../../user/entities/user.js';
 import { AppError } from '../../../../shared/errors/AppError.js';
 import type { Product } from '../../entities/product.js';
 import { UserRole } from '@prisma/client';
-import type { ICacheProvider } from '../../../../shared/providers/CacheProvider/models/ICacheProvider.js';
+import type { ICacheProvider } from '../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js';
 import { CacheKeys } from '../../../../shared/constants/cache-keys.js';
 import type { IStoreRepository } from '../../../store/repositories/interfaces/store.repository.interface.js';
 import type { Store } from '../../../store/entities/store.js';

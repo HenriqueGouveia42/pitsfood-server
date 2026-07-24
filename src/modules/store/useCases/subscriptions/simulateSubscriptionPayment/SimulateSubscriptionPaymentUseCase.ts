@@ -1,6 +1,6 @@
 import { AppError } from "../../../../../shared/errors/AppError.js";
 import type { ISubscriptionInvoiceRepository } from "../../../repositories/interfaces/subscriptionInvoice.repository.interface.js";
-import type { IPaymentProvider } from "../../../../../shared/providers/PaymentProvider/models/IPaymentProvider.js";
+import type { IPaymentProvider } from "../../../../../shared/providers/interfaces/paymentProvider/IPaymentProvider.js";
 import type { SubscriptionInvoice } from "../../../entities/subscriptionInvoice.js";
 
 interface IRequest {

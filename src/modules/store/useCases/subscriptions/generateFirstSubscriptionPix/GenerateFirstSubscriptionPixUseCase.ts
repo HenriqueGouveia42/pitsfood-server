@@ -1,7 +1,7 @@
 import { AppError } from "../../../../../shared/errors/AppError.js";
 import type { IStoreRepository } from "../../../repositories/interfaces/store.repository.interface.js";
 import type { IUserRepository } from "../../../../user/repositories/interfaces/user.repository.interface.js";
-import type { IPaymentProvider } from "../../../../../shared/providers/PaymentProvider/models/IPaymentProvider.js";
+import type { IPaymentProvider } from "../../../../../shared/providers/interfaces/paymentProvider/IPaymentProvider.js";
 import { SubscriptionCalculator } from "../../../providers/SubscriptionCalculator.js";
 import { SubscriptionPlan, SubscriptionStatus } from "../../../entities/store.enums.js";
 import { Store } from "../../../entities/store.js";

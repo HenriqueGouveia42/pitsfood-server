@@ -4,7 +4,7 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 import { compare, hash } from "bcryptjs";
 
 import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 interface IsetPermanentPasswordRequest {

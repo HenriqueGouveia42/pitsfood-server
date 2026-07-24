@@ -1,4 +1,4 @@
-import { UserRole } from "../../../../generated/prisma/enums.js";
+import { UserRole } from "../../entities/user.js";
 
 export interface ITokenProvider {
     generateToken(
@@ -13,5 +13,7 @@ export interface ITokenProvider {
 
     generatePreAuthToken(
         userId: string
-    ): string
+    ): string;
+
+    verifyToken<T>(token: string): T;
 }

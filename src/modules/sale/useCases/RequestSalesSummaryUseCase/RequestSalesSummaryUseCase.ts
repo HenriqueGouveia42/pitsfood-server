@@ -1,5 +1,5 @@
 import { AppError } from "../../../../shared/errors/AppError.js";
-import type { IQueueProvider } from "../../../../shared/providers/QueueProvider/models/IQueueProvider.js";
+import type { IQueueProvider } from "../../../../shared/providers/interfaces/queueProvider/IQueueProvider.js";
 
 interface IRequest {
     startDate: Date;

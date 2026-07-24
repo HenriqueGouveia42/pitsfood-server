@@ -1,4 +1,4 @@
-import type { IHashedStringProvider } from "../models/IHashedStringProvider.js";
+import type { IHashedStringProvider } from "../IHashedStringProvider.js";
 import { hash, compare } from "bcryptjs";
 
 export class BcryptjsHashedStringProvider implements IHashedStringProvider{

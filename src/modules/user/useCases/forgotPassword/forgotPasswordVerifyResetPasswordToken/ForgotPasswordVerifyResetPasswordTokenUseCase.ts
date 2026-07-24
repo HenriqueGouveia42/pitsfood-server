@@ -1,5 +1,5 @@
 import type { IUserRepository } from "../../../repositories/interfaces/user.repository.interface.js"
-import type { IHashedStringProvider } from "../../../../../shared/providers/HashedStringProvider/models/IHashedStringProvider.js";
+import type { IHashedStringProvider } from "../../../../../shared/providers/interfaces/hashedStringProvider/IHashedStringProvider.js";
 import { User } from "../../../entities/user.js"
 import { PasswordResetToken } from "../../../entities/passwordResetToken.js";
 import { AppError } from "../../../../../shared/errors/AppError.js";

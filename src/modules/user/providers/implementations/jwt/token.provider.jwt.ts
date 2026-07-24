@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken"
 
-const { sign } = jwt;
+const { sign, verify } = jwt;
 
 import { AppError } from "../../../../../shared/errors/AppError.js";
 import type { ITokenProvider } from "../../interfaces/token.provider.interface.js";
@@ -59,5 +59,15 @@ export class JwtTokenProvider implements ITokenProvider {
                 expiresIn: "10m"
             }
         )
+    }
+
+    verifyToken<T>(token: string): T {
+        const secret = process.env.JWT_SECRET as string | undefined;
+        
+        if(!secret){
+            throw new AppError("Erro interno: SECRET não configurado", 500, "SECRET_NOT_FOUND");
+        }
+
+        return verify(token, secret) as T;
     }
 }

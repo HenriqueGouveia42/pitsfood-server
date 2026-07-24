@@ -4,7 +4,7 @@ import { User, UserRole } from "../../../entities/user.js";
 import type { IUserRepository } from "../../../repositories/interfaces/user.repository.interface.js";
 import { Store } from "../../../../store/entities/store.js";
 import { CacheKeys } from "../../../../../shared/constants/cache-keys.js";
-import type { ICacheProvider } from "../../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 
 export interface inputDTO{
     user_id_trying_unauthorize_device: string,

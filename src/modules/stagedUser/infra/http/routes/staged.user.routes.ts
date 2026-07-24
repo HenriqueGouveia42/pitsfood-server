@@ -1,4 +1,4 @@
-import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
+import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/SecureRouteBuilder.js";
 
 // Controllers
 import { registerStagedUserController } from "../../../useCases/RegisterStagedUser/index.js";

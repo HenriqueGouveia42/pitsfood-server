@@ -5,7 +5,7 @@ import { User } from "../../entities/user.js";
 import { UserRole } from "../../entities/user.js"; 
 import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
 import { Store } from "../../../store/entities/store.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import { SubscriptionPlan } from "../../../store/entities/store.enums.js";
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";

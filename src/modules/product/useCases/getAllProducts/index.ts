@@ -1,7 +1,7 @@
 import { GetAllProductsUseCase } from "./GetAllProductsUseCase.js";
 import { PrismaProductRepository } from "../../repositories/implementations/prisma/product.repository.prisma.js";
 import { GetAllProductsController } from "./GetAllProductsController.js";
-import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
+import { RedisCacheProvider } from "../../../../shared/infra/providers/implementations/cacheProvider/RedisCacheProvider.js";
 
 const redisCacheProvider: RedisCacheProvider = new RedisCacheProvider();
 const productRepository = new PrismaProductRepository();

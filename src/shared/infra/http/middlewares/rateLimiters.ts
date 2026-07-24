@@ -1,6 +1,6 @@
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { redisClient } from '../redis/index.js';
+import { redisClient } from '../../redis/index.js';
 
 const createRedisStore = (prefix: string) => new RedisStore({
     sendCommand: (...args: string[]) => redisClient.sendCommand(args),

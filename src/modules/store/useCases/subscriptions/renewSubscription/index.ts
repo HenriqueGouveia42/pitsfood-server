@@ -5,7 +5,7 @@ import { PrismaStoreRepository } from "../../../repositories/implementations/pri
 import { PrismaUserRepository } from "../../../../user/repositories/implementations/prisma/user.repository.prisma.js";
 import { PrismaSubscriptionInvoiceRepository } from "../../../repositories/implementations/prisma/subscriptionInvoice.repository.prisma.js";
 import { SubscriptionCalculator } from "../../../providers/SubscriptionCalculator.js";
-import { AbacatePayProvider } from "../../../../../shared/providers/PaymentProvider/implementations/AbacatePayProvider.js";
+import { AbacatePayProvider } from "../../../../../shared/infra/providers/implementations/paymentProvider/AbacatePayProvider.js";
 
 const storeRepository: PrismaStoreRepository = new PrismaStoreRepository();
 const userRepository: PrismaUserRepository = new PrismaUserRepository();

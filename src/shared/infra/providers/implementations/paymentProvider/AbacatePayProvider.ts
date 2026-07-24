@@ -1,10 +1,11 @@
 import axios, { type AxiosInstance } from "axios";
-import { AppError } from "../../../errors/AppError.js";
+import { AppError } from "../../../../errors/AppError.js";
+
 import type { 
-    IPaymentProvider, 
+    IPaymentProvider,
     ICreateTransparentPixDTO, 
     ITransparentPixResponse 
-} from "../models/IPaymentProvider.js";
+ } from "../../../../providers/interfaces/paymentProvider/IPaymentProvider.js";
 
 export class AbacatePayProvider implements IPaymentProvider {
     private api: AxiosInstance;

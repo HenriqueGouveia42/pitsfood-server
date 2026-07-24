@@ -1,6 +1,6 @@
 import { Queue, type JobsOptions } from "bullmq";
-import type { IQueueProvider, IQueueOptions } from "../models/IQueueProvider.js";
-import { queueRedisConnection } from "../../../infra/redis/queueConnection.js";
+import type { IQueueProvider, IQueueOptions } from "../../../../providers/interfaces/queueProvider/IQueueProvider.js";
+import { queueRedisConnection } from "../../../redis/queueConnection.js";
 
 export class BullMQQueueProvider implements IQueueProvider {
     private queues: Map<string, Queue> = new Map();

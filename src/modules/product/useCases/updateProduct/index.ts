@@ -2,7 +2,7 @@ import { UpdateProductController } from "./UpdateProductController.js";
 import { UpdateProductUseCase } from "./UpdateProductUseCase.js";
 import { PrismaProductRepository } from "../../repositories/implementations/prisma/product.repository.prisma.js";
 import { PrismaUserRepository } from "../../../user/repositories/implementations/prisma/user.repository.prisma.js";
-import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
+import { RedisCacheProvider } from "../../../../shared/infra/providers/implementations/cacheProvider/RedisCacheProvider.js";
 import { PrismaStoreRepository } from "../../../store/repositories/implementations/prisma/store.repository.prisma.js";
 
 

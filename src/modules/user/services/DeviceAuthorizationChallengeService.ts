@@ -1,12 +1,12 @@
-// DeviceAuthorizationChallengeService.ts
 import { randomInt } from 'node:crypto';
-import type { ICacheProvider } from "../../../shared/providers/CacheProvider/models/ICacheProvider.js";
-import type { IMailProvider } from "../../../shared/providers/EmailProvider/interface/IMailProvider.js";
+import type { ICacheProvider } from "../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
+import type { IMailProvider } from '../../../shared/providers/interfaces/emailProvider/IMailProvider.js';
 import type { ITokenProvider } from "../providers/interfaces/token.provider.interface.js";
 import { CacheKeys } from "../../../shared/constants/cache-keys.js";
 import { SYSTEM_NAME } from "../../../config/system_data.js";
 import { User, type AuthorizedDeviceProps } from "../entities/user.js";
-import { type LoginResult, type DeviceAuthorizationData, TEN_MINUTES_IN_SECONDS } from "../useCases/login/LoginUseCase.js"; // Ajuste os imports
+import { type LoginResult, type DeviceAuthorizationData, TEN_MINUTES_IN_SECONDS } from "../useCases/login/LoginUseCase.js";
+import type { PendingDeviceRequestDTO } from "../dtos/PendingDeviceRequest.dto.js";
 
 export class DeviceAuthorizationChallengeService {
     constructor(
@@ -37,8 +37,33 @@ export class DeviceAuthorizationChallengeService {
             failed_attemps: 0
         };
 
+        // 1. Salva o controle da via por e-mail
         await this.cacheProvider.save(cacheKey, deviceAuthorizationData, TEN_MINUTES_IN_SECONDS);
 
+        // 2. Insere o dispositivo na fila para o Gestor (se o usuário for funcionário de uma loja)
+        if (user.storeId) {
+            const storePendingKey: string = CacheKeys.Store.PENDING_DEVICES(user.storeId);
+            let pendingList: PendingDeviceRequestDTO[] = await this.cacheProvider.get<PendingDeviceRequestDTO[]>(storePendingKey) || [];
+            
+            const now: number = Date.now();
+            
+            // Limpa lixo do cache (requisições > 10 min) e remove duplicatas do mesmo aparelho/usuário
+            pendingList = pendingList.filter((req: PendingDeviceRequestDTO) => 
+                (now - req.requested_at < TEN_MINUTES_IN_SECONDS * 1000) &&
+                !(req.user_id === user.id && req.device_id === device_id)
+            );
+
+            pendingList.push({
+                user_id: user.id,
+                user_name: user.username,
+                device_id: device_id,
+                requested_at: now
+            });
+
+            await this.cacheProvider.save(storePendingKey, pendingList, TEN_MINUTES_IN_SECONDS);
+        }
+
+        // 3. Envia o e-mail normalmente
         const emailTemplateWithDeviceAuthorizationCode: string = `
             <div style="font-family: Arial, sans-serif; color: #333;">
                 <h2>Bem-vindo à ${SYSTEM_NAME}!</h2>
@@ -52,7 +77,7 @@ export class DeviceAuthorizationChallengeService {
 
         await this.emailProvider.sendMail({
             to: user.email,
-            subject: `Código para autorização de dispositivo válido por até ${TEN_MINUTES_IN_SECONDS/60} minutos`,
+            subject: `Código de autorização (Válido por ${TEN_MINUTES_IN_SECONDS/60} min)`,
             body: emailTemplateWithDeviceAuthorizationCode
         });
 

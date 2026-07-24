@@ -1,5 +1,5 @@
 import type { IStoreRepository } from "../../../repositories/interfaces/store.repository.interface.js";
-import type { ICacheProvider } from "../../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { CacheKeys } from "../../../../../shared/constants/cache-keys.js";
 import type { Store } from "../../../entities/store.js";
 

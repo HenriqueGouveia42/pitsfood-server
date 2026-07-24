@@ -1,6 +1,6 @@
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import type { Store, StoreProps } from "../../entities/store.js";
 import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
 

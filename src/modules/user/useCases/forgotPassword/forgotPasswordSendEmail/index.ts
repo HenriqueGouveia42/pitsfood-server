@@ -1,8 +1,8 @@
 import { ForgotPasswordSendEmailController } from "./ForgotPasswordSendEmailController.js";
 import { ForgotPasswordSendEmailUsecase } from "./ForgotPasswordSendEmailUsecase.js";
 
-import { ResendMailProvider } from "../../../../../shared/providers/EmailProvider/implementations/ResendMailProvider.js";
-import { DnsEmailValidationProvider } from "../../../../../shared/providers/EmailValidationProvider/implementations/DnsEmailValidationProvider.js";
+import { ResendMailProvider } from "../../../../../shared/infra/providers/implementations/emailProvider/ResendMailProvider.js";
+import { DnsEmailValidationProvider } from "../../../../../shared/infra/providers/implementations/emailValidationProvider/DnsEmailValidationProvider.js";
 import { PrismaResetPassword } from "../../../repositories/implementations/prisma/password.reset.repository.prisma.js";
 import { PrismaUserRepository } from "../../../repositories/implementations/prisma/user.repository.prisma.js";
 
