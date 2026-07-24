@@ -2,7 +2,7 @@ import { SimulateSubscriptionPaymentController } from "./SimulateSubscriptionPay
 import { SimulateSubscriptionPaymentUseCase } from "./SimulateSubscriptionPaymentUseCase.js";
 
 import { PrismaSubscriptionInvoiceRepository } from "../../../repositories/implementations/prisma/subscriptionInvoice.repository.prisma.js";
-import { AbacatePayProvider } from "../../../../../shared/providers/PaymentProvider/implementations/AbacatePayProvider.js";
+import { AbacatePayProvider } from "../../../../../shared/infra/providers/implementations/paymentProvider/AbacatePayProvider.js";
 
 const paymentProvider: AbacatePayProvider = new AbacatePayProvider();
 

@@ -1,6 +1,6 @@
 import type { Job } from 'bullmq';
 import { PrismaSaleRepository } from '../../repositories/implementations/prisma/sale.repository.prisma.js';
-import { RedisCacheProvider } from '../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js';
+import { RedisCacheProvider } from '../../../../shared/infra/providers/implementations/cacheProvider/RedisCacheProvider.js';
 import type { SalesReportDTO } from '../../repositories/interfaces/sale.repository.interface.js';
 
 // Instanciamos as dependências que o Worker vai precisar

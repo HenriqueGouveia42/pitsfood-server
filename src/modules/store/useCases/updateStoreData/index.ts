@@ -2,7 +2,7 @@ import { UpdateStoreDataController } from "./UpdateStoreDataController.js";
 import { UpdateStoreDataUseCase } from "./UpdateStoreDataUseCase.js";
 
 import { PrismaStoreRepository } from "../../repositories/implementations/prisma/store.repository.prisma.js";
-import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
+import { RedisCacheProvider } from "../../../../shared/infra/providers/implementations/cacheProvider/RedisCacheProvider.js";
 
 const storeRepository: PrismaStoreRepository = new PrismaStoreRepository();
 const redisProvider: RedisCacheProvider = new RedisCacheProvider();

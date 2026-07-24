@@ -2,7 +2,7 @@
 
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { IUnitOfWork, ITransactionRepositories } from "../../../../shared/infra/uow/interface/uow.interface.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { PLAN_LIMITS } from "../../../../config/plans.config.js";
 import { PhysicalBill } from "../../../bill/entities/physicalBIllCard.js";
 import { generateValid4DigitsPhysicalCodes } from "../../../bill/functions/GenerateValidPhysicalBillCodes.js";

@@ -3,7 +3,7 @@ import { MakeStockEntryUseCase } from "./MakeStockEntryUseCase.js";
 
 import { PrismaUserRepository } from "../../../user/repositories/implementations/prisma/user.repository.prisma.js";
 import { PrismaStoreRepository } from "../../../store/repositories/implementations/prisma/store.repository.prisma.js";
-import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
+import { RedisCacheProvider } from "../../../../shared/infra/providers/implementations/cacheProvider/RedisCacheProvider.js";
 
 import { PrismaUnitOfWork } from "../../../../shared/infra/uow/implementations/PrismaUnitOfWork.js";
 import { AddStockEntryService } from "../../services/AddStockEntryService.js";

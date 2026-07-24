@@ -1,7 +1,7 @@
 import { GetUsersDataUseCase } from "./GetUsersDataUseCase.js";
 import { GetUsersDataController } from "./GetUsersDataController.js";
 import { PrismaUserRepository } from "../../repositories/implementations/prisma/user.repository.prisma.js";
-import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
+import { RedisCacheProvider } from "../../../../shared/infra/providers/implementations/cacheProvider/RedisCacheProvider.js";
 
 const userRepository: PrismaUserRepository = new PrismaUserRepository();
 const redisCacheProvider: RedisCacheProvider = new RedisCacheProvider();

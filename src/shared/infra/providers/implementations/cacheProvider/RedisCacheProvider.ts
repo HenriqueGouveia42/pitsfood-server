@@ -1,5 +1,5 @@
-import { redisClient } from "../../../infra/redis/index.js";
-import type { ICacheProvider } from "../models/ICacheProvider.js";
+import { redisClient } from "../../../redis/index.js";
+import type { ICacheProvider } from "../../../../providers/interfaces/cacheProvider/ICacheProvider.js";
 
 export class RedisCacheProvider implements ICacheProvider {
     

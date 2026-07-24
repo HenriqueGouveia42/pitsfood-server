@@ -1,8 +1,8 @@
 import type { SalesReportDTO } from "../../repositories/interfaces/sale.repository.interface.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
-import type { IQueueProvider } from "../../../../shared/providers/QueueProvider/models/IQueueProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
+import type { IQueueProvider } from "../../../../shared/providers/interfaces/queueProvider/IQueueProvider.js";
 
 interface IFetchSalesSummaryByPeriodRequestDTO {
   startDate: Date;

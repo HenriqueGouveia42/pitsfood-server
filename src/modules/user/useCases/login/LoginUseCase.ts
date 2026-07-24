@@ -2,7 +2,7 @@ import { User, type AuthorizedDeviceProps } from "../../entities/user.js"
 import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js"
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
-import type { IHashedStringProvider } from "../../../../shared/providers/HashedStringProvider/models/IHashedStringProvider.js";
+import type { IHashedStringProvider } from "../../../../shared/providers/interfaces/hashedStringProvider/IHashedStringProvider.js";
 
 import { DeviceAuthorizationChallengeService } from "../../services/DeviceAuthorizationChallengeService.js";
 import type { outputDTO, WhiteListViaAuthTokenVersionService } from "../../services/WhiteListViaAuthTokenVersionService.js";

@@ -1,6 +1,6 @@
 import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js";
 import type { IStoreRepository } from "../../../store/repositories/interfaces/store.repository.interface.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 
 import { User } from "../../entities/user.js";
 import type { BuildUserProps } from "../../entities/user.js";

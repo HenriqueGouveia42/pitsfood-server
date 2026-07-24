@@ -1,5 +1,5 @@
 import dns from 'node:dns/promises';
-import type { IEmailValidationProvider } from '../interface/IEmailValidationProvider.js';
+import type { IEmailValidationProvider } from '../IEmailValidationProvider.js';
 
 export class DnsEmailValidationProvider implements IEmailValidationProvider {
     async hasValidDomain(email: string): Promise<boolean> {

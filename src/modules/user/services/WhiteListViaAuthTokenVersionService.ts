@@ -1,5 +1,5 @@
 import { CacheKeys } from "../../../shared/constants/cache-keys.js";
-import type { ICacheProvider } from "../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 
 interface inputDTO {
     user_id: string

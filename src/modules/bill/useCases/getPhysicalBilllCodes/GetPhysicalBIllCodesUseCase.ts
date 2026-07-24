@@ -1,7 +1,7 @@
 import type { IBillRepository } from "../../repositories/bill.repository.interface.js";
 import { PhysicalBill } from "../../entities/physicalBIllCard.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 type RequestDTO = {

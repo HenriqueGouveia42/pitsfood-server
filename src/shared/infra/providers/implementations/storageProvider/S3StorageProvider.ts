@@ -1,6 +1,6 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import type { IStorageProvider } from "../models/IStorageProvider.js";
-import { AppError } from "../../../errors/AppError.js";
+import type { IStorageProvider } from "../../../../providers/interfaces/storageProvider/IStorageProvider.js";
+import { AppError } from "../../../../errors/AppError.js";
 
 export class S3StorageProvider implements IStorageProvider {
     private client: S3Client;

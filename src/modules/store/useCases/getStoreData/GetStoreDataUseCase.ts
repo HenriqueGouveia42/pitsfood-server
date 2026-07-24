@@ -1,6 +1,6 @@
 import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
 import type { IUserRepository } from "../../../user/repositories/interfaces/user.repository.interface.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { User } from "../../../user/entities/user.js";
 import { Store } from "../../entities/store.js";
 import { AppError } from "../../../../shared/errors/AppError.js";

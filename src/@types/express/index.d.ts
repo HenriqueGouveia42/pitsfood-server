@@ -13,7 +13,7 @@ declare global {
         role: UserRole;
         store_id: string | null | undefined;
         must_change_password: boolean;
-        is_paying_user: true,
+        is_paying_user: boolean,
         token_version: number,
         authorized_devices_ids?: string[]
       };

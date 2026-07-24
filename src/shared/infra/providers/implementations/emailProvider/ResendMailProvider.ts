@@ -1,7 +1,7 @@
 import { Resend } from "resend";
-import { AppError } from "../../../../shared/errors/AppError.js";
-import type { IMailProvider, ISendMailDTO } from "../interface/IMailProvider.js";
-import { SYSTEM_NAME, SYSTEM_NAME_DIMINUTIVE } from "../../../../config/system_data.js";
+import { AppError } from "../../../../errors/AppError.js";
+import type { IMailProvider, ISendMailDTO } from "../../../../providers/interfaces/emailProvider/IMailProvider.js";
+import { SYSTEM_NAME, SYSTEM_NAME_DIMINUTIVE } from "../../../../../config/system_data.js";
 
 export class ResendMailProvider implements IMailProvider {
     private client: Resend;

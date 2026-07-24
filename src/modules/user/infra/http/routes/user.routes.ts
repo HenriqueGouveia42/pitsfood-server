@@ -1,4 +1,4 @@
-import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
+import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/SecureRouteBuilder.js";
 import { UserRole } from "../../../entities/user.js";
 
 // Controllers
@@ -10,6 +10,8 @@ import { registerEmployeeController } from "../../../useCases/registerEmployee/i
 import { setPermanentPasswordController } from "../../../useCases/setPermanentPassword/index.js";
 import { forgotPasswordSendEmailController } from "../../../useCases/forgotPassword/forgotPasswordSendEmail/index.js";
 import { forgotPasswordVerifyResetPasswordTokenController } from "../../../useCases/forgotPassword/forgotPasswordVerifyResetPasswordToken/index.js";
+import { getPendingDevicesController } from "../../../useCases/deviceUseCases/getPendingDevices/index.js";
+import { approveDeviceByManagerController } from "../../../useCases/deviceUseCases/approveDeviceByManager/index.js";
 
 // Schemas
 import { registerEmployeeSchema } from "../zodSchemas/RegisterEmployeeSchema.js";
@@ -90,6 +92,22 @@ userRouteBuilder.build({
     handler: (request, response) => getUsersDataController.handle(request, response)
 });
 
+userRouteBuilder.build({
+    method: 'get',
+    path: '/pending-authorization-devices',
+    security: 'REQUIRE_STORE', // Nível 2
+    roles: [UserRole.GESTOR],
+    handler: (request, response) => getPendingDevicesController.handle(request, response)
+});
+
+userRouteBuilder.build({
+    method: 'post',
+    path: '/approve-pending-device',
+    security: 'REQUIRE_STORE', // Nível 2
+    roles: [UserRole.GESTOR],
+    // Dica: Adicione aqui um ZodSchema 'approvePendingDeviceSchema' para validar o body
+    handler: (request, response) => approveDeviceByManagerController.handle(request, response)
+});
 
 // NÍVEL 3: REQUER ASSINATURA ATIVA
 userRouteBuilder.build({
@@ -149,6 +167,8 @@ userRouteBuilder.build({
     roles: [UserRole.GESTOR],
     handler: (request, response) => unauthorizeDeviceController.handle(request, response)
 })
+
+
 
 // Exportação limpa e direta
 export const userRoutes = userRouteBuilder.getRouter();

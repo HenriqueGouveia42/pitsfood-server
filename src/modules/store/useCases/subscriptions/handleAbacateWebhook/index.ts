@@ -4,7 +4,7 @@ import { HandleAbacateWebhookController } from "./HandleAbacateWebhookController
 import { PrismaSubscriptionInvoiceRepository } from "../../../repositories/implementations/prisma/subscriptionInvoice.repository.prisma.js";
 import { StoreActivationService } from "../../../services/uow/StoreActivationService.js";
 import { PrismaUnitOfWork } from "../../../../../shared/infra/uow/implementations/PrismaUnitOfWork.js";
-import { RedisCacheProvider } from "../../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
+import { RedisCacheProvider } from "../../../../../shared/infra/providers/implementations/cacheProvider/RedisCacheProvider.js";
 
 const cacheProvider: RedisCacheProvider = new RedisCacheProvider();
 

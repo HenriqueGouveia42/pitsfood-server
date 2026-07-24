@@ -1,5 +1,5 @@
 import { UserRole } from "../../../../user/entities/user.js";
-import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
+import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/SecureRouteBuilder.js";
 
 // Controllers
 import { createProductController } from "../../../useCases/createProduct/index.js";

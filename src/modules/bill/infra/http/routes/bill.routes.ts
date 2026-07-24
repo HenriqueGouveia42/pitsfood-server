@@ -1,5 +1,5 @@
 import { UserRole } from "../../../../user/entities/user.js";
-import { SecureRouteBuilder } from "../../../../../shared/infra/http/SecureRouteBuilder.js";
+import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/SecureRouteBuilder.js";
 
 // Controllers
 import { batchAddItemsController } from "../../../useCases/batchAddProducts/index.js";
@@ -51,7 +51,7 @@ billRouteBuilder.build({
     method: 'get',
     path: '/get-open-bill-by-gtin-code/:bill_code_gtin',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
-    roles: [UserRole.CAIXA, UserRole.VENDEDOR],
+    roles: [UserRole.CAIXA, UserRole.VENDEDOR, UserRole.GESTOR],
     schema: GetOpenBillByGtinCodeSchema,
     handler: (request, response) => getOpenBillByGtinCodeController.handle(request, response)
 });

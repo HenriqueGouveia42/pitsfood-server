@@ -1,10 +1,10 @@
 import { Router } from "express";
 import type { RequestHandler } from "express";
-import { TenantGates } from "./TenantSecurityGates.js"
-import type { SecurityLevel } from "./TenantSecurityGates.js"
-import { authorizeRoles } from "./middlewares/authorizeRolesMiddleware.js";
-import { validateSchema } from "./middlewares/validateSchemaMiddleware.js";
-import { UserRole } from "../../../modules/user/entities/user.js";
+import { TenantGates } from "./TenantSecurityGates.js";
+import type { SecurityLevel } from "./TenantSecurityGates.js";
+import { authorizeRoles } from "../middlewares/authorizeRolesMiddleware.js";
+import { validateSchema } from "../middlewares/validateSchemaMiddleware.js";
+import { UserRole } from "../../../../modules/user/entities/user.js";
 import type { ZodType } from "zod";
 
 // Contrato estrito do que uma rota precisa ter

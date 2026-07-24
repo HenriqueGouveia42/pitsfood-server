@@ -3,7 +3,7 @@ import { ForgotPasswordVerifyResetPasswordTokenUseCase } from "./ForgotPasswordV
 
 import { PrismaUserRepository } from "../../../repositories/implementations/prisma/user.repository.prisma.js";
 import { PrismaResetPassword } from "../../../repositories/implementations/prisma/password.reset.repository.prisma.js";
-import { BcryptjsHashedStringProvider } from "../../../../../shared/providers/HashedStringProvider/implementations/BcryptjsHashedStringProvider.js";
+import { BcryptjsHashedStringProvider } from "../../../../../shared/infra/providers/implementations/hashedStringProvider/BcryptjsHashedStringProvider.js";
 
 import { UpdateForgottenPasswordAndConsumeTokenService } from "../../../services/uow/UpdateForgottenPasswordAndConsumeTokenService.js";
 

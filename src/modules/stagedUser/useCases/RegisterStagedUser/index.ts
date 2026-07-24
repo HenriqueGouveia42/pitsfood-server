@@ -3,12 +3,10 @@ import { RegisterStagedUserUseCase } from "./RegisterStagedUserUseCase.js";
 
 import { PrismaStagedUserRepository } from "../../repositories/implementations/prisma/staged_user.repository.prisma.js";
 import { PrismaUserRepository } from "../../../user/repositories/implementations/prisma/user.repository.prisma.js";
-//import { NodemailerMailProvider } from "../../../../shared/providers/EmailProvider/implementations/NodemailerMailProvider.js"
-import { ResendMailProvider } from "../../../../shared/providers/EmailProvider/implementations/ResendMailProvider.js";
-import { DnsEmailValidationProvider } from "../../../../shared/providers/EmailValidationProvider/implementations/DnsEmailValidationProvider.js";
-import { BcryptjsHashedStringProvider } from "../../../../shared/providers/HashedStringProvider/implementations/BcryptjsHashedStringProvider.js";
+import { ResendMailProvider } from "../../../../shared/infra/providers/implementations/emailProvider/ResendMailProvider.js";
+import { DnsEmailValidationProvider } from "../../../../shared/infra/providers/implementations/emailValidationProvider/DnsEmailValidationProvider.js";
+import { BcryptjsHashedStringProvider } from "../../../../shared/infra/providers/implementations/hashedStringProvider/BcryptjsHashedStringProvider.js";
 
-//const nodeMailerMailProvider: NodemailerMailProvider = new NodemailerMailProvider();
 const resendMailProvider: ResendMailProvider = new ResendMailProvider();
 const prismaUserRepository: PrismaUserRepository = new PrismaUserRepository();
 const prismaStagedUserRepository: PrismaStagedUserRepository = new PrismaStagedUserRepository();

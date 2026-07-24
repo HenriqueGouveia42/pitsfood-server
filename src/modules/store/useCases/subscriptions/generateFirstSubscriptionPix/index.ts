@@ -7,7 +7,7 @@ import { PrismaUserRepository } from "../../../../user/repositories/implementati
 import { PrismaSubscriptionInvoiceRepository } from "../../../repositories/implementations/prisma/subscriptionInvoice.repository.prisma.js";
 
 //providers
-import { AbacatePayProvider } from "../../../../../shared/providers/PaymentProvider/implementations/AbacatePayProvider.js";
+import { AbacatePayProvider } from "../../../../../shared/infra/providers/implementations/paymentProvider/AbacatePayProvider.js";
 import { SubscriptionCalculator } from "../../../providers/SubscriptionCalculator.js";
 
 const storeRepository = new PrismaStoreRepository();

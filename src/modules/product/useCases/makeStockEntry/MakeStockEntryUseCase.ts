@@ -5,7 +5,7 @@ import type { IUserRepository } from "../../../user/repositories/interfaces/user
 import { UserRole } from "../../../user/entities/user.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import { Decimal } from "decimal.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import type { AddStockEntryService } from "../../services/AddStockEntryService.js";
 

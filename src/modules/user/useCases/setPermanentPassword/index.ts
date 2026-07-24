@@ -1,7 +1,7 @@
 import { SetPermanentPasswordController } from "./SetPermanentPasswordController.js";
 import { SetPermanentPasswordUseCase } from "./SetPermanentPasswordUseCase.js";
 import { PrismaUserRepository } from "../../repositories/implementations/prisma/user.repository.prisma.js";
-import { RedisCacheProvider } from "../../../../shared/providers/CacheProvider/implementations/RedisCacheProvider.js";
+import { RedisCacheProvider } from "../../../../shared/infra/providers/implementations/cacheProvider/RedisCacheProvider.js";
 import { JwtTokenProvider } from "../../providers/implementations/jwt/token.provider.jwt.js";
 
 //JwtTokenProvider

@@ -1,6 +1,6 @@
 import type { IProductRepository } from "../../repositories/interfaces/product.repository.interface.js";
 import { Product } from "../../entities/product.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import { UserRole } from "../../../user/entities/user.js";
 

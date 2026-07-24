@@ -1,6 +1,6 @@
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 import type { ITransactionRepositories, IUnitOfWork } from "../../../../shared/infra/uow/interface/uow.interface.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import type { PasswordResetToken } from "../../entities/passwordResetToken.js";
 import type { User } from "../../entities/user.js";
 

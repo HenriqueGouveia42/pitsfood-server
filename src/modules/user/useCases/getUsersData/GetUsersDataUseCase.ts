@@ -1,5 +1,5 @@
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { User } from "../../entities/user.js";
 import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js";
 import type { AuthorizedDeviceProps } from "../../entities/user.js";

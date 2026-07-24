@@ -20,11 +20,11 @@ export class SendVerificationCodeToEmailAgainUseCase{
 
         // 1. Fail Fast: Se já é usuário cadastrado, encerra logo.
         const user = await this.userRepository.findUserByEmail(email);
-        if (user) throw new AppError("Usuario ja cadastrado no sistema", 409, "USER_ALREADY_IN");
+        if (user) throw new AppError("Usuario invalido", 409, "USER_ALREADY_IN");
 
         // 2. Busca o cadastro temporário - StagedUser
         const staged_user = await this.stagedUserRepository.findStagedUserByEmail(email);
-        if (!staged_user) throw new AppError("Usuario com este email nao encontrado", 404, "STAGED_USER_NOT_FOUND");
+        if (!staged_user) throw new AppError("Usuario invalido", 404, "STAGED_USER_NOT_FOUND");
 
         const now: Date = new Date();
 
@@ -39,7 +39,7 @@ export class SendVerificationCodeToEmailAgainUseCase{
         const nowIso: string = now.toISOString();
         const newCodeExpiresAt: string = new Date(now.getTime() + (1000 * 60 * 10)).toISOString();
 
-        const staged_user_with_new_verification_code = staged_user.newVerificationCode(
+        const staged_user_with_new_verification_code: StagedUser = staged_user.newVerificationCode(
             new_verification_code,
             nowIso,
             newCodeExpiresAt

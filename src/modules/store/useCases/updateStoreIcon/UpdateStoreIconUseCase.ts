@@ -1,8 +1,8 @@
 import type { IStoreRepository } from "../../repositories/interfaces/store.repository.interface.js";
-import type { IStorageProvider } from "../../../../shared/providers/StorageProvider/models/IStorageProvider.js";
+import type { IStorageProvider } from "../../../../shared/providers/interfaces/storageProvider/IStorageProvider.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { Store } from "../../entities/store.js";
-import type { ICacheProvider } from "../../../../shared/providers/CacheProvider/models/ICacheProvider.js";
+import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
 
 interface IRequest {
