@@ -12,6 +12,8 @@ export class FetchSalesSummaryByPeriodController {
         
         const { startDate, endDate } = req.query;
 
+        if(!req.user) throw new AppError("req.user nao anexado");
+
         const store_id: string | null | undefined = req.user.store_id;
 
         if (!store_id) throw new AppError("Falta o id da loja")
