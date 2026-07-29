@@ -167,65 +167,86 @@ export class PrismaSaleRepository implements ISaleRepository {
         const start = new Date(startDate);
         const end = new Date(endDate);
 
-        // 1. Métricas Gerais
-        const generalMetrics = await this.db.sale.aggregate({
-            _sum: {total_price: true},
-            _count: { sale_id: true },
-            where: {
-                store_id: store_id,
-                status: 'CONCLUIDA',
-                created_at: { gte: start, lte: end } 
-            }
-        });
+    // Dispara as 4 queries simultaneamente (Paralelismo)
+        const [
+            generalMetrics,
+            paymentsRaw,
+            productsRaw,
+            hourlyRaw,
+            averageStayRaw
+        ] = await Promise.all([
+            // 1. Métricas Gerais
+            this.db.sale.aggregate({
+                _sum: {total_price: true},
+                _count: { sale_id: true },
+                where: {
+                    store_id: store_id,
+                    status: 'CONCLUIDA',
+                    created_at: { gte: start, lte: end } 
+                }
+            }),
 
-        // 2. Agrupamento por Pagamento (Sequencial, poupando conexões)
-        // Removemos os ::timestamp manuais e deixamos o Prisma lidar com as Datas de forma nativa
-        const paymentsRaw = await this.db.$queryRaw<any[]>`
-            SELECT
-                spm.method,
-                SUM(spm.amount) as total_amount
-            FROM "sale_payments" spm
-            INNER JOIN "sales" s ON spm.sale_id = s.sale_id AND spm.store_id = s.store_id
-            WHERE s.store_id = ${store_id}
-            AND s.status = 'CONCLUIDA'
-            AND s.created_at >= ${start}
-            AND s.created_at <= ${end}
-            GROUP BY spm.method
-        `;
+            // 2. Agrupamento por Pagamento
+            this.db.$queryRaw<any[]>`
+                SELECT
+                    spm.method,
+                    SUM(spm.amount) as total_amount
+                FROM "sale_payments" spm
+                INNER JOIN "sales" s ON spm.sale_id = s.sale_id AND spm.store_id = s.store_id
+                WHERE s.store_id = ${store_id}
+                AND s.status = 'CONCLUIDA'
+                AND s.created_at >= ${start}
+                AND s.created_at <= ${end}
+                GROUP BY spm.method
+            `,
 
-        // 3. Agrupamento por Produtos
-        const productsRaw = await this.db.$queryRaw<any[]>`
-            SELECT
-                sp.product_name_snapshot as product_name,
-                sp.product_id,
-                SUM(sp.quantity)::int as quantity_sold,
-                SUM(sp.quantity * sp.unit_price_snapshot) as total_sold 
-            FROM "sale_products" sp
-            INNER JOIN "sales" s ON sp.sale_id = s.sale_id AND sp.store_id = s.store_id
-            WHERE s.store_id = ${store_id}
-            AND s.status = 'CONCLUIDA'
-            AND s.created_at >= ${start}
-            AND s.created_at <= ${end}
-            GROUP BY sp.product_id, sp.product_name_snapshot
-            ORDER BY total_sold DESC
-        `;
+            // 3. Agrupamento por Produtos
+            this.db.$queryRaw<any[]>`
+                SELECT
+                    sp.product_name_snapshot as product_name,
+                    sp.product_id,
+                    SUM(sp.quantity)::int as quantity_sold,
+                    SUM(sp.quantity * sp.unit_price_snapshot) as total_sold 
+                FROM "sale_products" sp
+                INNER JOIN "sales" s ON sp.sale_id = s.sale_id AND sp.store_id = s.store_id
+                WHERE s.store_id = ${store_id}
+                AND s.status = 'CONCLUIDA'
+                AND s.created_at >= ${start}
+                AND s.created_at <= ${end}
+                GROUP BY sp.product_id, sp.product_name_snapshot
+                ORDER BY total_sold DESC
+            `,
 
-        // 4. Agrupamento por Hora do Dia
-        // O timezone é convertido para string com ::text explicitamente para evitar falha no PG Parser
-        const hourlyRaw = await this.db.$queryRaw<any[]>`
-            SELECT
-                EXTRACT(HOUR FROM created_at AT TIME ZONE 'UTC' AT TIME ZONE ${timezone}::text)::int as sale_hour,
-                COUNT(sale_id)::int as sales_count,
-                SUM(total_price) as total_sold
-            FROM "sales"
-            WHERE store_id = ${store_id}
-            AND status = 'CONCLUIDA'
-            AND created_at >= ${start}
-            AND created_at <= ${end}
-            GROUP BY sale_hour
-            ORDER BY sale_hour ASC
-        `;
+            // 4. Agrupamento por Hora do Dia
+            this.db.$queryRaw<any[]>`
+                SELECT
+                    EXTRACT(HOUR FROM created_at AT TIME ZONE 'UTC' AT TIME ZONE ${timezone}::text)::int as sale_hour,
+                    COUNT(sale_id)::int as sales_count,
+                    SUM(total_price) as total_sold
+                FROM "sales"
+                WHERE store_id = ${store_id}
+                AND status = 'CONCLUIDA'
+                AND created_at >= ${start}
+                AND created_at <= ${end}
+                GROUP BY sale_hour
+                ORDER BY sale_hour ASC
+            `,
 
+            this.db.$queryRaw<any[]>`
+                SELECT
+                    (EXTRACT(EPOCH FROM AVG(closed_at - created_at)) / 60) as average_stay_time_minutes
+                FROM "bills"
+                WHERE store_id = ${store_id}
+                AND status = 'FECHADA'
+                AND closed_at >= ${start}
+                AND closed_at <= ${end}
+            `
+        ]);
+
+        const averageStayTimeMinutes: number = averageStayRaw[0]?.average_stay_time_minutes 
+            ? Number(Number(averageStayRaw[0].average_stay_time_minutes).toFixed(2)) 
+            : 0;
+        
         const totalRevenue = new Decimal(generalMetrics._sum.total_price || 0);
         const salesCount = generalMetrics._count.sale_id;
         const averageTicket = salesCount > 0 ? totalRevenue.div(salesCount).toNumber() : 0;
@@ -247,17 +268,20 @@ export class PrismaSaleRepository implements ISaleRepository {
             total_sold: new Decimal(h.total_sold || 0)
         }));
 
-        return {
+        const res: SalesReportDTO = {
             period: { start: start, end: end },
             metrics: {
                 total_revenue: totalRevenue,
                 sales_count: salesCount,
-                average_ticket: Number(averageTicket.toFixed(2))
+                average_ticket: Number(averageTicket.toFixed(2)),
+                average_stay_time_minutes: averageStayTimeMinutes
             },
             payment_breakdown: paymentBreakdown,
             product_breakdown: productBreakdown,
             hourly_breakdown: hourlyBreakdown
         };
+
+        return res
     }
 
     async findPaginatedSales(store_id: string, skip: number, limit: number): Promise<Sale[]>{

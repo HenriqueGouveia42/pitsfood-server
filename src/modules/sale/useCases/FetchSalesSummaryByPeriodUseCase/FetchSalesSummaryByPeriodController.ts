@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { FetchSalesSummaryByPeriodUseCase } from "./FetchSalesSummaryByPeriodUseCase.js";
+import { AppError } from "../../../../shared/errors/AppError.js";
 
 export class FetchSalesSummaryByPeriodController {
 
@@ -11,7 +12,9 @@ export class FetchSalesSummaryByPeriodController {
         
         const { startDate, endDate } = req.query;
 
-        const store_id: string = req.user.store_id;
+        const store_id: string | null | undefined = req.user.store_id;
+
+        if (!store_id) throw new AppError("Falta o id da loja")
 
         const start = new Date(startDate as string);
         const end = new Date(endDate as string);

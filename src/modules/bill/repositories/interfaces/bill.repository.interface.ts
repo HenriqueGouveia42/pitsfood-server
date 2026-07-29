@@ -7,6 +7,6 @@ export interface IBillRepository {
 
     findAllOpenBills(store_id: string): Promise<EntityBill[]>;
     upsertBill(bill: EntityBill): Promise<void>;
-    closeBills(store_id: string, bill_codes: string[]): Promise<void>;
+    closeBills(store_id: string, bill_codes: string[], now: Date): Promise<void>;
     physicalBillWithThisGtinCodeExists(gtin_code: string, store_id: string): Promise<boolean>;
 }

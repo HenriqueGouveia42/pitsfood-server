@@ -33,6 +33,7 @@ export class PrismaBillRepository implements IBillRepository {
             status: bill.status,
             created_at: new Date(bill.createdAt),
             updated_at: new Date(bill.updatedAt),
+            closed_at: bill.closed_at ? new Date(bill.closed_at) : null,
             
             store_id: bill.store_id,
 
@@ -63,6 +64,7 @@ export class PrismaBillRepository implements IBillRepository {
             store_id: prismaData.store_id,
             created_at: prismaData.created_at.toISOString(),
             updated_at: prismaData.updated_at.toISOString(),
+            closed_at: prismaData.created_at.toISOString(),
 
             items: prismaData.items
                 ? prismaData.items.map((item: PrismaBillProduct) => ({
@@ -93,7 +95,7 @@ export class PrismaBillRepository implements IBillRepository {
             store_id: prisma_physical_bill.store_id,
             is_lost: prisma_physical_bill.is_lost,
             created_at: prisma_physical_bill.created_at.toISOString(),
-            updated_at: prisma_physical_bill.updated_at.toISOString()
+            updated_at: prisma_physical_bill.updated_at.toISOString(),
         });
     }
 
@@ -226,7 +228,7 @@ export class PrismaBillRepository implements IBillRepository {
         return entityBills;
     }
 
-    async closeBills(store_id: string, bill_codes: string[]): Promise<void> {
+    async closeBills(store_id: string, bill_codes: string[], now: Date): Promise<void> {
         
         if(bill_codes.length === 0) return;
 
@@ -238,7 +240,8 @@ export class PrismaBillRepository implements IBillRepository {
             },
             data: {
                 status: 'FECHADA',
-                updated_at: new Date()
+                updated_at: now,
+                closed_at: now
             }
         })
 
