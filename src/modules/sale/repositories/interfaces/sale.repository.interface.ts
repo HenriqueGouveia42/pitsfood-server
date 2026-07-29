@@ -16,7 +16,12 @@ export type ProductBreakdownDTO = {
 
 export type SalesReportDTO = {
     period: { start: Date; end: Date };
-    metrics: { total_revenue: Decimal; sales_count: number; average_ticket: number };
+    metrics: { 
+        total_revenue: Decimal;
+        sales_count: number;
+        average_ticket: number;
+        average_stay_time_minutes: number;
+     };
     payment_breakdown: { method: string; total: Decimal }[];
     product_breakdown: { product_name: string; quantity_sold: number; total_sold: Decimal }[];
     

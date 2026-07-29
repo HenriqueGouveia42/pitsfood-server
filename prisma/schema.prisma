@@ -280,6 +280,7 @@ model Bill {
   status         BillStatus
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt
+  closed_at      DateTime?
 
   store_id String
   store Store @relation(fields: [store_id], references: [store_id])
@@ -294,6 +295,7 @@ model Bill {
   //uma comanda pode gerar no máximo UMA venda final.
   //o campo fica do lado da Sale (origin_bill_id), aqui é o espelho.
   @@unique([store_id, bill_id])
+  @@index([store_id, status, closed_at])
   @@map("bills")
 }
 

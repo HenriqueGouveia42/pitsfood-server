@@ -35,6 +35,7 @@ export type BillProps = {
     readonly store_id: string;
     readonly created_at: string;
     readonly updated_at: string;
+    readonly closed_at: string | null;
     readonly items: BillItemProps[]; //relacionamento com bill_items
 }
 
@@ -97,8 +98,6 @@ export class Bill {
 
         Bill.validateBillCode(build_props.bill_code_gtin);
 
-        const now = new Date().toISOString();
-
         return new Bill({
             bill_id: build_props.bill_id,
             bill_code_gtin: build_props.bill_code_gtin,
@@ -106,7 +105,8 @@ export class Bill {
             store_id: build_props.store_id,
             created_at: build_props.now_string,
             updated_at: build_props.now_string,
-            items: [] //inicia sem itens
+            items: [], //inicia sem itens,
+            closed_at: null
         });
     }
 
@@ -122,6 +122,7 @@ export class Bill {
     get createdAt() {return this.props.created_at}
     get updatedAt() {return this.props.updated_at}
     get items() {return this.props.items}
+    get closed_at() { return this.props.closed_at }
 
     public close(now_string: string): Bill{ //fechar comanda - realizar venda
 
@@ -132,7 +133,8 @@ export class Bill {
         return new Bill({
             ...this.props,
             status: billStates.FECHADA,
-            updated_at: now_string
+            updated_at: now_string,
+            closed_at: now_string
         })
     }
 
@@ -144,7 +146,8 @@ export class Bill {
         return new Bill({
             ...this.props,
             status: billStates.ABERTA,
-            updated_at: now_string
+            updated_at: now_string,
+            closed_at: null
         })
     }
 

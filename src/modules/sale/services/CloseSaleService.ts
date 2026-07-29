@@ -54,11 +54,14 @@ export class CloseSaleService {
             // 2.1.
             await repositories.saleRepository.makeSale(sale);
 
+            const now: Date = new Date();
+
             // 2.2.
             if (billCodesToClose.length > 0) {
                 await repositories.billRepository.closeBills(
                     sale.store_id, 
-                    billCodesToClose
+                    billCodesToClose,
+                    now
                 );
             }
 
