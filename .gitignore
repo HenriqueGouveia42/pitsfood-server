@@ -7,6 +7,6 @@ git_untracked_tests/
 CLAUDE.md
 dist
 dist/
-test.ts
+sandbox.ts
 
 /prisma/src/generated/prisma

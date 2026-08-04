@@ -18,7 +18,8 @@
     "start": "node dist/server.js",
     "start:worker": "node dist/worker.js",
     "start:local": "node --env-file=.env.dev dist/server.js",
-    "start:worker:local": "node --env-file=.env.dev dist/worker.js"
+    "start:worker:local": "node --env-file=.env.dev dist/worker.js",
+    "sandbox": "npx tsx sandbox.ts"
   },
   "keywords": [],
   "author": "",
