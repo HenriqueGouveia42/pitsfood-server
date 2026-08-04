@@ -49,7 +49,10 @@ export class PrismaBillRepository implements IBillRepository {
                     user_id: item.user_id,
 
                     created_at: new Date(item.created_at),
-                    updated_at: new Date(item.updated_at ?? new Date())
+                    updated_at: new Date(item.updated_at ?? new Date()),
+
+                    active: item.active,
+                    deactivated_by_user_id: item.deactivated_by_user_id
                 }))
             }
         };
@@ -80,7 +83,10 @@ export class PrismaBillRepository implements IBillRepository {
                     store_id: item.store_id, 
                     
                     created_at: item.created_at.toISOString(),
-                    updated_at: item.updated_at.toISOString() 
+                    updated_at: item.updated_at.toISOString(),
+
+                    active: item.active,
+                    deactivated_by_user_id: item.deactivated_by_user_id
                 }))
                 : []
         };
@@ -168,7 +174,9 @@ export class PrismaBillRepository implements IBillRepository {
             user_id: item.user_id,
             created_at: new Date(item.created_at),
             updated_at: new Date(item.updated_at ?? new Date()),
-            bill_id: bill.bill_id
+            bill_id: bill.bill_id,
+            active: item.active,
+            deactivated_by_user_id: item.deactivated_by_user_id
         }));
 
         // 1. Atualiza ou cria a Comanda
@@ -269,6 +277,95 @@ export class PrismaBillRepository implements IBillRepository {
         return prismaBills.map(prismaBill => 
             PrismaBillRepository.prismaToEntityBillDataMapper(prismaBill)
         )
+    }
+
+    async findBillByBillId(bill_id: string): Promise<EntityBill | null> {
+
+        const prismaBill: PrismaBillWithItems | null = await this.db.bill.findUnique({
+            where:{
+                bill_id: bill_id
+            },
+            include: {
+                items: true
+            }
+        })
+
+        if (!prismaBill) return null;
+
+        return PrismaBillRepository.prismaToEntityBillDataMapper(prismaBill);
+    }
+
+    async deactivateItem(store_id: string, bill_id: string, bill_item_id: string, user_id: string, now: Date): Promise<void> {
+        
+        // 1. Prepara as queries (não executa ainda)
+        const updateItemQuery = this.db.billProduct.update({
+            where: { 
+                bill_item_id: bill_item_id 
+            },
+            data: {
+                active: false,
+                deactivated_by_user_id: user_id,
+                updated_at: now
+            }
+        });
+
+        const updateBillQuery = this.db.bill.update({
+            where: {
+                store_id_bill_id: { store_id, bill_id }
+            },
+            data: {
+                updated_at: now
+            }
+        });
+
+        // 2. Verifica se a instância atual suporta criar uma nova transação
+        if ('$transaction' in this.db) {
+            // É o PrismaClient principal. Criamos a transação para garantir a atomicidade.
+            await this.db.$transaction([
+                updateItemQuery,
+                updateBillQuery
+            ]);
+        } else {
+            // É um TransactionClient (já estamos dentro de uma transação maior).
+            // Apenas executamos as queries diretamente.
+            await updateItemQuery;
+            await updateBillQuery;
+        }
+    }
+
+    async reactivateItem(store_id: string, bill_id: string, bill_item_id: string, now: Date): Promise<void> {
+        
+        // 1. Prepara as queries
+        const updateItemQuery = this.db.billProduct.update({
+            where: { 
+                bill_item_id: bill_item_id 
+            },
+            data: {
+                active: true,
+                deactivated_by_user_id: null, // Volta a ser nulo no banco
+                updated_at: now
+            }
+        });
+
+        const updateBillQuery = this.db.bill.update({
+            where: {
+                store_id_bill_id: { store_id, bill_id }
+            },
+            data: {
+                updated_at: now
+            }
+        });
+
+        // 2. Executa na transação (suportando Unit of Work)
+        if ('$transaction' in this.db) {
+            await this.db.$transaction([
+                updateItemQuery,
+                updateBillQuery
+            ]);
+        } else {
+            await updateItemQuery;
+            await updateBillQuery;
+        }
     }
 
 }
