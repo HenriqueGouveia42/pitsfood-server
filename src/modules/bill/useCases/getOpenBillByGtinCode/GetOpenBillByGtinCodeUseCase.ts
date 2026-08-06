@@ -2,12 +2,17 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 import type { Bill } from "../../entities/bill.js";
 import type { IBillRepository } from "../../repositories/interfaces/bill.repository.interface.js";
 
+
 export interface BillItemDTO {
-    product_name: string;
-    product_gtin_code: string;
+    bill_item_id: string;    
+    product_id: string;
+    name: string;             
+    gtin_code: string;      
     unit_price: number;
-    quantity: number;
-    total: number;
+    user_id: string;
+    created_at: string;
+    active: boolean;                         
+    deactivated_by_user_id: string | null;
 }
 
 export interface GetOpenBillResponseDTO {
@@ -37,36 +42,29 @@ export class GetOpenBillByGtinCodeUseCase {
             throw new AppError(`Comanda ${bill_code_gtin} não encontrada.`, 404, "BILL_NOT_FOUND");
         }
 
-        // como a entidade guarda cada bip como um registro separado, precisamos somar as quantidades.
-        const itemsMap = new Map<string, BillItemDTO>();
+        // 1. Calcula o total da comanda SOMENTE com os itens ativos
+        const billTotal = openBill.items
+            .filter(item => item.active === true)
+            .reduce((sum, item) => sum + item.price_at_addition.toNumber(), 0);
 
-        for (const item of openBill.items) {
-            const unitPriceNumber = item.price_at_addition.toNumber();
-            // chave composta para agrupar o mesmo produto com o mesmo preço
-            const groupKey = `${item.product_gtin_code}-${unitPriceNumber}`; 
+        // 2. Mapeia todos os itens (ativos e inativos) em uma lista plana, sem agrupar
+        const itemsFormatted: BillItemDTO[] = openBill.items.map(item => ({
+            bill_item_id: item.bill_item_id,
+            product_id: item.product_id,
+            name: item.product_name,
+            gtin_code: item.product_gtin_code,
+            unit_price: item.price_at_addition.toNumber(),
+            user_id: item.user_id,
+            created_at: item.created_at,
+            active: item.active,
+            deactivated_by_user_id: item.deactivated_by_user_id
+        }));
 
-            if (itemsMap.has(groupKey)) {
-                const existingItem = itemsMap.get(groupKey)!;
-                existingItem.quantity += 1;
-                existingItem.total = Number((existingItem.unit_price * existingItem.quantity).toFixed(2));
-            } else {
-                itemsMap.set(groupKey, {
-                    product_name: item.product_name,
-                    product_gtin_code: item.product_gtin_code,
-                    unit_price: unitPriceNumber,
-                    quantity: 1,
-                    total: unitPriceNumber
-                });
-            }
-        }
-
-        const itemsFormatted: BillItemDTO[] = Array.from(itemsMap.values());
-
-        // retorna o DTO Completo
+        // 3. Retorna o DTO Completo
         return {
             bill_id: openBill.bill_id,
             bill_code: openBill.bill_code,
-            total_bill: Number(itemsFormatted.reduce((acc, item) => acc + item.total, 0).toFixed(2)),
+            total_bill: Number(billTotal.toFixed(2)),
             items: itemsFormatted
         };
     }

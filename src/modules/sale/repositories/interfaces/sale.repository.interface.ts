@@ -26,6 +26,12 @@ export type SalesReportDTO = {
     product_breakdown: { product_name: string; quantity_sold: number; total_sold: Decimal }[];
     
     hourly_breakdown: { hour: number; total_sold: Decimal; sales_count: number }[];
+
+    canceled_breakdown: { 
+        product_name: string; 
+        canceled_quantity: number; 
+        total_lost: number; // Pode usar Decimal se preferir manter o padrão
+    }[];
 }
 
 export interface ISaleRepository {

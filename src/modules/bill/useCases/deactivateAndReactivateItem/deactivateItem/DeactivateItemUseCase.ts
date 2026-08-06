@@ -42,7 +42,7 @@ export class DeactivateItemUseCase{
         const store: Store | null = await this.storeRepository.findSavedStoreById(input.store_id);
         if(!store) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND");
 
-        if(user.storeId !== store.id) throw new AppError("Inconsistencia usuario-loja", 404, "STORE_MISMATCH") // não é o dono da loja
+        if(input.store_id !== store.id) throw new AppError("Inconsistencia usuario-loja", 404, "STORE_MISMATCH") // não é o dono da loja
 
         const bill: Bill | null = await this.billRepository.findBillByBillId(input.bill_id);
         if(!bill) throw new AppError("Comanda nao encontrada", 404, "BILL_NOT_FOUND");

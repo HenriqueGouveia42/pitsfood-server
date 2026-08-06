@@ -343,6 +343,8 @@ model BillProduct {
   store   Store   @relation(fields: [store_id], references: [store_id])
 
   @@map("bill_products")
+
+  @@index([store_id, active, updated_at])
 }
 
 //REFATOREI DAQUI PRA CIMA. DAQUI PRA BAIXO AINDA FALTA REFATORAR

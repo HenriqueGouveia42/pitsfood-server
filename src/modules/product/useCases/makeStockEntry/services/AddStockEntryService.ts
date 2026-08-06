@@ -1,8 +1,8 @@
 // src/modules/product/services/AddStockEntryService.ts
 
-import { AppError } from "../../../shared/errors/AppError.js";
-import type { IUnitOfWork, ITransactionRepositories } from "../../../shared/infra/uow/interface/uow.interface.js";
-import { StockEntry } from "../entities/stock-entry.js";
+import { AppError } from "../../../../../shared/errors/AppError.js";
+import type { IUnitOfWork, ITransactionRepositories } from "../../../../../shared/infra/uow/interface/uow.interface.js";
+import { StockEntry } from "../../../entities/stock-entry.js";
 import { Decimal } from "decimal.js";
 
 // Restringe o UoW apenas aos repositórios necessários para esta transação

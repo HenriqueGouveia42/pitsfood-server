@@ -204,6 +204,11 @@ export class MakeSaleUseCase {
 
                 for (const item of bill.items) {
 
+                    // Se o item foi removido/desativado da comanda, ignoramos na cobrança!
+                    if(!item.active){
+                        continue;
+                    }
+
                     // 6.4.1.
                     const groupKey: string = `${item.product_id}-${item.price_at_addition.toNumber()}-${item.product_name}`;
 

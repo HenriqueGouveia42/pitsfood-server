@@ -14,6 +14,8 @@ export interface OpenBillItemDTO {
    unit_price: number;      // Preço deste item específico
    user_id: string;         // Quem pediu (útil para o front mostrar a foto do garçom)
    created_at: string;      // Hora exata do pedido (útil para ordenar timeline)
+   active: boolean;                         // NOVO: Necessário para o front-end riscar o item
+   deactivated_by_user_id: string | null;
 }
 
 // Representa a Comanda
@@ -21,7 +23,7 @@ export interface OpenBillDTO {
     bill_id: string;
     bill_code: string;      // O número da comanda física (Ex: "3283")
     status: billStates;
-    total_amount: number;   // O servidor ainda calcula o total geral para facilitar a listagem
+    total_bill: number;   // O servidor ainda calcula o total geral para facilitar a listagem
     opened_at: string;      // Data de criação da comanda
     items: OpenBillItemDTO[]; // Lista plana, sem agrupamento
 }
@@ -38,13 +40,15 @@ export class FindAllOpenBillsUseCase {
 
         const resultDTO: OpenBillDTO[] = bills.map(bill => {
             
-            const billTotal = bill.items.reduce((sum, item) => sum + item.price_at_addition.toNumber(), 0);
+            const billTotal = bill.items
+            .filter(item => item.active === true)
+            .reduce((sum, item) => sum + item.price_at_addition.toNumber(), 0);
 
             return {
                 bill_id: bill.bill_id,
                 bill_code: bill.bill_code,
                 status: bill.status,
-                total_amount: Number(billTotal.toFixed(2)),
+                total_bill: Number(billTotal.toFixed(2)),
                 opened_at: bill.createdAt,
                 
                 items: bill.items.map(item => ({
@@ -54,7 +58,9 @@ export class FindAllOpenBillsUseCase {
                     gtin_code: item.product_gtin_code,
                     unit_price: item.price_at_addition.toNumber(),
                     user_id: item.user_id,
-                    created_at: item.created_at
+                    created_at: item.created_at,
+                    active: item.active,
+                     deactivated_by_user_id: item.deactivated_by_user_id
                 }))
             };
         });

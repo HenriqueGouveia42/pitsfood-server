@@ -7,7 +7,7 @@ import { AppError } from "../../../../shared/errors/AppError.js";
 import { Decimal } from "decimal.js";
 import type { ICacheProvider } from "../../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 import { CacheKeys } from "../../../../shared/constants/cache-keys.js";
-import type { AddStockEntryService } from "../../services/AddStockEntryService.js";
+import type { AddStockEntryService } from "./services/AddStockEntryService.js";
 
 interface MakeStockEntryUseCaseRequestDTO{
     user_id: string,
