@@ -18,6 +18,8 @@ export type BillItemProps = {
     readonly user_id: string; //quem adicionou
     readonly product_gtin_code: string
 
+    readonly active: boolean,
+    readonly deactivated_by_user_id: string | null,
 }
 
 //estados possiveis de uma comanda
@@ -153,29 +155,92 @@ export class Bill {
 
     public addProduct(product: Product, quantity: number, store_id: string, user_id: string, now_string: string, random_ids: string[]): Bill {
 
-    if (quantity <= 0 || !Number.isInteger(quantity)) throw new DomainError("A quantidade deve ser um número inteiro maior que zero.", "INVALID_QUANTITY");
-    if (!Array.isArray(random_ids)) throw new DomainError("Nao é um array de ids", "MISSING_ARRAY");
-    if (random_ids.length !== quantity) throw new DomainError("As quantidades de ids e quantidade de produtos devem ser iguais");
+        if (quantity <= 0 || !Number.isInteger(quantity)) throw new DomainError("A quantidade deve ser um número inteiro maior que zero.", "INVALID_QUANTITY");
+        if (!Array.isArray(random_ids)) throw new DomainError("Nao é um array de ids", "MISSING_ARRAY");
+        if (random_ids.length !== quantity) throw new DomainError("As quantidades de ids e quantidade de produtos devem ser iguais");
 
-    // O TypeScript sabe que 'id' é estritamente 'string' aqui, pois estamos mapeando os elementos reais
-    const newItems: BillItemProps[] = random_ids.map(id => ({
-        bill_item_id: id,
-        product_name: product.name,
-        price_at_addition: product.price,
-        bill_id: this.props.bill_id,
-        store_id: store_id,
-        created_at: now_string,
-        updated_at: now_string,
-        product_id: product.id,
-        user_id: user_id,
-        product_gtin_code: product.gtin
-    }));
+        // O TypeScript sabe que 'id' é estritamente 'string' aqui, pois estamos mapeando os elementos reais
+        const newItems: BillItemProps[] = random_ids.map(id => ({
+            bill_item_id: id,
+            product_name: product.name,
+            price_at_addition: product.price,
+            bill_id: this.props.bill_id,
+            store_id: store_id,
+            created_at: now_string,
+            updated_at: now_string,
+            product_id: product.id,
+            user_id: user_id,
+            product_gtin_code: product.gtin,
+            active: true,
+            deactivated_by_user_id: null,
+        }));
 
-    return new Bill({
-        ...this.props,
-        items: [...this.props.items, ...newItems],
-        updated_at: now_string
-    });
-}
+        return new Bill({
+            ...this.props,
+            items: [...this.props.items, ...newItems],
+            updated_at: now_string
+        });
+    }
+
+    public deactivateProduct(bill_item_id: string, user_id: string, now_string: string): Bill {
+        
+        // 1. A comanda precisa estar aberta para sofrer alterações
+        if (this.props.status !== billStates.ABERTA) {
+            throw new DomainError("Não é possível remover itens de uma comanda fechada ou cancelada", "BILL_NOT_OPEN");
+        }
+
+        // 2. Encontrar o item na comanda com .find()
+        const itemToUpdate = this.props.items.find(item => item.bill_item_id === bill_item_id);
+        
+        if (!itemToUpdate) throw new DomainError("Item não encontrado nesta comanda", "ITEM_NOT_FOUND");
+        
+        // 3. Verifica se já foi removido (Idempotência)
+        if (!itemToUpdate.active) throw new DomainError("Este item já foi removido anteriormente", "ITEM_ALREADY_REMOVED");
+        
+        // 4. Cria a nova lista de itens iterando com .map()
+        const updatedItems = this.props.items.map(item => 
+            item.bill_item_id === bill_item_id 
+                ? { ...item, active: false, deactivated_by_user_id: user_id, updated_at: now_string }
+                : item
+        );
+
+        // 5. Retorna a nova instância da comanda
+        return new Bill({
+            ...this.props,
+            items: updatedItems,
+            updated_at: now_string
+        });
+    }
+
+    public reactivateProduct(bill_item_id: string, now_string: string): Bill {
+        
+        // 1. A comanda precisa estar aberta
+        if (this.props.status !== billStates.ABERTA) throw new DomainError("Não é possível reativar itens de uma comanda fechada ou cancelada", "BILL_NOT_OPEN");
+        
+
+        // 2. Encontrar o item
+        const itemToUpdate = this.props.items.find(item => item.bill_item_id === bill_item_id);
+        
+        if (!itemToUpdate) throw new DomainError("Item não encontrado nesta comanda", "ITEM_NOT_FOUND");
+        
+
+        // 3. Verifica se já está ativo (Idempotência)
+        if (itemToUpdate.active) throw new DomainError("Este item já está ativo na comanda", "ITEM_ALREADY_ACTIVE");
+        
+
+        // 4. Cria a nova lista de itens alterando o status para true e limpando o usuario
+        const updatedItems = this.props.items.map(item => 
+            item.bill_item_id === bill_item_id 
+                ? { ...item, active: true, deactivated_by_user_id: null, updated_at: now_string }
+                : item
+        );
+
+        // 5. Retorna a nova instância
+        return new Bill({
+            ...this.props,
+            items: updatedItems,
+            updated_at: now_string
+        });
+    }
 
 }

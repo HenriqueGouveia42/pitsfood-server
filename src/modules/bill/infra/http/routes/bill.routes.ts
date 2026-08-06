@@ -13,6 +13,9 @@ import { batchAddItemsSchema } from "../zodSchemas/batchAddItemsSchema.js";
 import { billCodeExistsSchema } from "../zodSchemas/BillCodeExistsSchema.js";
 import { GetOpenBillByGtinCodeSchema } from "../zodSchemas/GetOpenBillByGtinCodeSchema.js"
 import { sseController } from "../../../useCases/listenBillEvents/SSEController.js";
+import { deactivateItemController } from "../../../useCases/deactivateAndReactivateItem/deactivateItem/index.js";
+import { response } from "express";
+import { reactivateItemController } from "../../../useCases/deactivateAndReactivateItem/reactivateItem/index.js";
 
 const billRouteBuilder = new SecureRouteBuilder();
 
@@ -70,6 +73,22 @@ billRouteBuilder.build({
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
     roles: [UserRole.CAIXA, UserRole.GESTOR],
     handler: (request, response) => sseController.handle(request, response)
+})
+
+billRouteBuilder.build({
+    method: 'delete',
+    path:'/:bill_id/items/:bill_item_id',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.CAIXA, UserRole.GESTOR, UserRole.VENDEDOR],
+    handler: (request, response) => deactivateItemController.handle(request, response)
+})
+
+billRouteBuilder.build({
+    method:'patch',
+    path:'/:bill_id/items/:bill_item_id',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.CAIXA, UserRole.GESTOR, UserRole.VENDEDOR],
+    handler: (request, response) => reactivateItemController.handle(request, response)
 })
 
 export const billRoutes = billRouteBuilder.getRouter();

@@ -173,7 +173,8 @@ export class PrismaSaleRepository implements ISaleRepository {
             paymentsRaw,
             productsRaw,
             hourlyRaw,
-            averageStayRaw
+            averageStayRaw,
+            canceledItemsRaw
         ] = await Promise.all([
             // 1. Métricas Gerais
             this.db.sale.aggregate({
@@ -232,6 +233,7 @@ export class PrismaSaleRepository implements ISaleRepository {
                 ORDER BY sale_hour ASC
             `,
 
+            // 5.
             this.db.$queryRaw<any[]>`
                 SELECT
                     (EXTRACT(EPOCH FROM AVG(closed_at - created_at)) / 60) as average_stay_time_minutes
@@ -240,6 +242,21 @@ export class PrismaSaleRepository implements ISaleRepository {
                 AND status = 'FECHADA'
                 AND closed_at >= ${start}
                 AND closed_at <= ${end}
+            `,
+
+            // 6 Agrupamento de Itens Cancelados (Auditoria de Perdas)
+            this.db.$queryRaw<any[]>`
+                SELECT
+                    bp.product_name,
+                    COUNT(bp.bill_item_id)::int as canceled_quantity,
+                    SUM(bp.price_at_addition) as total_lost
+                FROM "bill_products" bp
+                WHERE bp.store_id = ${store_id}
+                AND bp.active = false
+                AND bp.updated_at >= ${start}
+                AND bp.updated_at <= ${end}
+                GROUP BY bp.product_name
+                ORDER BY total_lost DESC
             `
         ]);
 
@@ -268,6 +285,13 @@ export class PrismaSaleRepository implements ISaleRepository {
             total_sold: new Decimal(h.total_sold || 0)
         }));
 
+        // Mapeamento dos itens cancelados
+        const canceledBreakdown = canceledItemsRaw.map((c: any) => ({
+            product_name: c.product_name,
+            canceled_quantity: Number(c.canceled_quantity),
+            total_lost: Number(c.total_lost) // ou new Decimal(c.total_lost || 0)
+        }));
+
         const res: SalesReportDTO = {
             period: { start: start, end: end },
             metrics: {
@@ -278,7 +302,8 @@ export class PrismaSaleRepository implements ISaleRepository {
             },
             payment_breakdown: paymentBreakdown,
             product_breakdown: productBreakdown,
-            hourly_breakdown: hourlyBreakdown
+            hourly_breakdown: hourlyBreakdown,
+            canceled_breakdown: canceledBreakdown
         };
 
         return res

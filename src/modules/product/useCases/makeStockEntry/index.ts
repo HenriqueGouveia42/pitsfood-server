@@ -6,7 +6,7 @@ import { PrismaStoreRepository } from "../../../store/repositories/implementatio
 import { RedisCacheProvider } from "../../../../shared/infra/providers/implementations/cacheProvider/RedisCacheProvider.js";
 
 import { PrismaUnitOfWork } from "../../../../shared/infra/uow/implementations/PrismaUnitOfWork.js";
-import { AddStockEntryService } from "../../services/AddStockEntryService.js";
+import { AddStockEntryService } from "./services/AddStockEntryService.js";
 
 const userRepository: PrismaUserRepository = new PrismaUserRepository();
 const storeRepository: PrismaStoreRepository = new PrismaStoreRepository();

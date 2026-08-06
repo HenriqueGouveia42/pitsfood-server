@@ -333,6 +333,8 @@ model BillProduct {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
+  active Boolean @default(true)
+  deactivated_by_user_id String?
 
   //relacionamentos
   bill    Bill    @relation(fields: [store_id, bill_id], references: [store_id, bill_id]) //a comanda vinculada TEM que existir e TEM que ser da mesma loja 
@@ -341,6 +343,8 @@ model BillProduct {
   store   Store   @relation(fields: [store_id], references: [store_id])
 
   @@map("bill_products")
+
+  @@index([store_id, active, updated_at])
 }
 
 //REFATOREI DAQUI PRA CIMA. DAQUI PRA BAIXO AINDA FALTA REFATORAR
