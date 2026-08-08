@@ -71,7 +71,7 @@ billRouteBuilder.build({
     method: 'get',
     path:'/events/bills',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
-    roles: [UserRole.CAIXA, UserRole.GESTOR],
+    roles: [UserRole.CAIXA, UserRole.GESTOR, UserRole.VENDEDOR],
     handler: (request, response) => sseController.handle(request, response)
 })
 
