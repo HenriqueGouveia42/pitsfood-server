@@ -8,6 +8,7 @@ type UseCaseRequestDTO = {
 }
 
 import { SubscriptionPlan, SubscriptionStatus} from "../../entities/store.enums.js";
+import { MAX_QUANTITY_STORES_PER_PAYING_USER } from "../../../../config/system_data.js";
 
 export type UseCaseResponseDTO = {
     stores:{
@@ -17,7 +18,10 @@ export type UseCaseResponseDTO = {
         store_subscription_plan: SubscriptionPlan
         store_subscription_plan_status: SubscriptionStatus
 
-    }[]
+    }[],
+    max_allowed_stores:{
+        quantity: number
+    }
 }
 
 export class ListMyStoresUseCase{
@@ -30,6 +34,7 @@ export class ListMyStoresUseCase{
         if (!is_paying_user) throw new AppError("Usuario nao é um usuario pago dono de loja", 403, "USER_MUST_BE_OWNER");
 
         const stores: Store[] | null = await this.storeRepository.listAllSavedStores(user_id);
+        const max_allowed_stores: number = MAX_QUANTITY_STORES_PER_PAYING_USER
 
         return {
             stores: (stores || []).map(s => ({
@@ -38,7 +43,10 @@ export class ListMyStoresUseCase{
                 store_is_active: s.active,
                 store_subscription_plan: s.plan,
                 store_subscription_plan_status: s.subscription_status
-            }))
+            })),
+            max_allowed_stores:{
+                quantity: max_allowed_stores
+            }
         }
     }
 }

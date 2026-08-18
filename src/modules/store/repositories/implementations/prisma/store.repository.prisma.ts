@@ -161,11 +161,12 @@ export class PrismaStoreRepository implements IStoreRepository {
         return stores;
     }
 
-    async storeWithThisNameExists(name: string): Promise<boolean>{
+    async storeWithThisNameExists(name: string, owner_id: string): Promise<boolean>{
 
         const prismaStore = await this.db.store.findFirst({
             where:{
-                name
+                name,
+                owner_id
             }
         })
 
@@ -282,6 +283,16 @@ export class PrismaStoreRepository implements IStoreRepository {
         const store_ids: string[] = stores.map(s => s.store_id);
 
         return store_ids
+
+    }
+
+    async findQuantityCreatedStoresByPayingUser(user_id: string): Promise<number> {
+        
+        return await this.db.store.count({
+            where:{
+                owner_id: user_id
+            }
+        })
 
     }
 

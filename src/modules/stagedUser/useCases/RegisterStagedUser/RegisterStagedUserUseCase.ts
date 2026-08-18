@@ -7,7 +7,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import type { User } from "../../../user/entities/user.js";
 
 // NOVO IMPORT: Injetando a interface genérica do provedor de e-mail
-import type { IMailProvider } from "../../../../shared/providers/EmailProvider/interface/IMailProvider.js";
+import type { IMailProvider } from "../../../../shared/providers/interfaces/emailProvider/IMailProvider.js";
 
 import type { IEmailValidationProvider } from "../../../../shared/providers/interfaces/emailValidationProvider/IEmailValidationProvider.js";
 import type { IHashedStringProvider } from "../../../../shared/providers/interfaces/hashedStringProvider/IHashedStringProvider.js";

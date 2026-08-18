@@ -5,10 +5,11 @@ export interface IStoreRepository{
     findSavedStoreById(store_id: string): Promise<Store | null>;
     updateSavedStore(store: Store): Promise<void>;
     listAllSavedStores(user_id: string): Promise<Store[]>;
-    storeWithThisNameExists(name: string): Promise<boolean>;
+    storeWithThisNameExists(name: string, owner_id: string): Promise<boolean>;
     findActiveAndExpiredStores(currentDate: Date): Promise<Store[]>;
     updateManyStores(stores: Store[]): Promise<void>;
     findActiveStores(): Promise<Store[]>;
     findStoresExpiringOn(targetDate: Date): Promise<Store[]>;
     findAllStoresIdsOwnedByUserId(user_id: string): Promise<string[]>;
+    findQuantityCreatedStoresByPayingUser(user_id: string): Promise<number>;
 }

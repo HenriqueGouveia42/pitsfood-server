@@ -15,7 +15,7 @@ export class LoginController {
     // Verifica se estamos em produção OU usando um túnel HTTPS local como o Ngrok
     const isCrossDomain = 
         process.env.NODE_ENV === 'production' || 
-        process.env.USING_NGROK === 'true';
+        process.env.USING_TUNNEL === 'true';
 
     return {
         httpOnly: true,

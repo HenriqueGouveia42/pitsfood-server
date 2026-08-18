@@ -192,6 +192,11 @@ export class User {
             throw new DomainError("Usuario atingiu a quantidade máxima de dispositivos autorizados", "ID_TOO_LONG");
         }
 
+        const deviceAlreadyExists = this.authorized_devices.some(item => item.device_id === device_id);
+        if (deviceAlreadyExists) {
+            throw new DomainError("Este dispositivo já está autorizado.", "DEVICE_ALREADY_AUTHORIZED");
+        }
+
         if (device_id.length > 40){
             throw new DomainError("Id muito longo", "INVALID_ID_LENGHT");
         }
