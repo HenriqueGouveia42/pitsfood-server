@@ -101,21 +101,24 @@ export class PrismaUserRepository implements IUserRepository {
     }
 
     async updateSavedUser(user: User): Promise<void> {
-
-        const prismaData = PrismaUserRepository.entityToPrismaDataMapper(user);
-
-        const { user_id, store_id, created_at, ...dataToUpdate } = prismaData;
-
-        await this.db.user.update({
-            where:{
-                user_id: user.id,
-            },
-            data: {
-                ...dataToUpdate,
-                updated_at: new Date()
-            }
-        });
-    }
+    await this.db.user.update({
+        where: {
+            user_id: user.id,
+        },
+        data: {
+            username: user.username,
+            email: user.email,
+            password_hash: user.passwordHash,
+            role: user.role,
+            active: user.active,
+            must_change_password: user.mustChangePassword,
+            paying_user: user.paying_user,
+            cpf_cnpj: user.cpf_cnpj,
+            phone: user.phone,
+            updated_at: new Date()
+        }
+    });
+}
 
     async listAllSavedUsers(store_id: string, active: boolean | undefined): Promise<User[]> {
         

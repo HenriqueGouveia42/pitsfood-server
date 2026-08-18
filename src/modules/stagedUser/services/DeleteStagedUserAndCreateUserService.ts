@@ -17,7 +17,6 @@ export class DeleteStagedUserAndCreateUserService{
 
             await repositories.stagedUserRepository.deleteStagedUserById(staged_user.id);
             await repositories.userRepository.saveUser(user);
-
         })
 
     }

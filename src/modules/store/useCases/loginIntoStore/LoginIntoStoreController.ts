@@ -1,11 +1,27 @@
-import type { Request, Response } from "express";
+import type { Request, Response, CookieOptions } from "express";
 import { LoginIntoStoreUseCase } from "./LoginIntoStoreUseCase.js";
 import { AppError } from "../../../../shared/errors/AppError.js";
 
 export class LoginIntoStoreController {
+    
     constructor(
         private loginIntoStoreUseCase: LoginIntoStoreUseCase
     ){}
+
+    // Helper para gerar as opções do cookie dinamicamente (idêntico ao LoginController)
+    private getCookieOptions(maxAge: number): CookieOptions {
+        const isCrossDomain = 
+            process.env.NODE_ENV === 'production' || 
+            process.env.USING_TUNNEL === 'true';
+
+        return {
+            httpOnly: true,
+            secure: isCrossDomain, 
+            sameSite: isCrossDomain ? 'none' : 'lax', 
+            maxAge,
+            path: '/'
+        };
+    }
 
     public async handle(req: Request, res: Response): Promise<Response> {
        
@@ -18,44 +34,48 @@ export class LoginIntoStoreController {
         const current_store_id = req.user.store_id;
         const { store_id_to_login } = req.body;
 
+        // 1. Identifica se o client é Mobile
+        const isMobileClient: boolean = req.headers['x-client-type'] === 'mobile';
+
         const result = await this.loginIntoStoreUseCase.execute({
             user_id,
             store_id_to_login,
             token_version,
             current_store_id
         });
-
-        const isProduction = process.env.NODE_ENV === 'production';
         
-        // Opções base do cookie para garantir que o clearCookie funcione corretamente
-        const cookieOptions = {
-            httpOnly: true,
-            secure: true, 
-            sameSite: isProduction ? 'strict' as const : 'none' as const,
-            path: '/'
-        };
-
-        // 1. Se detectou conflito, limpa o cookie corrompido e avisa o front-end
+        // 2. Se detectou conflito, limpa o cookie corrompido e avisa o front-end
         if (result.status === "CONFLICT_ALREADY_LOGGED_IN") {
-            res.clearCookie('token', cookieOptions);
+            // maxAge 0 para forçar a expiração imediata do cookie no browser
+            res.clearCookie('token', this.getCookieOptions(0));
             
             return res.status(409).json({
                 message: result.message,
-                action: "RELOGIN_REQUIRED" // Útil para o front-end saber que deve redirecionar para a tela inicial
+                action: "RELOGIN_REQUIRED" 
             });
         }
 
-        // 2. Caminho de sucesso: sobrescreve o cookie com o novo token
+        // 3. Caminho de sucesso: extrai o novo token e o user atualizado
         const { token, user } = result.data;
 
-        res.cookie('token', token, {
-            ...cookieOptions,
-            maxAge: 1000 * 60 * 60 * 24 // 1 dia
-        });
+        // 4. Sempre seta o cookie (atende aos browsers)
+        res.cookie(
+            'token', 
+            token, 
+            this.getCookieOptions(1000 * 60 * 60 * 24) // 1 dia
+        );
 
-        return res.status(200).json({
+        // 5. Prepara a resposta base
+        const responsePayload: any = {
             message: "Usuario vinculado a loja com sucesso",
             user: user
-        });
+        };
+
+        // 6. Injeta o token no JSON apenas se for Mobile
+        if (isMobileClient) {
+            responsePayload.token = token;
+        }
+
+        return res.status(200).json(responsePayload);
     }
 }

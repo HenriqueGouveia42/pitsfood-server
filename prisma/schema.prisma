@@ -129,6 +129,7 @@ model Store{
   physical_bill_cards PhysicalBillCard[]
   invoices SubscriptionInvoice[]
 
+  @@index([owner_id])
   @@map("stores")
 }
 
@@ -215,6 +216,8 @@ model AuthorizedDevice {
 
   user User @relation(fields: [user_id], references: [user_id])
   user_id String
+
+  @@unique([user_id, device_id]) // Trava de segurança no banco
 }
 
 //representa um produto salvo no banco de dados
