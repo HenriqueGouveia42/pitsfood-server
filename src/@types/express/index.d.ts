@@ -1,10 +1,14 @@
 import { UserRole } from "../../modules/user/entities/user.js";
 
-//quando adicionamos 'import' ou 'export' no topo de um arquivo de deefinicao
-//de tipos '.d.ts', ele deixa de ser um arquivo GLOBAL e vira um MODULO
+/*
+  Extensão do namespace global do Express
+  Permite adicionar tipos aos dados injetados no objeto de requisição (req) pelos
+  middlewares de autenticação, permitindo que os controllers acessem esses dados
 
-//Isso quebra tudo. Significa que para podermos usar 'imports' aqui, precisamos dizer explicitamente ao 
-//TS que queremos alterar o escopo global
+  Extension of the global Express namespace
+  Allows to add type to the injected data into the request object (req) by
+  the authentications middlewares, what allows the controllers to access these data
+*/
 declare global {
   namespace Express {
     export interface Request {

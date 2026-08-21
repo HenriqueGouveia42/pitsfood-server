@@ -48,7 +48,7 @@ export class UpdateProductUseCase{
         const store: Store | null = await this.storeRepository.findSavedStoreById(store_id);
         if (!store) throw new AppError("Loja invalida", 404, "STORE_NOT_FOUND");
 
-        if (store.ownerId !== user_trying_to_update.id) throw new AppError("Usuario nao é o dono desta loja", 403, "STORE_MISMATCH");
+        if ((store.ownerId !== user_trying_to_update.id) && user_trying_to_update.paying_user) throw new AppError("Usuario nao é o dono desta loja", 403, "STORE_MISMATCH");
 
         //validação do Produto
         //repositório já garante que traz o produto APENAS se ele for da store_id informada.

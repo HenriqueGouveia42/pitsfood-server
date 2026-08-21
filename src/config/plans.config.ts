@@ -1,3 +1,9 @@
+/*
+    Objeto de configuração dos planos das lojas
+
+    Configuration object to plans of stores
+*/
+
 import { SubscriptionPlan } from "../modules/store/entities/store.enums.js";
 import { UserRole } from "../modules/user/entities/user.js";
 
