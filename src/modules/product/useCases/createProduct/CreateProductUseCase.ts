@@ -45,7 +45,8 @@ export class CreateProductUseCase{
         const store: Store | null  = await this.storeRepository.findSavedStoreById(store_id);
         if(!store) throw new AppError("Loja nao encontrada", 404, "STORE_NOT_FOUND");
         
-        if(user.id != store.ownerId) throw new AppError("Usuario nao pertence a loja", 404, "STORE_MISMATCH");
+        // Usuário não é o dono da loja e nem é usuário pago
+        if((user.id != store.ownerId) && user.paying_user) throw new AppError("Usuario nao pertence a loja", 404, "STORE_MISMATCH");
 
         const now_date: string = new Date().toISOString();
         const product_id: string = crypto.randomUUID();
