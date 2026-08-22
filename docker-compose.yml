@@ -18,7 +18,7 @@ services:
 
   # Pool de conexões
   pgbouncer:
-    image: edoburu/pgbouncer:1.22.1
+    image: edoburu/pgbouncer:latest
     environment:
       # O PgBouncer se conecta diretamente ao Postgres original
       - DATABASE_URL=postgres://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pitsfood}
