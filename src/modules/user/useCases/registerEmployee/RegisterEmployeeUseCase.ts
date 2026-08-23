@@ -65,7 +65,7 @@ export class RegisterEmployeeUseCase{
         const user_role: UserRole = role as UserRole;
         const max_quantity_users_this_role_for_this_store: number | null | undefined = PLAN_LIMITS[store_plan].limits.max_users[user_role];
 
-        if (!max_quantity_users_this_role_for_this_store){
+        if (!max_quantity_users_this_role_for_this_store && typeof(max_quantity_users_this_role_for_this_store) !== 'number'){
             throw new Error("Erro. Plano sem quantidade maxima de usuarios")
         }
         const all_users: User[] | null = await this.userRepository.listAllSavedUsers(store.id, true);
