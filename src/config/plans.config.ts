@@ -74,7 +74,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
     [SubscriptionPlan.PREMIUM]: {
         id: "premium_plan",
         title: "Plano Premium",
-        description: "Ideal para o Empreendedor que já tem uma operação consolidade.",
+        description: "Ideal para o Empreendedor que já tem uma operação consolidada.",
         price_in_cents: 19900,
         currency: "BRL",
         limits: {
