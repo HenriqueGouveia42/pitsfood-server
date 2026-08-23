@@ -50,6 +50,7 @@ services:
     environment:
       # O Migrator mantém a conexão DIRETA no Postgres 5432 (Unpooled)
       - DATABASE_URL=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pitsfood}
+      - DATABASE_URL_UNPOOLED=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pitsfood}
     depends_on:
       postgres:
         condition: service_healthy
