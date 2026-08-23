@@ -43,10 +43,9 @@ enum PaymentMethod {
 
 enum SubscriptionPlan {
   NONE //loja que acabou de ser criada
-  BASIC
+  EMPREENDEDOR
   EXTENDED
   PREMIUM
-  PERSONALIZED
 }
 
 enum SubscriptionStatus {
