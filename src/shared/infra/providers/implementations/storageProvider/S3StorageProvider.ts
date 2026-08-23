@@ -1,3 +1,7 @@
+/*
+    Classe que implementa a interface que manipula imagens no bucket
+*/
+
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import type { IStorageProvider } from "../../../../providers/interfaces/storageProvider/IStorageProvider.js";
 import { AppError } from "../../../../errors/AppError.js";
@@ -6,19 +10,15 @@ export class S3StorageProvider implements IStorageProvider {
     private client: S3Client;
 
     constructor() {
-
         const endpoint = process.env.STORAGE_ENDPOINT;
         const accessKeyId = process.env.STORAGE_ACCESS_KEY_ID;
         const secretAccessKey = process.env.STORAGE_SECRET_ACCESS_KEY;
         const bucketName = process.env.STORAGE_BUCKET_NAME;
 
-        // validar se elas existem - failfast
+        // Validação unificada
         if (!endpoint || !accessKeyId || !secretAccessKey || !bucketName) {
             throw new Error("CRITICAL: Faltam variáveis de ambiente de Storage (ENDPOINT, ACCESS_KEY_ID, SECRET_ACCESS_KEY ou BUCKET_NAME).");
         }
-
-        //validar se elas existem - failfast
-        if (!endpoint || !accessKeyId || !secretAccessKey) throw new Error("CRITICAL: Faltam variáveis de ambiente do R2/S3 (ENDPOINT, ACCESS_KEY_ID ou SECRET_ACCESS_KEY).");
         
         this.client = new S3Client({
             region: "auto",
@@ -41,7 +41,7 @@ export class S3StorageProvider implements IStorageProvider {
                 })
             );
 
-            const publicUrl = `${process.env.STORAGE_PUBLIC_URL}/${file}`;
+            const publicUrl = `${process.env.STORAGE_PUBLIC_URL}/${process.env.STORAGE_BUCKET_NAME}/${file}`;
             return publicUrl;
 
         } catch (error) {
@@ -54,7 +54,7 @@ export class S3StorageProvider implements IStorageProvider {
         try {
             await this.client.send(
                 new DeleteObjectCommand({
-                    Bucket: process.env.AWS_BUCKET_NAME,
+                    Bucket: process.env.STORAGE_BUCKET_NAME, // CORREÇÃO: Usando a env correta
                     Key: file,
                 })
             );
