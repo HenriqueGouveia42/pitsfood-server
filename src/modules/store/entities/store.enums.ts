@@ -1,9 +1,8 @@
 export enum SubscriptionPlan {
     NONE = "NONE",
-    BASIC = "BASIC",
+    EMPREENDEDOR = "EMPREENDEDOR",
     EXTENDED = "EXTENDED",
     PREMIUM = "PREMIUM",
-    PERSONALIZED = "PERSONALIZED"
 }
 
 export enum SubscriptionStatus {

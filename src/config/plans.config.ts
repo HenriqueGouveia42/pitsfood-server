@@ -39,18 +39,18 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
         }
     },
 
-    [SubscriptionPlan.BASIC]: {
+    [SubscriptionPlan.EMPREENDEDOR]: {
         id: "basic_plan",
-        title: "Plano Basic",
-        description: "Ideal para food trucks, quiosques e comedorias em geral.",
+        title: "Plano Empreendedor",
+        description: "Ideal para o Empreendedor Solo! Food trucks, quiosques e comedorias em geral.",
         price_in_cents: 5900,
         currency: "BRL",
         limits: {
-            max_physical_bills: 40,
+            max_physical_bills: 20,
             max_users: {
                 [UserRole.GESTOR]: 1,
-                [UserRole.CAIXA]: 1,
-                [UserRole.VENDEDOR]: 4
+                [UserRole.CAIXA]: 0,
+                [UserRole.VENDEDOR]: 0
             }
         }
     },
@@ -58,15 +58,15 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
     [SubscriptionPlan.EXTENDED]: {
         id: "extended_plan",
         title: "Plano Extended",
-        description: "Para restaurantes, bares e comedorias em crescimento.",
+        description: "Ideal para o Empreendedor que está crescendo! Para restaurantes, bares e comedorias em crescimento.",
         price_in_cents: 9900,
         currency: "BRL",
         limits: {
-            max_physical_bills: 80,
+            max_physical_bills: 40,
             max_users: {
-                [UserRole.GESTOR]: 2,
-                [UserRole.CAIXA]: 2,
-                [UserRole.VENDEDOR]: 10
+                [UserRole.GESTOR]: 1,
+                [UserRole.CAIXA]: 1,
+                [UserRole.VENDEDOR]: 5
             }
         }
     },
@@ -74,32 +74,17 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanConfig> = {
     [SubscriptionPlan.PREMIUM]: {
         id: "premium_plan",
         title: "Plano Premium",
-        description: "Potência total para operações robustas",
+        description: "Ideal para o Empreendedor que já tem uma operação consolidade.",
         price_in_cents: 19900,
         currency: "BRL",
         limits: {
-            max_physical_bills: 200,
+            max_physical_bills: 100,
             max_users: {
-                [UserRole.GESTOR]: 5,
+                [UserRole.GESTOR]: 3,
                 [UserRole.CAIXA]: 5,
                 [UserRole.VENDEDOR]: 30
             }
         }
     },
 
-    [SubscriptionPlan.PERSONALIZED]: {
-        id: "personalized_plan",
-        title: "Plano Personalized",
-        description: "Um plano personalizado para o seu negócio. Entre em contato.",
-        price_in_cents: null,
-        currency: "BRL",
-        limits: {
-            max_physical_bills: 0,
-            max_users: {
-                [UserRole.GESTOR]: 0,
-                [UserRole.CAIXA]: 0,
-                [UserRole.VENDEDOR]: 0
-            }
-        }
-    }
 };
