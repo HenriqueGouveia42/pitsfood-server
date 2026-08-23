@@ -29,11 +29,6 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U ${POSTGRES_USER:-pitsfood_user}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:8-alpine
@@ -47,40 +42,25 @@ services:
       timeout: 5s
       retries: 5
 
-  migrator:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: npx prisma migrate deploy
-    environment:
-      # O Migrator mantém a conexão DIRETA no Postgres 5432 (Unpooled)
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pitsfood}
-      - DATABASE_URL_UNPOOLED=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pitsfood}
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   api:
     build:
       context: .
       dockerfile: Dockerfile
+    # A API faz a migração antes de ligar o Node
+    command: sh -c "npx prisma migrate deploy && npm run start"
     environment:
       - PORT=3000
       - NODE_ENV=production
-      # API conecta no PgBouncer na porta 6432 e passa o pgbouncer=true para o Prisma
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB:-pitsfood}?pgbouncer=true
-      # Para o schema.prisma não quebrar, passamos a rota direta também
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-pitsfood}?pgbouncer=true
       - DATABASE_URL_UNPOOLED=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pitsfood}
       - REDIS_URL=redis://default:${REDIS_PASSWORD}@redis:6379
     depends_on:
       postgres:
         condition: service_healthy
       pgbouncer:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
-      migrator:
-        condition: service_completed_successfully
     restart: unless-stopped
 
   worker:
@@ -90,19 +70,16 @@ services:
     command: npm run start:worker
     environment:
       - NODE_ENV=production
-      # Worker conecta no PgBouncer na porta 6432
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB:-pitsfood}?pgbouncer=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-pitsfood}?pgbouncer=true
       - DATABASE_URL_UNPOOLED=postgresql://${POSTGRES_USER:-pitsfood_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pitsfood}
       - REDIS_URL=redis://default:${REDIS_PASSWORD}@redis:6379
     depends_on:
       postgres:
         condition: service_healthy
       pgbouncer:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
-      migrator:
-        condition: service_completed_successfully
     restart: unless-stopped
 
 volumes:
