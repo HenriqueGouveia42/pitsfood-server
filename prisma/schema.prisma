@@ -237,6 +237,7 @@ model Product {
   stock_quantity      Int @default(0)
 
   requires_preparation  Boolean @default(false) //indica se um produto precisa ser preparado na hora antes de ser vendido
+  product_icon_url  String?
 
 
   //relacionamentos
