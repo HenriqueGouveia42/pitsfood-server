@@ -124,6 +124,10 @@ export class Product {
         if (price.isNegative() || price.gt(1000000)) throw new DomainError("Preço fora da faixa permitida", "INVALID_PRODUCT_PRICE");
     }
 
+    private static validateProductIconUrl(product_icon_url: string){
+        if (product_icon_url.length > 100 || typeof(product_icon_url) !== 'string') throw new DomainError("String invalida")
+    }
+
     //produtos internos vao ter gtin13 code sempre comecando com 202
     public static buildProduct(build_props: BuildProductProps): Product {
 
@@ -219,6 +223,16 @@ export class Product {
             unit_price_in_reais: newUnitPrice,
             active: newActive,
             updated_at: date_string
+        })
+    }
+
+    public withUpdatedProductIconUrl(new_product_icon_url: string): Product{
+
+        Product.validateProductIconUrl(new_product_icon_url);
+
+        return new Product({
+            ...this.props,
+            product_icon_url: new_product_icon_url
         })
     }
 }
