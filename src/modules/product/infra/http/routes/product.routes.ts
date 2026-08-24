@@ -1,5 +1,7 @@
 import { UserRole } from "../../../../user/entities/user.js";
 import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/SecureRouteBuilder.js";
+import multer from "multer";
+import { uploadConfig } from "../../../../../config/uploads.js";
 
 // Controllers
 import { createProductController } from "../../../useCases/createProduct/index.js";
@@ -11,8 +13,11 @@ import { listStockEntriesController } from "../../../useCases/listStockEntries/i
 // Schemas
 import { CreateProductSchema } from "../zodSchemas/CreateProductSchema.js";
 import { ListStockEntriesSchema } from "../zodSchemas/ListStockEntriesSchema.js";
+import { updateProductIconController } from "../../../useCases/updateProductIcon/index.js";
 
 const productRouteBuilder = new SecureRouteBuilder();
+
+const upload = multer(uploadConfig);
 
 // ==========================================
 // NÍVEL 3: REQUER ASSINATURA ATIVA (Gestão de Produtos e Estoque)
@@ -61,5 +66,14 @@ productRouteBuilder.build({
     schema: ListStockEntriesSchema,
     handler: (request, response) => listStockEntriesController.handle(request, response)
 });
+
+productRouteBuilder.build({
+    method: 'patch',
+    path: '/icon/:product_id',
+    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
+    roles: [UserRole.GESTOR],
+    middlewares: [upload.single("icon")],
+    handler: (request, response) => updateProductIconController.handle(request, response)
+})
 
 export const productRoutes = productRouteBuilder.getRouter();

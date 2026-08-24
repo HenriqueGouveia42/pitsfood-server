@@ -9,7 +9,7 @@ export class UpdateStoreIconController {
 
     public async handle(req: Request, res: Response): Promise<Response> {
         
-        const store_id = req.user.store_id;
+        const store_id = req.user?.store_id;
         const file = req.file;
         const user_id = req.user?.id;
 

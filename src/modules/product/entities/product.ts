@@ -125,7 +125,7 @@ export class Product {
     }
 
     private static validateProductIconUrl(product_icon_url: string){
-        if (product_icon_url.length > 100 || typeof(product_icon_url) !== 'string') throw new DomainError("String invalida")
+        if (product_icon_url.length > 255 || typeof(product_icon_url) !== 'string') throw new DomainError("String invalida")
     }
 
     //produtos internos vao ter gtin13 code sempre comecando com 202
