@@ -10,11 +10,11 @@ export type ProductProps = {
     readonly created_at: string;
     readonly updated_at: string;
     readonly active: boolean;
-    //novos da refatoracao
     readonly store_id: string;
     readonly track_stock: boolean;
     readonly stock_quantity: number;
     readonly requires_preparation: boolean
+    readonly product_icon_url: string | null
 }
 
 export type BuildProductProps = {
@@ -27,13 +27,12 @@ export type BuildProductProps = {
     readonly track_stock: boolean,
     readonly stock_quantity: number,
     readonly requires_preparation: boolean,
-    readonly now_date: string
-    readonly product_id: string
+    readonly now_date: string,
+    readonly product_id: string,
 }
 
 
 export class Product {
-    //constructor e propriedade props são estritamente readonly
     private constructor(private readonly props: ProductProps) {}
 
     private static validateStock(track_stock: boolean, stock_quantity: number | null) {
@@ -177,7 +176,8 @@ export class Product {
             store_id: build_props.store_id,
             track_stock: build_props.track_stock,
             stock_quantity: finalStockQuantity,
-            requires_preparation: build_props.requires_preparation
+            requires_preparation: build_props.requires_preparation,
+            product_icon_url: null
         });
     }
 
@@ -203,6 +203,7 @@ export class Product {
     get track_stock() {return this.props.track_stock; }
     get stock_quantity() {return this.props.stock_quantity; }
     get requires_preparation() {return this.props.requires_preparation}
+    get product_icon_url() {return this.props.product_icon_url}
 
     //setter que retorna novo objeto, mantendo a imutabilidade de um objeto criado
     public withUpdatedData(newName:string, newUnitPrice: Decimal, newActive: boolean, date_string: string): Product{
