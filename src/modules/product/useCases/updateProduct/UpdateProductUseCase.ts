@@ -9,7 +9,6 @@ import type { ICacheProvider } from '../../../../shared/providers/interfaces/cac
 import { CacheKeys } from '../../../../shared/constants/cache-keys.js';
 import type { IStoreRepository } from '../../../store/repositories/interfaces/store.repository.interface.js';
 import type { Store } from '../../../store/entities/store.js';
-// Store entity import removido pois a busca redundante foi removida
 
 interface UpdateProductUseCaseRequest{
     product_id: string,
