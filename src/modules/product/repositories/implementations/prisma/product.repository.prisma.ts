@@ -48,7 +48,8 @@ export class PrismaProductRepository implements IProductRepository {
             store: { connect: { store_id: product.store_id} },
             track_stock: product.track_stock,
             stock_quantity: product.stock_quantity,
-            requires_preparation: product.requires_preparation
+            requires_preparation: product.requires_preparation,
+            product_icon_url: product.product_icon_url
         };
     }
 
