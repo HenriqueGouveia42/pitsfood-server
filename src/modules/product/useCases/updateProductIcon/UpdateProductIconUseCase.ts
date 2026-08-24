@@ -58,7 +58,7 @@ export class UpdateProductIconUseCase {
         const oldIconUrl: string | null = product.product_icon_url;
 
         // 4. Define o nome do novo arquivo (Estruturado em pastas por loja para organização no S3)
-        const fileName: string = `products/${store_id}/${product.product_icon_url}-${Date.now()}.${fileExtension}`;
+        const fileName: string = `products/${store_id}/${product.id}-${Date.now()}.${fileExtension}`;
 
         // 5. Salva a nova imagem no Storage PRIMEIRO
         const publicUrl: string = await this.storageProvider.save(
@@ -89,8 +89,9 @@ export class UpdateProductIconUseCase {
         }
 
         const cache_key: string = CacheKeys.Product.LIST(store_id);
-
         await this.cacheProvider.invalidate(cache_key);
+
+        console.log(`preciso retornar a segunte url publica: ${publicUrl}`)
 
         return publicUrl;
     }

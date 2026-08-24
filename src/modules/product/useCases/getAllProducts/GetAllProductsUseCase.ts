@@ -40,7 +40,7 @@ export class GetAllProductsUseCase {
 
         // Se o usuário não for um GESTOR, tentamos utilzar o cache
         const cacheKey: string = CacheKeys.Product.LIST(store_id);
-        const cachedData = await this.cacheProvider.get<IGetAllProductsResponse[]>(cacheKey);
+        const cachedData: IGetAllProductsResponse[] | null = await this.cacheProvider.get<IGetAllProductsResponse[]>(cacheKey);
 
         if (cachedData) return cachedData;
         
