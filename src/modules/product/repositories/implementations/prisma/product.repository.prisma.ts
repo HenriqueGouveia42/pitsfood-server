@@ -29,7 +29,8 @@ export class PrismaProductRepository implements IProductRepository {
             store_id: prismaProduct.store_id,
             track_stock: prismaProduct.track_stock,
             stock_quantity: prismaProduct.stock_quantity,
-            requires_preparation: prismaProduct.requires_preparation
+            requires_preparation: prismaProduct.requires_preparation,
+            product_icon_url: prismaProduct.product_icon_url
         };
         return Product.restoreProduct(productProps);
     }

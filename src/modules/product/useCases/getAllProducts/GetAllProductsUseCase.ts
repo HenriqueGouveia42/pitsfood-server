@@ -14,6 +14,7 @@ export interface IGetAllProductsResponse {
     stock_quantity: number;
     requires_preparation: boolean;
     product_id: string;
+    product_icon_url: string | null
 }
 
 interface IGetAllProductsRequest {
@@ -30,31 +31,29 @@ export class GetAllProductsUseCase {
 
     public async execute({ store_id, user_role }: IGetAllProductsRequest): Promise<IGetAllProductsResponse[]> {
 
-        //FLUXO DO GESTOR (Bypass de Cache)
-        //O Gestor precisa ver o estoque atualizado em tempo real. Ignoramos o Redis.
+        
+        // Se o usuário for um GESTOR, ignoramos o cache
         if (user_role === UserRole.GESTOR) {
             const products = await this.productRepository.listSavedProducts(store_id);
             return this.mapToDTO(products);
         }
 
-        //FLUXO DO CAIXA/VENDEDOR (Usa o Cache)
+        // Se o usuário não for um GESTOR, tentamos utilzar o cache
         const cacheKey: string = CacheKeys.Product.LIST(store_id);
         const cachedData = await this.cacheProvider.get<IGetAllProductsResponse[]>(cacheKey);
 
         if (cachedData) return cachedData;
         
-        //CACHE MISS
+        // Cache miss
         const products: Product[] = await this.productRepository.listSavedProducts(store_id);
         const allProductsResponse: IGetAllProductsResponse[] = this.mapToDTO(products);
 
-        //Salva por 1 hora (3600s). Nenhuma venda vai invalidar essa chave!
-        //Ela só será invalidada se um produto for criado/editado/deletado.
+        // Salva por 1 hora (3600s). Essa chave só será invalidade se um produto for criado/editado/deletado.
         await this.cacheProvider.save(cacheKey, allProductsResponse, 3600);
 
         return allProductsResponse;
     }
 
-    //Método auxiliar para evitar repetição de código (DRY)
     private mapToDTO(products: Product[]): IGetAllProductsResponse[] {
         return products.map(p => ({
             name: p.name,
@@ -65,7 +64,8 @@ export class GetAllProductsUseCase {
             track_stock: p.track_stock,
             stock_quantity: p.stock_quantity,
             requires_preparation: p.requires_preparation,
-            product_id: p.id
+            product_id: p.id,
+            product_icon_url: p.product_icon_url
         }));
     }
 }

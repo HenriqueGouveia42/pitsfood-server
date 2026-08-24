@@ -11,12 +11,15 @@ export class UpdateStoreIconController {
         
         const store_id = req.user.store_id;
         const file = req.file;
+        const user_id = req.user?.id;
 
         if (!store_id) throw new AppError("Contexto de loja não encontrado.", 403, "STORE_CONTEXT_REQUIRED");
         if (!file) throw new AppError("Nenhum arquivo de imagem foi enviado.", 400, "MISSING_FILE");
+        if(!user_id) throw new AppError("Id de usuario ausente")
 
         const icon_url = await this.updateStoreIconUseCase.execute({
             store_id,
+            user_id,
             icon_file: {
                 buffer: file.buffer,
                 mimetype: file.mimetype
