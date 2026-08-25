@@ -1,44 +1,49 @@
+/**
+
+    Classe de entidade que representa um comanda, ou seja, uma consumação que está em andamente no presente momento
+
+*/
+
 import { Decimal } from 'decimal.js';
 import { Product } from '../../product/entities/product.js';
-import { AppError } from '../../../shared/errors/AppError.js';
 import { DomainError } from '../../../shared/errors/DomainError.js';
 
-//tipo de um item na comanda
+// Tipo de representa um item em uma comanda
 export type BillItemProps = {
-    readonly bill_item_id:  string; //representa uma adição específica em uma comanda específica
+    readonly bill_item_id:  string; // Representa uma adição específica em uma comanda específica
     readonly product_name: string,
     readonly price_at_addition: Decimal;
-    readonly bill_id: string, //de qual comanda veio
+    readonly bill_id: string, // De qual comanda veio
     readonly store_id: string
 
     readonly created_at: string,
     readonly updated_at: string,
 
-    readonly product_id: string; //qual produto
-    readonly user_id: string; //quem adicionou
+    readonly product_id: string; // Qual produto
+    readonly user_id: string; // Quem adicionou
     readonly product_gtin_code: string
 
     readonly active: boolean,
     readonly deactivated_by_user_id: string | null,
 }
 
-//estados possiveis de uma comanda
+// Estados possiveis de uma comanda
 export enum billStates{
-    ABERTA = "ABERTA", //apta a receber novos itens - estado inicial da criacao de uma comanda
+    ABERTA = "ABERTA", // Apta a receber novos itens. Estado inicial da criacao de uma comanda
     FECHADA = "FECHADA",
     CANCELADA = "CANCELADA"
 }
 
-//tipo de uma comanda em uso
+// Tipo que representa uma comanda em uso
 export type BillProps = {
-    readonly bill_id: string; //representa um uso específico da comanda física
-    readonly bill_code_gtin: string; //representa uma comanda física. Comanda "1025", por exemplo, que será utilizada por diversos clientes
+    readonly bill_id: string;
+    readonly bill_code_gtin: string; // Representa uma comanda física. Comanda "1025", por exemplo, que será utilizada por diversos clientes.
     readonly status: billStates;
     readonly store_id: string;
     readonly created_at: string;
     readonly updated_at: string;
     readonly closed_at: string | null;
-    readonly items: BillItemProps[]; //relacionamento com bill_items
+    readonly items: BillItemProps[]; // Relacionamento com bill_items
 }
 
 export type BuildBillProps = {
