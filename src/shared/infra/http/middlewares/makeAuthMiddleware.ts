@@ -40,7 +40,7 @@ export function makeAuthMiddleware(
 
         try{
             
-            const decoded = tokenProvider.verifyToken<IPayLoad>(token);
+            const decoded: IPayLoad = tokenProvider.verifyToken<IPayLoad>(token);
 
             const { sub, role, store_id, must_change_password, token_version, is_paying_user } = decoded;
 
