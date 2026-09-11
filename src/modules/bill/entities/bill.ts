@@ -7,6 +7,7 @@
 import { Decimal } from 'decimal.js';
 import { Product } from '../../product/entities/product.js';
 import { DomainError } from '../../../shared/errors/DomainError.js';
+import { calculateCheckLetter, VALID_LETTERS, PHYSICAL_BILL_CODE_LENGHT } from '../functions/GenerateValidPhysicalBillCodes.js';
 
 // Tipo de representa um item em uma comanda
 export type BillItemProps = {
@@ -57,47 +58,27 @@ export class Bill {
 
     private constructor(private readonly props: BillProps) {}
 
-    private static validateBillCode(gtin: string){
+    private static validateBillCode(gtin: string) {
 
-        if(gtin.length != 4){
-            throw new Error("Codigo da comanda precisa ter 4 digitos")
+        if (gtin.length !== PHYSICAL_BILL_CODE_LENGHT) {
+            throw new DomainError("Codigo da comanda precisa ter 4 caracteres", "INVALID_CODE_LENGTH");
         }
 
-        //verificas se a string contém APENAS dígitos de 0 a 9
-        if (!/^\d+$/.test(gtin)) {
-            throw new Error("O código de 4 digitos deve conter apenas números");
+        const sequence: string = gtin.slice(0, 3);
+        const checkLetter: string = gtin.slice(3).toUpperCase();
+
+        if (!/^\d{3}$/.test(sequence)) {
+            throw new DomainError("Os três primeiros caracteres devem ser numéricos", "INVALID_CODE_FORMAT");
         }
 
-        const startsWith0 = gtin.startsWith('0');
-
-        if(startsWith0){
-            throw new Error("O código da comanda nao pode comecar com '0'");
+        if (!VALID_LETTERS.includes(checkLetter)) {
+            throw new DomainError("Dígito verificador inválido ou letra não permitida", "INVALID_CHECK_LETTER");
         }
 
-        const lastNumber = Number(gtin.slice(-1));
+        const expectedLetter = calculateCheckLetter(sequence);
 
-        let sum: number = 0;
-        let impar: boolean = true;
-
-        for(let i = 0; i < gtin.length-1; i++){
-
-            let currentNumber = Number(gtin[i]);
-
-            impar ?
-            sum += currentNumber
-            :
-            sum += (3 * currentNumber);
-
-            impar = !impar
-            
-        }
-
-        sum = sum % 10;
-
-        const expectedCheckNumber = (10 - sum) % 10;
-
-        if(lastNumber != expectedCheckNumber){
-            throw new Error("Codigo da comanda inválido. Digito Verificador incorreto. O codigo de 4 digitos segue a mesma regra do GTIN-13 para o Digito Verificador.")
+        if (checkLetter !== expectedLetter) {
+            throw new DomainError(`Código ${gtin} inválido. Letra esperada: ${expectedLetter}, Recebida: ${checkLetter}`, "INVALID_CHECK_LETTER_MATCH");
         }
     }
 
