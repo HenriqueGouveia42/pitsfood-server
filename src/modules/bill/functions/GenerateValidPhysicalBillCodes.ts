@@ -1,48 +1,45 @@
 import { AppError } from "../../../shared/errors/AppError.js";
 
-export function generateValid4DigitsPhysicalCodes(quantity: number): Set<string>{
+/*
+    Vamos eliminar as seguintes letras do alfabeto:
+    O e Q (parecem zero 0)
+    I (parece um 1)
+    Z (parece um 2)
+    S (parece um 5)
+    B (parece um 8)
+*/
+export const VALID_LETTERS = "ACDEFGHJKLMNPRTUVWXY";
+export const PHYSICAL_BILL_CODE_LENGHT: number = 4
 
-    let codes = new Set<string>();
-    const max_attempts: number = 20 * quantity;
-    let attempts: number = 0;
+export function calculateCheckLetter(sequence: string): string {
+    const sum: number =
+        (Number(sequence[0]) * 3) + 
+        (Number(sequence[1]) * 5) + 
+        (Number(sequence[2]) * 7);
 
-    while ((codes.size < quantity) && attempts < max_attempts){
+    const letterIndex: number = sum % VALID_LETTERS.length;
+    const checkLetter: string | undefined = VALID_LETTERS[letterIndex];
+    
+    if(!checkLetter) throw new AppError("Caractere de verificação invalido");
+    
+    return checkLetter;
+}
 
-        attempts++
-
-        let sum: number = 0;
-        let impar: boolean = true;
-        let code: string = "";
-
-        for (let j = 0; j < 3; j++){
-
-            let code_digit: number;
-
-            if (j === 0) {
-                // Primeiro dígito: 1 a 9 (não pode ser 0)
-                code_digit = Math.floor(Math.random() * 9) + 1;
-            } else {
-                // Segundo e terceiro dígitos: 0 a 9 (pode ser 0)
-                code_digit = Math.floor(Math.random() * 10);
-            }
-
-            impar ?
-                sum += code_digit
-                :
-                sum += 3 * code_digit
-            impar = !impar
-
-            code += code_digit.toString();
-
-        }
-        
-        const verifier_digit: number = (10 - (sum % 10)) % 10
-        code += verifier_digit;
-        
-        codes.add(code);
+export function generateValid4DigitsPhysicalCodes(quantity: number): Set<string> {
+    
+    if (quantity > 999) {
+        throw new AppError("A quantidade máxima não pode exceder 999", 422, "MAX_BILLS_EXCEEDED");
     }
 
-    if (codes.size < quantity) throw new AppError("Muitas tentativas de criar comandas físicas", 422, "MAX_ATTEMPTS_REACHED")
-    
+    const codes = new Set<string>();
+
+    for (let i = 1; i <= quantity; i++) {
+        const sequence = i.toString().padStart(3, '0');
+        
+        const checkLetter: string = calculateCheckLetter(sequence);
+        
+        codes.add(`${sequence}${checkLetter}`);
+    }
+
     return codes;
 }
