@@ -1,7 +1,6 @@
 import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/SecureRouteBuilder.js";
 import { UserRole } from "../../../entities/user.js";
 
-// Controllers
 import { loginController } from "../../../useCases/login/index.js";
 import { isLoggedInController } from "../../../useCases/isLoggedIn/index.js";
 import { logoutController } from "../../../useCases/logout/index.js";
@@ -13,7 +12,6 @@ import { forgotPasswordVerifyResetPasswordTokenController } from "../../../useCa
 import { getPendingDevicesController } from "../../../useCases/deviceUseCases/getPendingDevices/index.js";
 import { approveDeviceByManagerController } from "../../../useCases/deviceUseCases/approveDeviceByManager/index.js";
 
-// Schemas
 import { registerEmployeeSchema } from "../zodSchemas/RegisterEmployeeSchema.js";
 import { getUsersDataSchema } from "../zodSchemas/GetUsersDataSchema.js";
 import { loginSchema } from "../zodSchemas/LoginSchema.js";
@@ -26,13 +24,12 @@ import { unauthorizeDeviceController } from "../../../useCases/deviceUseCases/un
 const userRouteBuilder = new SecureRouteBuilder();
 
 
-// ROTAS PÚBLICAS
 userRouteBuilder.build({
     method: 'post',
     path: '/login',
     security: 'PUBLIC',
     roles: 'PUBLIC',
-    schema: loginSchema, // Adicionado o schema que estava comentado no código original
+    schema: loginSchema,
     handler: (request, response) => loginController.handle(request, response)
 });
 
@@ -52,9 +49,6 @@ userRouteBuilder.build({
     handler: (request, response) => forgotPasswordVerifyResetPasswordTokenController.handle(request, response)
 })
 
-// NÍVEL 0: REQUER USUARI PRE-AUTENTICADO, OU SEJA, 
-// QUE ACERTOU LOGIN E SENHA, MAS DISPOSITIVO NAO ESTÁ AUTENTICADO
-
 userRouteBuilder.build({
     method: 'post',
     path: '/confirm-device',
@@ -63,8 +57,6 @@ userRouteBuilder.build({
     handler: (request, response) => confirmDeviceController.handle(request, response)
 }),
 
-
-// NÍVEL 1: REQUER APENAS USUÁRIO LOGADO
 userRouteBuilder.build({
     method: 'get',
     path: '/is-logged-in',
@@ -81,8 +73,6 @@ userRouteBuilder.build({
     handler: (request, response) => logoutController.handle(request, response)
 });
 
-
-// NÍVEL 2: REQUER LOJA SELECIONADA NA SESSÃO
 userRouteBuilder.build({
     method: 'get',
     path: '/get-all-users-data',
@@ -105,11 +95,10 @@ userRouteBuilder.build({
     path: '/approve-pending-device',
     security: 'REQUIRE_STORE', // Nível 2
     roles: [UserRole.GESTOR],
-    // Dica: Adicione aqui um ZodSchema 'approvePendingDeviceSchema' para validar o body
+    //schema:
     handler: (request, response) => approveDeviceByManagerController.handle(request, response)
 });
 
-// NÍVEL 3: REQUER ASSINATURA ATIVA
 userRouteBuilder.build({
     method: 'post',
     path: '/change-my-password',
@@ -117,15 +106,6 @@ userRouteBuilder.build({
     roles: 'PUBLIC',
     handler: (request, response) => setPermanentPasswordController.handle(request, response)
 });
-
-/*userRouteBuilder.build({
-    method: 'patch',
-    path: '/update-user/:target_user_id',
-    security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
-    roles: [UserRole.GESTOR],
-    schema: updateUserDataSchema,
-    handler: (request, response) => updateUserDataController.handle(request, response)
-});*/
 
 userRouteBuilder.build({
     method: 'patch',
@@ -168,7 +148,4 @@ userRouteBuilder.build({
     handler: (request, response) => unauthorizeDeviceController.handle(request, response)
 })
 
-
-
-// Exportação limpa e direta
 export const userRoutes = userRouteBuilder.getRouter();

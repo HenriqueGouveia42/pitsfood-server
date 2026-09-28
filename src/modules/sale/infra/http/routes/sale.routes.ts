@@ -12,9 +12,6 @@ import { getSalesSummarySchema } from "../zodSchemas/GetSalesSummaryByPeriodSche
 
 const saleRouteBuilder = new SecureRouteBuilder();
 
-// ==========================================
-// NÍVEL 3: REQUER ASSINATURA ATIVA
-// ==========================================
 
 saleRouteBuilder.build({
     method: 'get',
