@@ -7,7 +7,6 @@ import { sendVerificationCodeToEmailAgainController } from "../../../useCases/Se
 
 const stagedUserRouteBuilder = new SecureRouteBuilder();
 
-// ROTAS PÚBLICAS (Fase de pré-registro/verificação)
 stagedUserRouteBuilder.build({
     method: 'post',
     path: '/create-staged-user',

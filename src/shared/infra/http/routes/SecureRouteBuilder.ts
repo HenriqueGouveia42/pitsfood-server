@@ -9,13 +9,13 @@ import type { ZodType } from "zod";
 
 // Contrato estrito do que uma rota precisa ter
 interface RouteConfig {
-    method: 'get' | 'post' | 'put' | 'patch' | 'delete'; // Obrigatoróio: O TS vai reclamar se não passar isso
-    path: string; // Obrigatoróio: O TS vai reclamar se não passar isso
-    security: SecurityLevel; // Obrigatoróio: O TS vai reclamar se não passar isso
-    roles: UserRole[] | 'PUBLIC'; // Opcionaldo: Força a pensar em quem pode acessar
+    method: 'get' | 'post' | 'put' | 'patch' | 'delete'; 
+    path: string;
+    security: SecurityLevel;
+    roles: UserRole[] | 'PUBLIC';
     schema?: ZodType<any, any, any>; // Opcional: Validação de corpo/query
     middlewares?: RequestHandler[]; // Opcional: Middlewares extras (ex: multer)
-    handler: RequestHandler; // Controller
+    handler: RequestHandler;
 }
 
 export class SecureRouteBuilder {
@@ -26,6 +26,7 @@ export class SecureRouteBuilder {
     }
 
     public build(config: RouteConfig): void {
+
         const securityMiddlewares = TenantGates[config.security];
         const roleMiddleware = config.roles === 'PUBLIC' ? [] : [authorizeRoles(config.roles)];
         const schemaMiddleware = config.schema ? [validateSchema(config.schema)] : [];

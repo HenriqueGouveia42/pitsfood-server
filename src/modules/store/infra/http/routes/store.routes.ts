@@ -1,7 +1,6 @@
-import { User, UserRole } from "../../../../user/entities/user.js";
+import { UserRole } from "../../../../user/entities/user.js";
 import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/SecureRouteBuilder.js";
 
-// Controllers
 import { createStoreController } from "../../../useCases/createStore/index.js";
 import { getStoreDataController } from "../../../useCases/getStoreData/index.js";
 import { listMyStoresController } from "../../../useCases/listMyStores/index.js";
@@ -14,9 +13,7 @@ import { getPlansController } from "../../../useCases/getPlans/index.js";
 import { updateStoreIconController } from "../../../useCases/updateStoreIcon/index.js";
 import { updateStoreDataController } from "../../../useCases/updateStoreData/index.js";
 
-// Schemas
 import { createStoreSchema } from "../zodSchemas/CreateStoreSchema.js";
-
 // Uploads
 import multer from "multer";
 import { uploadConfig } from "../../../../../config/uploads.js"; 
@@ -27,7 +24,6 @@ const upload = multer(uploadConfig);
 const storeRouteBuilder = new SecureRouteBuilder();
 
 
-// ROTAS PÚBLICAS
 storeRouteBuilder.build({
     method: 'post',
     path: '/webhook/payment',
@@ -38,7 +34,6 @@ storeRouteBuilder.build({
 
 
 
-// NÍVEL 1: REQUER APENAS USUÁRIO LOGADO
 storeRouteBuilder.build({
     method: 'post',
     path: '/create-store',
@@ -65,7 +60,6 @@ storeRouteBuilder.build({
     handler: (request, response) => loginIntoStoreController.handle(request, response)
 });
 
-// NÍVEL 2: REQUER LOJA SELECIONADA NA SESSÃO
 storeRouteBuilder.build({
     method: 'post',
     path: '/generate-first-subscription-pix',
@@ -115,7 +109,6 @@ storeRouteBuilder.build({
     handler: (request, response) => renewSubscriptionController.handle(request, response)
 });
 
-// NÍVEL 3: REQUER ASSINATURA ATIVA
 storeRouteBuilder.build({
     method: 'get',
     path: '/get-store-data',

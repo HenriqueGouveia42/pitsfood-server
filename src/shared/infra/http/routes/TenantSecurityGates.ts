@@ -20,7 +20,6 @@ const preAuthMiddleware = makePreAuthMiddleware(
     tokenProvider
 )
 
-// instanciar o middleware de autenticacao
 const authMiddleware = makeAuthMiddleware(
     cacheProvider,
     tokenProvider
