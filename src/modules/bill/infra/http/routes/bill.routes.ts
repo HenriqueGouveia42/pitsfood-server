@@ -1,27 +1,20 @@
 import { UserRole } from "../../../../user/entities/user.js";
 import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/SecureRouteBuilder.js";
 
-// Controllers
 import { batchAddItemsController } from "../../../useCases/batchAddProducts/index.js";
 import { getOpenBillByGtinCodeController } from "../../../useCases/getOpenBillByGtinCode/index.js"
 import { findAllOpenBillsController } from "../../../useCases/findAllOpenBills/index.js"
 import { billCodeExistsController } from "../../../useCases/checkIfBillCodeExists/index.js";
 import { getPhysicalBIllCodesController } from "../../../useCases/getPhysicalBilllCodes/index.js";
 
-// Schemas
 import { batchAddItemsSchema } from "../zodSchemas/batchAddItemsSchema.js";
 import { billCodeExistsSchema } from "../zodSchemas/BillCodeExistsSchema.js";
 import { GetOpenBillByGtinCodeSchema } from "../zodSchemas/GetOpenBillByGtinCodeSchema.js"
 import { sseController } from "../../../useCases/listenBillEvents/SSEController.js";
 import { deactivateItemController } from "../../../useCases/deactivateAndReactivateItem/deactivateItem/index.js";
-import { response } from "express";
 import { reactivateItemController } from "../../../useCases/deactivateAndReactivateItem/reactivateItem/index.js";
 
 const billRouteBuilder = new SecureRouteBuilder();
-
-// ==========================================
-// NÍVEL 3: REQUER ASSINATURA ATIVA (Uso do PDV/Comandas)
-// ==========================================
 
 billRouteBuilder.build({
     method: 'get',
@@ -37,7 +30,7 @@ billRouteBuilder.build({
     path: '/batch-add',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
     roles: [UserRole.CAIXA, UserRole.VENDEDOR, UserRole.GESTOR],
-    schema: batchAddItemsSchema, // schema reativado através do builder
+    schema: batchAddItemsSchema,
     handler: (request, response) => batchAddItemsController.handle(request, response)
 });
 
