@@ -28,7 +28,6 @@ export const batchAddItemsSchema = z.object({
             .array(itemSchema, {
                 error: (issue) => issue.input === undefined ? "A lista de produtos é obrigatória" : "Itens em formato incorreto"
             })
-            // Repare que as restrições (.min, .max, .length) também usam { error: "..." } no Zod v4
             .min(1, { error: "A lista de itens nao pode estar vazia" })
     }).strict()
 });

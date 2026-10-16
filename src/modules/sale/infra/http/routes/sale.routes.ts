@@ -1,12 +1,10 @@
 import { UserRole } from "../../../../user/entities/user.js";
 import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/SecureRouteBuilder.js";
 
-// Controllers
 import { makeSaleController } from "../../../useCases/makeSaleUseCase.ts/index.js";
 import { fetchSalesSummaryByPeriodController } from "../../../useCases/FetchSalesSummaryByPeriodUseCase/index.js";
 import { getPaginatedSalesController } from "../../../useCases/GetPaginatedSalesUseCase/index.js";
 
-// Schemas
 import { makeSaleSchema } from "../zodSchemas/MakeSaleSchema.js";
 import { getSalesSummarySchema } from "../zodSchemas/GetSalesSummaryByPeriodSchema.js";
 

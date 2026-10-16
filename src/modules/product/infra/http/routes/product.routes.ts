@@ -3,14 +3,12 @@ import { SecureRouteBuilder } from "../../../../../shared/infra/http/routes/Secu
 import multer from "multer";
 import { uploadConfig } from "../../../../../config/uploads.js";
 
-// Controllers
 import { createProductController } from "../../../useCases/createProduct/index.js";
 import { getAllProductsController } from "../../../useCases/getAllProducts/index.js";
 import { updateProductController } from "../../../useCases/updateProduct/index.js";
 import { makeStockEntryController } from "../../../useCases/makeStockEntry/index.js";
 import { listStockEntriesController } from "../../../useCases/listStockEntries/index.js";
 
-// Schemas
 import { CreateProductSchema } from "../zodSchemas/CreateProductSchema.js";
 import { ListStockEntriesSchema } from "../zodSchemas/ListStockEntriesSchema.js";
 import { updateProductIconController } from "../../../useCases/updateProductIcon/index.js";
@@ -19,9 +17,6 @@ const productRouteBuilder = new SecureRouteBuilder();
 
 const upload = multer(uploadConfig);
 
-// ==========================================
-// NÍVEL 3: REQUER ASSINATURA ATIVA (Gestão de Produtos e Estoque)
-// ==========================================
 
 productRouteBuilder.build({
     method: 'post',
