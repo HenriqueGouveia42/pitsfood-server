@@ -3,61 +3,63 @@ import type { IUserRepository } from "../../repositories/interfaces/user.reposit
 import { AppError } from "../../../../shared/errors/AppError.js";
 import type { ITokenProvider } from "../../providers/interfaces/token.provider.interface.js";
 import type { IHashedStringProvider } from "../../../../shared/providers/interfaces/hashedStringProvider/IHashedStringProvider.js";
-
-import { DeviceAuthorizationChallengeService } from "../../services/DeviceAuthorizationChallengeService.js";
-import type { outputDTO, WhiteListViaAuthTokenVersionService } from "../../services/WhiteListViaAuthTokenVersionService.js";
+import type {IDeviceAuthorizationChallengeService} from "../../services/DeviceAuthorizationChallengeService.js";
+import type { IWhiteListViaAuthTokenVersionService, WhiteListOutputDTO } from "../../services/WhiteListViaAuthTokenVersionService.js";
 
 export const TEN_MINUTES_IN_SECONDS: number = 60 * 10;
 
-interface IRequest {
+
+
+export type DeviceAuthorizationData = {
+    authorization_code: string,
+    device_id: string,
+    last_time_fetched_at: string | null// used to build a 'cool-down' logic between attempts in the 'ConfirmDeviceUseCase', to avoid exploitation
+    failed_attemps: number
+}
+
+export type LoginUseCaseInputDTO = {
     email: string,
     password: string,
     device_id: string | string[] | null | undefined
 }
 
-export type DeviceAuthorizationData = {
-    authorization_code: string,
-    device_id: string,
-    last_time_fetched_at: string | null//used to build a 'cool-down' logic between attempts in the 'ConfirmDeviceUseCase', to avoid exploitation
-    failed_attemps: number
-}
-
-export type ILoginSucess = {
-    token: string,
-    user: {
-        id: string,
-        username: string,
-        role: string,
-        store_id: string | null,
-        must_change_password: boolean,
-        is_paying_user: boolean,
-        token_version: number
-    }
-}
-
-
-export type LoginResult = 
-    |   { 
+export type LoginUseCaseOutputDTO =  
+       { 
             status: "SUCCESS";
-            data: ILoginSucess
+            data: {
+                token: string,
+                user: {
+                    id: string,
+                    username: string,
+                    role: string,
+                    store_id: string | null,
+                    must_change_password: boolean,
+                    is_paying_user: boolean,
+                    token_version: number
+                }
+            }
         }
     |   { 
             status: "DEVICE_CONFIRMATION_REQUIRED";
             data: { pre_auth_token: string }
         }
+        
 
+export interface ILoginUseCase{
+    execute({ email, password, device_id }:LoginUseCaseInputDTO): Promise<LoginUseCaseOutputDTO>;
+}
 
-export class LoginUseCase {
+export class LoginUseCase implements ILoginUseCase {
 
     constructor(
         private userRepository: IUserRepository,
         private tokenProvider: ITokenProvider,
         private hasheStringProvider: IHashedStringProvider,
-        private deviceAuthorizationChallenge: DeviceAuthorizationChallengeService,
-        private whiteListCache: WhiteListViaAuthTokenVersionService
+        private deviceAuthorizationChallenge: IDeviceAuthorizationChallengeService,
+        private whiteListCache: IWhiteListViaAuthTokenVersionService
     ) {}
 
-    async execute({ email, password, device_id }:IRequest): Promise<LoginResult>{
+    async execute({ email, password, device_id }:LoginUseCaseInputDTO): Promise<LoginUseCaseOutputDTO>{
 
         if (!email || !password || typeof(device_id) !== 'string') {
             throw new AppError("Algum dado está incorreto", 400, "INVALID_CREDENTIALS");
@@ -84,7 +86,7 @@ export class LoginUseCase {
         }
        
         // 4. Executar a lógica de WhiteList no redis, que validará todas as requisições futuras atravpes do middleware "authMiddleware"
-        const { tokenVersion }: outputDTO = await this.whiteListCache.execute({
+        const { tokenVersion }: WhiteListOutputDTO = await this.whiteListCache.execute({
             user_id: user.id
         })
 
