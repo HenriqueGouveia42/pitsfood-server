@@ -16,6 +16,7 @@ import { WhiteListViaAuthTokenVersionService } from "../../services/WhiteListVia
 import { LoginUseCase, type ILoginUseCase } from "./LoginUseCase.js";
 import { LoginController } from "./LoginController.js";
 import { DeviceAuthorizationChallengeService, type IDeviceAuthorizationChallengeService } from "../../services/DeviceAuthorizationChallengeService.js";
+import type { IController } from "../../../../shared/infra/http/protocols.js";
 
 
 
@@ -43,6 +44,6 @@ const loginUseCase: ILoginUseCase = new LoginUseCase(
     whiteListCache
 );
 
-const loginController = new LoginController(loginUseCase)
+const loginController: IController = new LoginController(loginUseCase)
 
 export {loginController}
