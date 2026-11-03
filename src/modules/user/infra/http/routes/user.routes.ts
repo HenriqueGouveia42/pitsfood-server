@@ -20,6 +20,7 @@ import { updateUserNameController } from "../../../useCases/updateUserName/index
 import { updateUserPasswordController } from "../../../useCases/updateUserPassword/index.js";
 import { updateUserStatusController } from "../../../useCases/udateUserStatus/index.js";
 import { unauthorizeDeviceController } from "../../../useCases/deviceUseCases/unauthorizeDevice/index.js";
+import { expressRouteAdapter } from "../../../../../shared/infra/http/adapters/expressRouteAdapter.js";
 
 const userRouteBuilder = new SecureRouteBuilder();
 
@@ -30,7 +31,7 @@ userRouteBuilder.build({
     security: 'PUBLIC',
     roles: 'PUBLIC',
     schema: loginSchema,
-    handler: (request, response) => loginController.handle(request, response)
+    handler: expressRouteAdapter(loginController)
 });
 
 userRouteBuilder.build({
