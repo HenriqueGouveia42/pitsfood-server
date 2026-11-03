@@ -44,6 +44,9 @@ export class GenerateFirstSubscriptionPixUseCase {
     // 8 - Salvar a fatura no banco de dados
 
     async execute({ store_id, user_id, plan }: IRequest): Promise<IGenerateFirstSubscriptionPixUseCaseResponse> {
+
+        const EXPIRATION_TIME_MS: number = 24 * 60 * 60 * 1000;
+        const now = new Date();
         
         // 1 - Validar o plano
         if (plan === SubscriptionPlan.NONE) { throw new AppError("Plano inválido.", 400, "MUST_CHOOSE_PLAN"); }
@@ -73,24 +76,34 @@ export class GenerateFirstSubscriptionPixUseCase {
 
             if (!pendingInvoice.pixCode) throw new AppError("Erro grave de integração. Fatura existe no sistema mas sem código PIX", 500, "INVOICE_WITHOUT_PIX_CODE");
 
-            if (pendingInvoice.planTag === plan) {
-                return {
-                    br_code: pendingInvoice.pixCode,
-                    br_code_base64: pendingInvoice.paymentUrl || "", // Reutilizando o campo para devolver o base64
-                    amount: pendingInvoice.amount,
-                    invoice_id: pendingInvoice.id
-                };
+            const invoiceCreatedAt: number = new Date(pendingInvoice.createdAt).getTime();
+            const isExpired: boolean = (now.getTime() - invoiceCreatedAt) >= EXPIRATION_TIME_MS;
+
+            if (isExpired){
+                const canceledInvoice: SubscriptionInvoice = pendingInvoice.markAsCanceled();
+                await this.invoiceRepository.update(canceledInvoice);
+            } else {
+
+                if (pendingInvoice.planTag === plan) {
+
+                    return {
+                        br_code: pendingInvoice.pixCode,
+                        br_code_base64: pendingInvoice.paymentUrl || "", // Reutilizando o campo para devolver o base64
+                        amount: pendingInvoice.amount,
+                        invoice_id: pendingInvoice.id
+                    };
+                }
+
+                throw new AppError(
+                    "Você já possui uma fatura pendente para outro plano. Aguarde ela expirar ou entre em contato com o suporte.",
+                    409,
+                    "PENDING_INVOICE_EXISTS"
+                );
             }
 
-            throw new AppError(
-                "Você já possui uma fatura pendente para outro plano. Aguarde ela expirar ou entre em contato com o suporte.",
-                409,
-                "PENDING_INVOICE_EXISTS"
-            );
         }
 
         // 5 - Calcular Fatura
-        const now = new Date();
         const { amount_in_cents, target_date } = this.calculator.calculateInvoice(plan, now);
 
         // 6 - Extrair os dados de usuário

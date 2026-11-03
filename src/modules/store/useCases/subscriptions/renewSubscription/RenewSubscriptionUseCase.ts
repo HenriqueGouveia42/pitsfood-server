@@ -29,6 +29,8 @@ export class RenewSubscriptionUseCase {
 
     async execute({ store_id, user_id }: IRenewSubscriptionUseCaseRequest): Promise<IGenerateRenewSubscriptionPixUseCaseResponse> {
 
+        const EXPIRATION_TIME_MS: number = 24 * 60 * 60 * 1000;
+
         // 1 - Buscar loja e dono
         const store = await this.storeRepository.findSavedStoreById(store_id);
         if (!store) throw new AppError("Loja não encontrada", 404, "STORE_NOT_FOUND");
@@ -68,17 +70,31 @@ export class RenewSubscriptionUseCase {
         if (pendingInvoice) {
             if (!pendingInvoice.pixCode) throw new AppError("Erro grave: Fatura pendente sem PIX Code", 500, "INVOICE_WITHOUT_PIX_CODE");
 
-            // Assumimos que a renovação mantém o plano atual da loja
-            if (pendingInvoice.planTag === store.plan) {
-                return {
-                    br_code: pendingInvoice.pixCode,
-                    br_code_base64: pendingInvoice.paymentUrl || "",
-                    amount: pendingInvoice.amount,
-                    invoice_id: pendingInvoice.id
-                };
+            const invoiceCreatedAt: number = new Date(pendingInvoice.createdAt).getTime();
+            const isExpired: boolean = (now.getTime() - invoiceCreatedAt) >= EXPIRATION_TIME_MS;
+
+            if(isExpired){
+
+                const canceledInvoice: SubscriptionInvoice = pendingInvoice.markAsCanceled();
+                await this.invoiceRepository.update(canceledInvoice);
+
+            } else {
+
+                // Assumimos que a renovação mantém o plano atual da loja
+                if (pendingInvoice.planTag === store.plan) {
+                    return {
+                        br_code: pendingInvoice.pixCode,
+                        br_code_base64: pendingInvoice.paymentUrl || "",
+                        amount: pendingInvoice.amount,
+                        invoice_id: pendingInvoice.id
+                    };
+                }
+
+                throw new AppError("Você já possui uma fatura pendente com divergência de plano. Aguarde sua expiração.", 409, "PENDING_INVOICE_EXISTS");
+
             }
 
-            throw new AppError("Você já possui uma fatura pendente com divergência de plano. Aguarde sua expiração.", 409, "PENDING_INVOICE_EXISTS");
+            
         }
 
         // 4 - Lógica de Base Date (O coração da renovação)
@@ -92,7 +108,7 @@ export class RenewSubscriptionUseCase {
         const paymentData = await this.paymentProvider.createTransparentPix({
             amount: amount_in_cents,
             description: `Renovação ${store.plan} (1 Mês)`,
-            expiresIn: 86400,
+            expiresIn: EXPIRATION_TIME_MS/1000,
             customer: {
                 name: owner.username,
                 email: owner.email,
