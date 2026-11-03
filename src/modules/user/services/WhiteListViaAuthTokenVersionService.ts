@@ -1,20 +1,24 @@
 import { CacheKeys } from "../../../shared/constants/cache-keys.js";
 import type { ICacheProvider } from "../../../shared/providers/interfaces/cacheProvider/ICacheProvider.js";
 
-interface inputDTO {
+export type WhiteListInputDTO = {
     user_id: string
 }
 
-export interface outputDTO {
+export type WhiteListOutputDTO = {
     tokenVersion: number
 }
 
-export class WhiteListViaAuthTokenVersionService {
+export interface IWhiteListViaAuthTokenVersionService {
+    execute({ user_id }: WhiteListInputDTO): Promise<WhiteListOutputDTO>;
+}
+
+export class WhiteListViaAuthTokenVersionService implements IWhiteListViaAuthTokenVersionService {
     constructor(
         private cacheProvider: ICacheProvider
     ){}
 
-    async execute({ user_id }: inputDTO): Promise<outputDTO> {
+    async execute({ user_id }: WhiteListInputDTO): Promise<WhiteListOutputDTO> {
 
         const token_version: number = Date.now()
 
