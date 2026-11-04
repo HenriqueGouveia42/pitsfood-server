@@ -1,24 +1,47 @@
 import type { Request, Response } from "express"
-import { AppError } from "../../../../shared/errors/AppError.js";
+import type { IController, IHttpRequest, IHttpResponse, ICookieOptions } from "../../../../shared/infra/http/protocols.js";
 
-export class LogoutController{
+export class LogoutController implements IController{
+
+    constructor(
+        private readonly isCrossDomain: boolean 
+    ) {}
+
+    private getClearCookieOptions(): ICookieOptions {
+        return {
+            httpOnly: true,
+            secure: this.isCrossDomain,      
+            sameSite: this.isCrossDomain ? 'none' : 'lax',  
+            path: '/',
+            maxAge: 0 // maxAge 0 deleta o cookie no navegador
+        };
+    }
     
-    public async handle (req: Request, res:Response): Promise<Response> {
+    handle = async (req: IHttpRequest): Promise<IHttpResponse> => {
 
-        res.clearCookie('token', {
-            httpOnly: true,
-            secure: true,      
-            sameSite: 'none',  
-            path: '/'
-        });
+        return {
+            statusCode: 200,
 
-        res.clearCookie('pre_auth_token', {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/'
-        });
-        
-        return res.status(200).json({message: "Logout realizado com sucesso", isAuthenticated: false});
+            body: {
+                message: "Logout realizado com sucesso", 
+                isAuthenticated: false
+            },
+
+            cookies:[
+                
+                {
+                    name: 'token',
+                    value: '', // Sobrescreve com vazio
+                    options: this.getClearCookieOptions()
+                },
+                {
+                    name: 'pre_auth_token',
+                    value: '', // Sobrescreve com vazio
+                    options: this.getClearCookieOptions()
+                }
+                
+            ]
+
+        }
     }
 }

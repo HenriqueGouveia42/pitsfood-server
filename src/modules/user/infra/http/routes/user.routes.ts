@@ -71,7 +71,7 @@ userRouteBuilder.build({
     path: '/logout',
     security: 'PUBLIC',
     roles: 'PUBLIC',
-    handler: (request, response) => logoutController.handle(request, response)
+    handler: expressRouteAdapter(logoutController)
 });
 
 userRouteBuilder.build({
