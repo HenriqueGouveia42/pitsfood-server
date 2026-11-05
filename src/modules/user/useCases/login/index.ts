@@ -17,7 +17,9 @@ import { LoginUseCase, type ILoginUseCase } from "./LoginUseCase.js";
 import { LoginController } from "./LoginController.js";
 import { DeviceAuthorizationChallengeService, type IDeviceAuthorizationChallengeService } from "../../services/DeviceAuthorizationChallengeService.js";
 import type { IController } from "../../../../shared/infra/http/protocols.js";
+import { expressRouteAdapter } from "../../../../shared/infra/http/adapters/expressRouteAdapter.js";
 
+import { type RequestHandler } from "express";
 
 
 const userRepository: IUserRepository = new PrismaUserRepository();
@@ -44,6 +46,8 @@ const loginUseCase: ILoginUseCase = new LoginUseCase(
     whiteListCache
 );
 
-const loginController: IController = new LoginController(loginUseCase)
+const ILoginController: IController = new LoginController(loginUseCase)
+
+const loginController: RequestHandler = expressRouteAdapter(ILoginController);
 
 export {loginController}
