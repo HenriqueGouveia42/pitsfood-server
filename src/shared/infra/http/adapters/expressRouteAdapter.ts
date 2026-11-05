@@ -1,7 +1,7 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import type { IController, IHttpRequest } from '../protocols.js';
 
-export const expressRouteAdapter = (controller: IController) => {
+export const expressRouteAdapter = (controller: IController): RequestHandler => {
     // Retorna um RequestHandler válido para o Express
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
