@@ -8,6 +8,11 @@ import type {
     ICookieOptions 
 } from "../../../../shared/infra/http/protocols.js"
 
+export type LoginControllerInputDTO = {
+    email: string;
+    password: string;
+}
+
 export class LoginController implements IController {
 
     constructor(
@@ -28,9 +33,9 @@ export class LoginController implements IController {
         };
     }
 
-    handle = async (req: IHttpRequest): Promise<IHttpResponse> => {
+    handle = async (req: IHttpRequest<LoginControllerInputDTO>): Promise<IHttpResponse> => {
 
-        const { email, password } = req.body || {};
+        const { email, password } = req.body as LoginControllerInputDTO;
         const device_id = req.headers?.['x-device-id'] as string;
         const isMobileClient = req.headers?.['x-client-type'] === 'mobile';
 

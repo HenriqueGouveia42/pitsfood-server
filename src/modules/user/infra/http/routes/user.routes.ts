@@ -31,7 +31,7 @@ userRouteBuilder.build({
     security: 'PUBLIC',
     roles: 'PUBLIC',
     schema: loginSchema,
-    handler: expressRouteAdapter(loginController)
+    handler: loginController
 });
 
 userRouteBuilder.build({
@@ -71,7 +71,7 @@ userRouteBuilder.build({
     path: '/logout',
     security: 'PUBLIC',
     roles: 'PUBLIC',
-    handler: expressRouteAdapter(logoutController)
+    handler: logoutController
 });
 
 userRouteBuilder.build({
