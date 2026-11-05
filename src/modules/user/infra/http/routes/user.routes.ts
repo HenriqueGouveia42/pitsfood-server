@@ -46,7 +46,7 @@ userRouteBuilder.build({
     path: '/forgot-password-verify-reset-token',
     security: 'PUBLIC',
     roles: 'PUBLIC',
-    handler: (request, response) => forgotPasswordVerifyResetPasswordTokenController.handle(request, response)
+    handler: forgotPasswordVerifyResetPasswordTokenController
 })
 
 userRouteBuilder.build({

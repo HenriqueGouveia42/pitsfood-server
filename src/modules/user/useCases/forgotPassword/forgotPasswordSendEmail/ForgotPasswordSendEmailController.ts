@@ -1,4 +1,3 @@
-import type { Request, Response } from "express"
 import { ForgotPasswordSendEmailUsecase } from "./ForgotPasswordSendEmailUsecase.js"
 
 import type { InputDTO as UseCaseInputDTO } from "./ForgotPasswordSendEmailUsecase.js"
