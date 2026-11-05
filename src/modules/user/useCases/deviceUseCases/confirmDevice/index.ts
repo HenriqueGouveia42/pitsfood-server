@@ -6,6 +6,11 @@ import { JwtTokenProvider } from "../../../providers/implementations/jwt/token.p
 import { AuthorizeDeviceService } from "../../../services/AuthorizeDeviceService.js";
 import { PrismaUserRepository } from "../../../repositories/implementations/prisma/user.repository.prisma.js";
 import { PrismaStoreRepository } from "../../../../store/repositories/implementations/prisma/store.repository.prisma.js";
+import type { IController } from "../../../../../shared/infra/http/protocols.js";
+import type { RequestHandler } from "express";
+import { expressRouteAdapter } from "../../../../../shared/infra/http/adapters/expressRouteAdapter.js";
+
+const isCrossDomain: boolean = process.env.NODE_ENV === 'production'
 
 const cacheProvider: RedisCacheProvider = new RedisCacheProvider();
 const tokenProvider: JwtTokenProvider = new JwtTokenProvider();
@@ -25,8 +30,11 @@ const confirmDeviceUseCase: ConfirmDeviceUseCase = new ConfirmDeviceUseCase(
     authorizeDeviceService
 )
 
-const confirmDeviceController: ConfirmDeviceController = new ConfirmDeviceController(
-    confirmDeviceUseCase
+const IConfirmDeviceController: IController= new ConfirmDeviceController(
+    confirmDeviceUseCase,
+    isCrossDomain
 )
+
+const confirmDeviceController: RequestHandler = expressRouteAdapter(IConfirmDeviceController)
 
 export { confirmDeviceController }

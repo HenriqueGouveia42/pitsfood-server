@@ -54,7 +54,7 @@ userRouteBuilder.build({
     path: '/confirm-device',
     security: 'REQUIRE_PRE_AUTH',
     roles: 'PUBLIC',
-    handler: (request, response) => confirmDeviceController.handle(request, response)
+    handler: confirmDeviceController
 }),
 
 userRouteBuilder.build({
@@ -62,7 +62,7 @@ userRouteBuilder.build({
     path: '/is-logged-in',
     security: 'REQUIRE_AUTH',
     roles: 'PUBLIC',
-    handler: (request, response) => isLoggedInController.handle(request, response)
+    handler: isLoggedInController
 });
 
 userRouteBuilder.build({
