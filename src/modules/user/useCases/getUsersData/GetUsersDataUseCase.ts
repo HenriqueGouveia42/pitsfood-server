@@ -4,7 +4,7 @@ import { User } from "../../entities/user.js";
 import type { IUserRepository } from "../../repositories/interfaces/user.repository.interface.js";
 import type { AuthorizedDeviceProps } from "../../entities/user.js";
 
-export interface GetUsersDataUseCaseResponse {
+export interface GetUsersDataUseCaseOutputDTO {
     name: string;
     user_id: string;
     role: string;
@@ -22,20 +22,22 @@ export class GetUsersDataUseCase {
         private cacheProvider: ICacheProvider
     ){}
 
-    async execute(store_id: string): Promise<GetUsersDataUseCaseResponse[]> {
+    async execute(store_id: string, active: string): Promise<GetUsersDataUseCaseOutputDTO[]> {
 
         const cacheKey: string = CacheKeys.User.USERS_DATA(store_id);
 
-        const cachedUsers = await this.cacheProvider.get<GetUsersDataUseCaseResponse[]>(cacheKey);
+        const cachedUsers = await this.cacheProvider.get<GetUsersDataUseCaseOutputDTO[]>(cacheKey);
 
         if (cachedUsers) {
             return cachedUsers; 
         }
         
         //CACHE MISS
-        const users: User[] = await this.userRepository.listAllSavedUsers(store_id);
 
-        const usersDataToReturn: GetUsersDataUseCaseResponse[] = users.map((user) => ({
+        const active_filter: boolean = active === 'true' ? true : false;
+        const users: User[] = await this.userRepository.listAllSavedUsers(store_id, active_filter);
+
+        const usersDataToReturn: GetUsersDataUseCaseOutputDTO[] = users.map((user) => ({
             name: user.username, 
             user_id: user.id,
             role: user.role,
