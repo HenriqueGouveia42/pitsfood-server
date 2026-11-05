@@ -14,7 +14,6 @@ export interface ICookie {
     options?: ICookieOptions;
 }
 
-
 export interface IHttpRequest<B = any, P = any, Q = any> {
     body?: B;
     params?: P;
@@ -24,7 +23,7 @@ export interface IHttpRequest<B = any, P = any, Q = any> {
     user?: {
         id: string;
         role: UserRole;
-        store_id: string;
+        store_id: string; // Nota: No IsLoggedInController você esperava string | null. Se for string | null na regra de negócio, ajuste aqui.
         must_change_password: boolean;
         is_paying_user: boolean;
         token_version: number;
@@ -33,6 +32,29 @@ export interface IHttpRequest<B = any, P = any, Q = any> {
     preAuthUserId?: string;
 }
 
+// Para controllers protegidos (como IsLoggedInController)
+export interface IAuthenticatedHttpRequest<B = any, P = any, Q = any> extends IHttpRequest<B, P, Q> {
+    user: { // AQUI O USER É OBRIGATORIO
+        id: string;
+        role: UserRole;
+        store_id: string;
+        must_change_password: boolean;
+        is_paying_user: boolean;
+        token_version: number;
+    };
+}
+
+// Para o fluxo de 2FA, Controller de selecao de loja, etc (como ConfirmDeviceController)
+export interface IPreAuthHttpRequest<B = any, P = any, Q = any> extends IHttpRequest<B, P, Q> {
+    preAuthUserId: string;
+}
+
+// Para forçar um Body específico 
+export interface IValidatedHttpRequest<B, P = any, Q = any> extends IHttpRequest<B, P, Q> {
+    body: B; // Body obrigatório e tipado
+}
+
+
 export interface IHttpResponse {
     statusCode: number;
     body: any;
@@ -40,5 +62,7 @@ export interface IHttpResponse {
 }
 
 export interface IController {
+    // A interface do controller base continua recebendo a interface mais ampla, 
+    // permitindo que cada Controller específico estreite o tipo localmente no seu 'handle'
     handle(req: IHttpRequest): Promise<IHttpResponse>;
 }
