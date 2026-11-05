@@ -79,7 +79,7 @@ userRouteBuilder.build({
     security: 'REQUIRE_STORE',
     roles: [UserRole.GESTOR],
     schema: getUsersDataSchema,
-    handler: (request, response) => getUsersDataController.handle(request, response)
+    handler: getUsersDataController
 });
 
 userRouteBuilder.build({

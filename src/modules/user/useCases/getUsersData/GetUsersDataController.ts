@@ -1,31 +1,28 @@
-import type { Request, Response } from "express"
 import { GetUsersDataUseCase } from "./GetUsersDataUseCase.js"
-import { AppError } from "../../../../shared/errors/AppError.js"
-import type { GetUsersDataUseCaseResponse } from "./GetUsersDataUseCase.js"
+import { type GetUsersDataUseCaseOutputDTO } from "./GetUsersDataUseCase.js";
+import type { IAuthenticatedHttpRequest, IController, IHttpResponse } from "../../../../shared/infra/http/protocols.js";
 
-export class GetUsersDataController{
+export type IAuthenticatedHttpRequestInputDTO = {
+    active: string
+}
+
+export class GetUsersDataController implements IController{
 
     constructor(
         private getUsersDataUseCase: GetUsersDataUseCase
     ){}
 
-    public async handle(req: Request, res: Response){
+    handle = async (req: IAuthenticatedHttpRequest): Promise<IHttpResponse> => {
         
-        const { active } = req.query;
+        const { active } = req.query as IAuthenticatedHttpRequestInputDTO;
         const store_id = req.user.store_id;
 
-        //lógica de conversão: string -> boolean | Undefined
-        let activeFilter: boolean | undefined = undefined;
+        const users: GetUsersDataUseCaseOutputDTO[] = await this.getUsersDataUseCase.execute(store_id, active);
 
-        if (active === 'true') {
-             activeFilter = true;
-        } else if (active === 'false') {
-            activeFilter = false;
+        return {
+            statusCode: 200,
+            body: users
         }
-           
-        const users = await this.getUsersDataUseCase.execute(store_id, activeFilter);
-
-        return res.status(200).json(users);
     }
 
 }
