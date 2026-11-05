@@ -1,19 +1,22 @@
-import type { Request, Response } from "express";
-import { AppError } from "../../../../../shared/errors/AppError.js";
-import type { GetPendingDevicesUseCase } from "./GetPendingDevicesUseCase.js";
+import type { GetPendingDevicesUseCase, GetPendingDevicesUseCaseOutputDTO } from "./GetPendingDevicesUseCase.js";
+import type { IAuthenticatedHttpRequest, IController, IHttpResponse } from "../../../../../shared/infra/http/protocols.js";
 
-export class GetPendingDevicesController {
-    constructor(private getPendingDevicesUseCase: GetPendingDevicesUseCase) {}
+export class GetPendingDevicesController implements IController {
 
-    handle = async (req: Request, res: Response): Promise<Response> => {
-        const store_id = req.user?.store_id;
+    constructor(
+        private getPendingDevicesUseCase: GetPendingDevicesUseCase
+    ) {}
 
-        if (!store_id) {
-            throw new AppError("Contexto de loja obrigatório", 403, "STORE_CONTEXT_REQUIRED");
+    handle = async (req: IAuthenticatedHttpRequest): Promise<IHttpResponse> => {
+        
+        const store_id = req.user.store_id;
+
+        const pendingDevices: GetPendingDevicesUseCaseOutputDTO[] = await this.getPendingDevicesUseCase.execute(store_id);
+
+        return{
+            statusCode: 200,
+            body: pendingDevices
         }
 
-        const pendingDevices = await this.getPendingDevicesUseCase.execute(store_id);
-
-        return res.status(200).json(pendingDevices);
     }
 }
