@@ -7,7 +7,16 @@ export const CacheKeys = {
     },
     User: {
         TOKEN_VERSION: (userId: string) => `user-token-version:${userId}`,
-        USERS_DATA: (storeId: string) => `users-data:${storeId}`,
+        
+
+        /*
+            Quando listar todos (undefined): users-data:id_da_loja:active:undefined
+            Quando listar apenas ativos (true): users-data:id_da_loja:active:true
+            Quando listar apenas inativos (false): users-data:id_da_loja:active:false
+        */
+        USERS_DATA: (storeId: string, active?: boolean) => `users-data:${storeId}:active:${active}`,
+
+
         TEMPORARY_AUTHORIZE_DEVICE_CODE: (userId: string, deviceId: string) => `temp-auth-device-code-user-id:${userId}-device-id:${deviceId}`,
         AUTHORIZED_DEVICES_IDS: (userId: string) => `authorized-devices-ids-user-id:${userId}`
     },
