@@ -2,15 +2,20 @@ import type { Request, Response } from "express"
 import { ForgotPasswordSendEmailUsecase } from "./ForgotPasswordSendEmailUsecase.js"
 
 import type { InputDTO as UseCaseInputDTO } from "./ForgotPasswordSendEmailUsecase.js"
+import type { IController, IHttpRequest, IHttpResponse } from "../../../../../shared/infra/http/protocols.js";
 
-export class ForgotPasswordSendEmailController{
+export type ForgotPasswordSendEmailControllerInputDTO = {
+    email: string
+}
+
+export class ForgotPasswordSendEmailController implements IController{
     constructor(
         private forgotPasswordSendEmailUsecase: ForgotPasswordSendEmailUsecase
     ){}
 
-    public async handle(req: Request, res: Response): Promise<Response>{
+    handle = async (req: IHttpRequest<ForgotPasswordSendEmailControllerInputDTO>): Promise<IHttpResponse> => {
 
-        const { email } = req.body;
+        const { email } = req.body as ForgotPasswordSendEmailControllerInputDTO;
 
         const input: UseCaseInputDTO = {
             email
@@ -18,6 +23,13 @@ export class ForgotPasswordSendEmailController{
 
         await this.forgotPasswordSendEmailUsecase.execute(input);
 
-        return res.status(200).json({message: "Codigo para reset enviado para o Email!"});
+        const responsePayload: any = {
+            message: "Codigo para reset enviado para o Email!"
+        }
+
+        return {
+            statusCode: 200,
+            body: responsePayload
+        }
     }
 }

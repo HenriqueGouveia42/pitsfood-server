@@ -1,5 +1,5 @@
 import { randomInt, randomUUID } from "node:crypto";
-import type { IMailProvider } from "../../../../../shared/providers/EmailProvider/interface/IMailProvider.js";
+import type { IMailProvider } from "../../../../../shared/providers/interfaces/emailProvider/IMailProvider.js";
 import type { IEmailValidationProvider } from "../../../../../shared/providers/interfaces/emailValidationProvider/IEmailValidationProvider.js";
 import { AppError } from "../../../../../shared/errors/AppError.js";
 import type { IPasswordResetRepository } from "../../../repositories/interfaces/password.reset.repository.interface.js";
