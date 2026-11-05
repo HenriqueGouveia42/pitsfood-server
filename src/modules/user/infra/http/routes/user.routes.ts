@@ -38,7 +38,7 @@ userRouteBuilder.build({
     path: '/forgot-password-send-email',
     security: 'PUBLIC',
     roles: 'PUBLIC',
-    handler: (request, response) => forgotPasswordSendEmailController.handle(request, response)
+    handler: forgotPasswordSendEmailController
 })
 
 userRouteBuilder.build({
