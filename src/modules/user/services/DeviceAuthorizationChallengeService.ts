@@ -5,11 +5,11 @@ import type { ITokenProvider } from "../providers/interfaces/token.provider.inte
 import { CacheKeys } from "../../../shared/constants/cache-keys.js";
 import { SYSTEM_NAME } from "../../../config/system_data.js";
 import { User, type AuthorizedDeviceProps } from "../entities/user.js";
-import { type LoginUseCaseOutputDTO, type DeviceAuthorizationData, TEN_MINUTES_IN_SECONDS } from "../useCases/login/LoginUseCase.js";
-import type { PendingDeviceRequestDTO } from "../dtos/PendingDeviceRequest.dto.js";
+import { type DeviceAuthorizationData, TEN_MINUTES_IN_SECONDS } from "../useCases/login/LoginUseCase.js";
+import { type GetPendingDevicesUseCaseOutputDTO } from '../useCases/deviceUseCases/getPendingDevices/GetPendingDevicesUseCase.js';
 
 export interface IDeviceAuthorizationChallengeService {
-    execute(user:User, device_id: string): Promise<LoginUseCaseOutputDTO>
+    execute(user:User, device_id: string): Promise<string>
 }
 
 export class DeviceAuthorizationChallengeService implements IDeviceAuthorizationChallengeService {
@@ -19,17 +19,14 @@ export class DeviceAuthorizationChallengeService implements IDeviceAuthorization
         private tokenProvider: ITokenProvider
     ) {}
 
-    async execute(user: User, device_id: string): Promise<LoginUseCaseOutputDTO> {
+    async execute(user: User, device_id: string): Promise<string> {
 
         const cacheKey: string = CacheKeys.User.TEMPORARY_AUTHORIZE_DEVICE_CODE(user.id, device_id);
         const existingAuthData: AuthorizedDeviceProps | null = await this.cacheProvider.get<AuthorizedDeviceProps>(cacheKey);
         
         if (existingAuthData) {
             const preAuthToken: string = this.tokenProvider.generatePreAuthToken(user.id);
-            return {
-                status: "DEVICE_CONFIRMATION_REQUIRED",
-                data: { pre_auth_token: preAuthToken }
-            };
+            return preAuthToken
         }
 
         const authorize_device_code: string = randomInt(100000, 1000000).toString();
@@ -47,12 +44,12 @@ export class DeviceAuthorizationChallengeService implements IDeviceAuthorization
         // 2. Insere o dispositivo na fila para o Gestor (se o usuário for funcionário de uma loja)
         if (user.storeId) {
             const storePendingKey: string = CacheKeys.Store.PENDING_DEVICES(user.storeId);
-            let pendingList: PendingDeviceRequestDTO[] = await this.cacheProvider.get<PendingDeviceRequestDTO[]>(storePendingKey) || [];
+            let pendingList: GetPendingDevicesUseCaseOutputDTO[] = await this.cacheProvider.get<GetPendingDevicesUseCaseOutputDTO[]>(storePendingKey) || [];
             
             const now: number = Date.now();
             
             // Limpa lixo do cache (requisições > 10 min) e remove duplicatas do mesmo aparelho/usuário
-            pendingList = pendingList.filter((req: PendingDeviceRequestDTO) => 
+            pendingList = pendingList.filter((req: GetPendingDevicesUseCaseOutputDTO) => 
                 (now - req.requested_at < TEN_MINUTES_IN_SECONDS * 1000) &&
                 !(req.user_id === user.id && req.device_id === device_id)
             );
@@ -85,11 +82,9 @@ export class DeviceAuthorizationChallengeService implements IDeviceAuthorization
             body: emailTemplateWithDeviceAuthorizationCode
         });
 
-        const preAuthToken: string = this.tokenProvider.generatePreAuthToken(user.id);
+        const preAuthToken: string = this.tokenProvider.generatePreAuthToken(user.id)
         
-        return {
-            status: "DEVICE_CONFIRMATION_REQUIRED",
-            data: { pre_auth_token: preAuthToken }
-        };
+        return preAuthToken
+         
     }
 }

@@ -82,7 +82,13 @@ export class LoginUseCase implements ILoginUseCase {
 
         // 3.1. Se não estiver, executar o usecase de autorizacao de dispositivo
         if (!isDeviceAuthorized){
-            return await this.deviceAuthorizationChallenge.execute(user, device_id)
+
+            const preAuthToken: string = await this.deviceAuthorizationChallenge.execute(user, device_id)
+            
+            return {
+                status: "DEVICE_CONFIRMATION_REQUIRED",
+                data: { pre_auth_token: preAuthToken }
+            }
         }
        
         // 4. Executar a lógica de WhiteList no redis, que validará todas as requisições futuras atravpes do middleware "authMiddleware"
