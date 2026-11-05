@@ -87,7 +87,7 @@ userRouteBuilder.build({
     path: '/pending-authorization-devices',
     security: 'REQUIRE_STORE', // Nível 2
     roles: [UserRole.GESTOR],
-    handler: (request, response) => getPendingDevicesController.handle(request, response)
+    handler: getPendingDevicesController
 });
 
 userRouteBuilder.build({
