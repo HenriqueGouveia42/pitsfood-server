@@ -8,6 +8,9 @@ import { BcryptjsHashedStringProvider } from "../../../../../shared/infra/provid
 import { UpdateForgottenPasswordAndConsumeTokenService } from "../../../services/uow/UpdateForgottenPasswordAndConsumeTokenService.js";
 
 import { PrismaUnitOfWork } from "../../../../../shared/infra/uow/implementations/PrismaUnitOfWork.js";
+import type { IController } from "../../../../../shared/infra/http/protocols.js";
+import type { RequestHandler } from "express";
+import { expressRouteAdapter } from "../../../../../shared/infra/http/adapters/expressRouteAdapter.js";
 
 const unitOfWork: PrismaUnitOfWork = new PrismaUnitOfWork();
 
@@ -27,9 +30,10 @@ const forgotPasswordVerifyResetPasswordTokenUseCase: ForgotPasswordVerifyResetPa
     updateForgottenPasswordAndConsumeTokenService
 );
 
-
-const forgotPasswordVerifyResetPasswordTokenController: ForgotPasswordVerifyResetPasswordTokenController = new ForgotPasswordVerifyResetPasswordTokenController(
+const IForgotPasswordVerifyResetPasswordTokenController: IController = new ForgotPasswordVerifyResetPasswordTokenController(
     forgotPasswordVerifyResetPasswordTokenUseCase
 );
+
+const forgotPasswordVerifyResetPasswordTokenController: RequestHandler = expressRouteAdapter(IForgotPasswordVerifyResetPasswordTokenController)
 
 export { forgotPasswordVerifyResetPasswordTokenController }
