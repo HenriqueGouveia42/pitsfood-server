@@ -22,9 +22,17 @@ export class GetUsersDataUseCase {
         private cacheProvider: ICacheProvider
     ){}
 
-    async execute(store_id: string, active: string): Promise<GetUsersDataUseCaseOutputDTO[]> {
+    async execute(store_id: string, active?: string): Promise<GetUsersDataUseCaseOutputDTO[]> {
 
-        const cacheKey: string = CacheKeys.User.USERS_DATA(store_id);
+        let active_filter: boolean | undefined = undefined;
+
+        if (active === 'true') {
+            active_filter = true;
+        } else if (active === 'false') {
+            active_filter = false;
+        }
+        
+        const cacheKey: string = CacheKeys.User.USERS_DATA(store_id, active_filter);
 
         const cachedUsers = await this.cacheProvider.get<GetUsersDataUseCaseOutputDTO[]>(cacheKey);
 
@@ -34,7 +42,6 @@ export class GetUsersDataUseCase {
         
         //CACHE MISS
 
-        const active_filter: boolean = active === 'true' ? true : false;
         const users: User[] = await this.userRepository.listAllSavedUsers(store_id, active_filter);
 
         const usersDataToReturn: GetUsersDataUseCaseOutputDTO[] = users.map((user) => ({
