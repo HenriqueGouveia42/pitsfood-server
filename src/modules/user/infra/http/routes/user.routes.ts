@@ -96,7 +96,7 @@ userRouteBuilder.build({
     security: 'REQUIRE_STORE', // Nível 2
     roles: [UserRole.GESTOR],
     //schema:
-    handler: (request, response) => approveDeviceByManagerController.handle(request, response)
+    handler: approveDeviceByManagerController
 });
 
 userRouteBuilder.build({
@@ -104,7 +104,7 @@ userRouteBuilder.build({
     path: '/change-my-password',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
     roles: 'PUBLIC',
-    handler: (request, response) => setPermanentPasswordController.handle(request, response)
+    handler: setPermanentPasswordController
 });
 
 userRouteBuilder.build({
@@ -112,7 +112,7 @@ userRouteBuilder.build({
     path: '/update-name/:target_user_id',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
     roles: [UserRole.GESTOR],
-    handler: (request, response) => updateUserNameController.handle(request, response)
+    handler: updateUserNameController
 })
 
 userRouteBuilder.build({
@@ -120,7 +120,7 @@ userRouteBuilder.build({
     path: '/update-password/:target_user_id',
     security: 'REQUIRE_ACTIVE_SUBSCRIPTION',
     roles: [UserRole.GESTOR],
-    handler: (request, response) => updateUserPasswordController.handle(request, response)
+    handler: updateUserPasswordController
 })
 
 userRouteBuilder.build({

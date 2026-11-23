@@ -11,7 +11,7 @@ export const expressRouteAdapter = (controller: IController): RequestHandler => 
                 params: req.params,
                 query: req.query,
                 headers: req.headers as Record<string, string | string[] | undefined>,
-                // Dados que os seus middlewares injetam no req do Express
+                // Dados que os middlewares injetam no req do Express
                 user: (req as any).user, 
                 preAuthUserId: (req as any).preAuthUserId
             };

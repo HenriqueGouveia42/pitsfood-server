@@ -1,22 +1,27 @@
-import type { Request, Response } from "express";
 import { AppError } from "../../../../../shared/errors/AppError.js";
 import type { ApproveDeviceByManagerUseCase } from "./ApproveDeviceByManagerUseCase.js";
+import type { IAuthenticatedHttpRequest, IController, IHttpResponse } from "../../../../../shared/infra/http/protocols.js";
 
-export class ApproveDeviceByManagerController {
+export type ApproveDeviceByManagerControllerInputDTO = {
+    manager_store_id: string
+    target_user_id: string,
+    device_id: string,
+    device_name: string
+}
+
+export class ApproveDeviceByManagerController implements IController {
+
     constructor(private approveDeviceUseCase: ApproveDeviceByManagerUseCase) {}
 
-    handle = async (req: Request, res: Response): Promise<Response> => {
-        const manager_store_id = req.user?.store_id;
+    handle = async (req: IAuthenticatedHttpRequest): Promise<IHttpResponse> => {
+
+        const manager_store_id: string = req.user.store_id;
         
         if (!manager_store_id) {
             throw new AppError("Contexto de loja obrigatório", 403, "STORE_CONTEXT_REQUIRED");
         }
 
-        const { target_user_id, device_id, device_name } = req.body;
-
-        if (!target_user_id || !device_id || !device_name) {
-            throw new AppError("Faltam parâmetros obrigatórios para aprovar o dispositivo.", 400, "MISSING_PARAMETERS");
-        }
+        const { target_user_id, device_id, device_name } = req.body as ApproveDeviceByManagerControllerInputDTO;
 
         await this.approveDeviceUseCase.execute({
             manager_store_id,
@@ -27,6 +32,11 @@ export class ApproveDeviceByManagerController {
 
         // O controller finaliza rápido. Não emite JWT porque o front do funcionário 
         // vai voltar pra tela e fazer login novamente via /login.
-        return res.status(200).json({ message: "Dispositivo aprovado com sucesso." });
+        return{
+            statusCode: 200,
+            body: {
+                message: "Dispositivo aprovado com sucesso."
+            }
+        }
     }
 }

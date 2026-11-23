@@ -1,28 +1,31 @@
-import type { Request, Response } from "express";
-import { AppError } from "../../../../shared/errors/AppError.js";
 import { UpdateUserNameUseCase } from "./UpdateUserNameUseCase.js";
+import type { IAuthenticatedHttpRequest, IController, IHttpResponse } from "../../../../shared/infra/http/protocols.js";
 
-export class UpdateUserNameController {
+export type UpdateUserNameControllerInputDTO = {
+    target_user_id: string;
+    modifier_user_id: string;
+    modifier_user_store_id: string;
+    name: string;
+}
+
+export class UpdateUserNameController implements IController {
+
     constructor(private updateUserNameUseCase: UpdateUserNameUseCase) {}
 
-    public async handle(req: Request, res: Response): Promise<Response> {
+    handle = async (req: IAuthenticatedHttpRequest<{ name: string }, { target_user_id: string }>): Promise<IHttpResponse> => {
 
-        console.log("Estou no controller de atualizar o nome do usuario!");
-        
-        const { target_user_id } = req.params;
-        if (!target_user_id) throw new AppError("ID do usuario a ser atualizado precisa vir nos params", 400, "TARGET_USER_ID_NOT_FOUND");
-        if (!req.user || !req.user.id || !req.user.store_id) throw new AppError("Erro em algum id da sessao", 401);
-
-        const { name } = req.body;
-        if (!name) throw new AppError("Nome é obrigatório", 400);
-
-        await this.updateUserNameUseCase.execute({
-            target_user_id,
+        const input: UpdateUserNameControllerInputDTO = {
+            target_user_id: req.params!.target_user_id,
             modifier_user_id: req.user.id,
             modifier_user_store_id: req.user.store_id,
-            name,
-        });
+            name: req.body!.name
+        };
 
-        return res.status(200).json({ message: "Nome do usuário atualizado com sucesso" });
+        await this.updateUserNameUseCase.execute(input);
+
+        return {
+            statusCode: 200,
+            body: { message: "Nome do usuário atualizado com sucesso" }
+        };
     }
 }
